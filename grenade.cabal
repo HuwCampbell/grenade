@@ -1,0 +1,99 @@
+name:                  grenade
+version:               0.0.1
+license:               AllRightsReserved
+author:                Ambiata <info@ambiata.com>
+maintainer:            Ambiata <info@ambiata.com>
+copyright:             (c) 2015 Ambiata.
+synopsis:              grenade
+category:              System
+cabal-version:         >= 1.8
+build-type:            Simple
+description:           grenade.
+
+library
+  build-depends:
+                       base                            >= 4.8         && < 5
+                     , bytestring                      == 0.10.*
+                     , either                          == 4.4.*
+                     , exceptions                      == 0.8.*
+                     , hmatrix
+                     , MonadRandom
+                     , mtl                             >= 2.2.1      && < 2.3
+                     , parallel                        == 3.2.*
+                     , text                            == 1.2.*
+                     , transformers
+                     , singletons
+
+  ghc-options:
+                       -Wall
+  hs-source-dirs:
+                       src
+
+
+  exposed-modules:
+                       Grenade
+                       Grenade.Core.Network
+                       Grenade.Core.Vector
+                       Grenade.Core.Runner
+                       Grenade.Core.Shape
+                       Grenade.Layers.Convolution
+                       Grenade.Layers.Dropout
+                       Grenade.Layers.FullyConnected
+                       Grenade.Layers.Flatten
+                       Grenade.Layers.Fuse
+                       Grenade.Layers.Logit
+                       Grenade.Layers.Relu
+                       Grenade.Layers.Tanh
+                       Grenade.Layers.Pooling
+
+
+executable             feedforward
+    ghc-options:       -Wall -threaded -O2
+    main-is:           main/feedforward.hs
+    build-depends:     base
+                     , grenade
+                     , attoparsec
+                     , either
+                     , optparse-applicative            == 0.12.*
+                     , text
+                     , mtl                             >= 2.2.1      && < 2.3
+                     , hmatrix
+                     , transformers
+                     , singletons
+                     , MonadRandom
+
+executable             mnist
+    ghc-options:       -Wall -threaded -O2
+    main-is:           main/mnist.hs
+    build-depends:     base
+                     , grenade
+                     , attoparsec
+                     , either
+                     , optparse-applicative            == 0.12.*
+                     , text
+                     , mtl                             >= 2.2.1      && < 2.3
+                     , hmatrix
+                     , transformers
+                     , singletons
+                     , MonadRandom
+
+
+test-suite test
+  type:                exitcode-stdio-1.0
+
+  main-is:             test.hs
+
+  ghc-options:         -Wall -threaded -O2
+
+  hs-source-dirs:
+                       test
+
+  build-depends:
+                       base                            >= 4.8         && < 5
+                     , grenade
+                     , ambiata-disorder-core
+                     , hmatrix
+                     , mtl
+                     , text
+                     , QuickCheck                      == 2.7.*
+                     , quickcheck-instances            == 0.3.*
