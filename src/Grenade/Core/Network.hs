@@ -33,7 +33,7 @@ class Layer (m :: * -> *) x (i :: Shape) (o :: Shape) where
 -- | Type of a network.
 --   The [Shape] type specifies the shapes of data passed between the layers.
 --   Could be considered to be a heterogeneous list of layers which are able to
---   transform the date shapes of the network.
+--   transform the data shapes of the network.
 data Network :: (* -> *) -> [Shape] -> * where
     O     :: (Show x, Layer m x i o, KnownShape o, KnownShape i)
           => !x

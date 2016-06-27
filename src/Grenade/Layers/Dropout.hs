@@ -19,6 +19,7 @@ import           Grenade.Core.Network
 
 import           Numeric.LinearAlgebra.Static
 
+
 -- Dropout layer help to reduce overfitting.
 -- Idea here is that the vector is a shape of 1s and 0s, which we multiply the input by.
 -- After backpropogation, we return a new matrix/vector, with different bits dropped out.
@@ -27,6 +28,16 @@ import           Numeric.LinearAlgebra.Static
 data Dropout o = Dropout Double (R o)
   deriving Show
 
+randomDropout :: (MonadRandom m, KnownNat i)
+              => Double -> m (Dropout i)
+randomDropout rate = do
+    seed  <- getRandom
+    let wN = randomVector seed Uniform
+        xs = dvmap (\a -> if a <= rate then 0 else 1) wN
+    return $ Dropout rate xs
+
 instance (MonadRandom m, KnownNat i) => Layer m (Dropout i) ('D1 i) ('D1 i) where
-  runForwards _ _= error "todo"
-  runBackards _ _ _ _ = error "todo"
+  runForwards (Dropout _ drops) (S1D' x) = return . S1D' $ x * drops
+  runBackards _ (Dropout rate drops) _ (S1D' x) = do
+    newDropout <- randomDropout rate
+    return (newDropout,  S1D' $ x * drops)
