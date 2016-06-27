@@ -20,7 +20,8 @@ library
                      , MonadRandom
                      , mtl                             >= 2.2.1      && < 2.3
                      , parallel                        == 3.2.*
-                     , text                            == 1.2.*
+                     , primitive
+                     , text                            >= 1.2
                      , transformers
                      , singletons
 
@@ -36,6 +37,7 @@ library
                        Grenade.Core.Vector
                        Grenade.Core.Runner
                        Grenade.Core.Shape
+                       Grenade.Core.Phase
                        Grenade.Layers.Convolution
                        Grenade.Layers.Dropout
                        Grenade.Layers.FullyConnected

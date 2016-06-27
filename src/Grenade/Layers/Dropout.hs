@@ -5,17 +5,21 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE LambdaCase            #-}
 
 module Grenade.Layers.Dropout (
     Dropout (..)
   ) where
 
 import           Control.Monad.Random hiding (fromList)
+import           Control.Monad.State
 
 import           GHC.TypeLits
 import           Grenade.Core.Shape
 import           Grenade.Core.Network
+import           Grenade.Core.Phase
 
 import           Numeric.LinearAlgebra.Static
 
@@ -36,8 +40,12 @@ randomDropout rate = do
         xs = dvmap (\a -> if a <= rate then 0 else 1) wN
     return $ Dropout rate xs
 
-instance (MonadRandom m, KnownNat i) => Layer m (Dropout i) ('D1 i) ('D1 i) where
-  runForwards (Dropout _ drops) (S1D' x) = return . S1D' $ x * drops
-  runBackards _ (Dropout rate drops) _ (S1D' x) = do
-    newDropout <- randomDropout rate
-    return (newDropout,  S1D' $ x * drops)
+instance (MonadRandom m, MonadState Phase m, KnownNat i) => Layer m (Dropout i) ('D1 i) ('D1 i) where
+  runForwards (Dropout rate drops) (S1D' x) = isTrainingPhase >>= \case
+    True  -> return . S1D' $ x * drops
+    False -> return . S1D' $ dvmap (* (1 - rate)) x
+  runBackards _ oldDropout@(Dropout rate drops) _ (S1D' x) = isTrainingPhase >>= \case
+    True -> do
+      newDropout <- randomDropout rate
+      return (newDropout,  S1D' $ x * drops)
+    False -> return (oldDropout,  S1D' $  dvmap (* (1 - rate)) x)
