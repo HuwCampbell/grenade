@@ -10,7 +10,7 @@ Five is right out.
 
 💣 Machine learning which might blow up in your face 💣
 
-Grenade is a type safe, practical and pretty quick neural network library for concise and precise
+Grenade is a dependently typed, practical, and pretty quick neural network library for concise and precise
 specifications of complex networks in Haskell.
 
 As an example, a network which can achieve less than 1.5% error on mnist can be specified and
