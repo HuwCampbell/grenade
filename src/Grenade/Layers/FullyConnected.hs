@@ -38,7 +38,7 @@ instance (Monad m, KnownNat i, KnownNat o) => Layer m (FullyConnected i o) ('D1 
   runBackards rate (FullyConnected wB wN mm) (S1D' x) (S1D' dEdy) =
           let wB'  = wB - konst rate * dEdy
               mm'  = 0.9 * mm - konst rate * (dEdy `outer` x)
-              wd'  = konst (0.0005 * rate) * wN
+              wd'  = konst (0.0001 * rate) * wN
               wN'  = wN + mm' - wd'
               w'   = FullyConnected wB' wN' mm'
               -- calcluate derivatives for next step

@@ -146,7 +146,7 @@ instance ( Monad m
 
         kN = fromJust . create $ tr c LA.<> vs
         mm = momentum * 0.9 - konst rate * kN
-        wd = konst (0.0005 * rate) * kernel
+        wd = konst (0.0001 * rate) * kernel
         rM = kernel + mm - wd
 
         dW = vs LA.<> tr ek

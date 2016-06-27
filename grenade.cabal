@@ -1,9 +1,9 @@
 name:                  grenade
 version:               0.0.1
-license:               AllRightsReserved
-author:                Ambiata <info@ambiata.com>
-maintainer:            Ambiata <info@ambiata.com>
-copyright:             (c) 2015 Ambiata.
+license:               BSD
+author:                Huw Campbell <huw.campbell@gmail.com>
+maintainer:            Huw Campbell <huw.campbell@gmail.com>
+copyright:             (c) 2015 Huw Campbell.
 synopsis:              grenade
 category:              System
 cabal-version:         >= 1.8
