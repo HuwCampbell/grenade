@@ -1,6 +1,6 @@
 name:                  grenade
 version:               0.0.1
-license:               BSD
+license:               BSD2
 author:                Huw Campbell <huw.campbell@gmail.com>
 maintainer:            Huw Campbell <huw.campbell@gmail.com>
 copyright:             (c) 2015 Huw Campbell.
@@ -21,7 +21,7 @@ library
                      , mtl                             >= 2.2.1      && < 2.3
                      , parallel                        == 3.2.*
                      , primitive
-                     , text                            >= 1.2
+                     , text                            == 1.2.*
                      , transformers
                      , singletons
 
@@ -57,7 +57,7 @@ executable             feedforward
                      , attoparsec
                      , either
                      , optparse-applicative            == 0.12.*
-                     , text
+                     , text                            == 1.2.*
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix
                      , transformers
@@ -72,7 +72,7 @@ executable             mnist
                      , attoparsec
                      , either
                      , optparse-applicative            == 0.12.*
-                     , text
+                     , text                            == 1.2.*
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix
                      , transformers
@@ -96,6 +96,6 @@ test-suite test
                      , ambiata-disorder-core
                      , hmatrix
                      , mtl
-                     , text
+                     , text                            == 1.2.*
                      , QuickCheck                      == 2.7.*
                      , quickcheck-instances            == 0.3.*

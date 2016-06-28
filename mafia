@@ -67,11 +67,9 @@ exec_mafia () {
 
       # Create a temporary file in MAFIA_BIN so we can do an atomic copy/move dance.
       mkdir -p $MAFIA_BIN
-      MAFIA_PATH_TEMP=$(mktemp --tmpdir=$MAFIA_BIN $MAFIA_FILE-XXXXXX 2>/dev/null || TMPDIR=$MAFIA_BIN mktemp -t $MAFIA_FILE)
 
       clean_up () {
         rm -rf "$MAFIA_TEMP"
-        rm -f "$MAFIA_PATH_TEMP"
       }
 
       trap clean_up EXIT
@@ -87,9 +85,19 @@ exec_mafia () {
 
         bin/bootstrap ) || exit $?
 
+      MAFIA_PATH_TEMP=$(mktemp --tmpdir=$MAFIA_BIN $MAFIA_FILE-XXXXXX 2>/dev/null || TMPDIR=$MAFIA_BIN mktemp -t $MAFIA_FILE)
+
+      clean_up_temp () {
+        clean_up
+        rm -f "$MAFIA_PATH_TEMP"
+      }
+      trap clean_up_temp EXIT
+
       cp "$MAFIA_TEMP/mafia/.cabal-sandbox/bin/mafia" "$MAFIA_PATH_TEMP"
-      chmod +x "$MAFIA_PATH_TEMP"
+      chmod 755 "$MAFIA_PATH_TEMP"
       mv "$MAFIA_PATH_TEMP" "$MAFIA_PATH"
+
+      clean_up_temp
     }
 
     exec $MAFIA_PATH "$@"
@@ -110,4 +118,4 @@ case "$MODE" in
 upgrade) shift; run_upgrade "$@" ;;
 *) exec_mafia "$@"
 esac
-# Version: d64cd4f4ab42c1431752d7c84e355b7d001778f8
+# Version: dbbe635d8f98be1815130f04465c155f414985bf

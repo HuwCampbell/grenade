@@ -1,15 +1,15 @@
 [submodule "lib/disorder"]
 	path = lib/disorder
-	url = git@github.com:ambiata/disorder.hs
+	url = https://github.com/ambiata/disorder.hs
 [submodule "lib/x"]
 	path = lib/x
-	url = git@github.com:ambiata/x.git
+	url = https://github.com/ambiata/x.git
 [submodule "lib/p"]
 	path = lib/p
-	url = git@github.com:ambiata/p.git
+	url = https://github.com/ambiata/p.git
 [submodule "lib/disorder.hs"]
 	path = lib/disorder.hs
-	url = git@github.com:ambiata/disorder.hs.git
+	url = https://github.com/ambiata/disorder.hs.git
 [submodule "lib/hmatrix"]
 	path = lib/hmatrix
-	url = git@github.com:albertoruiz/hmatrix.git
+	url = https://github.com/albertoruiz/hmatrix.git
