@@ -1,6 +1,6 @@
 name:                  grenade
 version:               0.0.1
-license:               BSD
+license:               BSD2
 author:                Huw Campbell <huw.campbell@gmail.com>
 maintainer:            Huw Campbell <huw.campbell@gmail.com>
 copyright:             (c) 2015 Huw Campbell.
