@@ -37,6 +37,26 @@ Layers in Grenade are represented as Haskell classes, so creating one's own is e
 of a network are not specified correctly and a layer can not sensibly perform the operation between two shapes, then
 it will result in a compile time error.
 
+
+Build Instructions
+------------------
+Grenade currently only builds with the [mafia][https://github.com/ambiata/mafia] scipt that is located in the
+repository. You will also need the `lapack` and `blas` libraries and development tools. Once you have all
+that, Grenade can be build using:
+
+```
+./mafia build
+```
+
+and the tests run using:
+
+```
+./mafia test
+```
+
+Grenade is currently known to build with ghc 7.10. We are working on making it build with ghc 8.0.
+
+
 Thanks
 ------
 Writing a library like this has been on my mind for a while now, but a big shout out must go to Justin Le, whose
