@@ -40,7 +40,7 @@ it will result in a compile time error.
 
 Build Instructions
 ------------------
-Grenade currently only builds with the [mafia][https://github.com/ambiata/mafia] scipt that is located in the
+Grenade currently only builds with the [mafia](https://github.com/ambiata/mafia) scipt that is located in the
 repository. You will also need the `lapack` and `blas` libraries and development tools. Once you have all
 that, Grenade can be build using:
 
