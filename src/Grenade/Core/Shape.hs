@@ -11,6 +11,10 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 
+-- Ghc 8.0 gives a warning on `(+)  _ _ = error ...` but ghc 7.10 fails to
+-- compile without this default pattern.
+{-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
+
 module Grenade.Core.Shape (
     Shape (..)
   , S' (..)

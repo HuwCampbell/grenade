@@ -25,7 +25,7 @@ train :: forall m i o hs. (Monad m, Head hs ~ i, Last hs ~ o, KnownShape i, Know
       -> m (Network m hs)
 train rate x0 target = fmap fst . go x0
   where
-    go  :: forall m' j js. (Monad m', Head js ~ j, Last js ~ o, KnownShape j, KnownShape o)
+    go  :: forall m' j js. (Monad m', Head js ~ j, Last js ~ o, KnownShape j)
         => S' j                -- ^ input vector
         -> Network m' js       -- ^ network to train
         -> m' (Network m' js, S' j)

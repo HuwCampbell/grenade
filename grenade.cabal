@@ -97,5 +97,5 @@ test-suite test
                      , hmatrix
                      , mtl
                      , text                            == 1.2.*
-                     , QuickCheck                      == 2.7.*
+                     , QuickCheck                      >= 2.7        && < 2.9
                      , quickcheck-instances            == 0.3.*

@@ -54,7 +54,7 @@ and the tests run using:
 ./mafia test
 ```
 
-Grenade is currently known to build with ghc 7.10. We are working on making it build with ghc 8.0.
+Grenade is currently known to build with ghc 7.10 and 8.0.
 
 
 Thanks
