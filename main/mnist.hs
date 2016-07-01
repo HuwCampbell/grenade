@@ -32,15 +32,16 @@ import           Grenade
 
 -- With the mnist data from Kaggle normalised to doubles between 0 and 1, learning rate of 0.01 and 15 iterations,
 -- this network should get down to about a 1.3% error rate.
-randomMnistNet :: (MonadRandom m) => m (Network Identity '[('D2 28 28), ('D3 24 24 10), ('D3 12 12 10), ('D3 12 12 10), ('D3 8 8 16), ('D3 4 4 16), ('D1 256), ('D1 256), ('D1 80), ('D1 80), ('D1 10), ('D1 10)])
+randomMnistNet :: (MonadRandom m) => m (Network Identity '[('D2 28 28), ('D2 32 32), ('D3 28 28 10), ('D3 14 14 10), ('D3 14 14 10), ('D3 10 10 16), ('D3 5 5 16), ('D1 400), ('D1 400), ('D1 80), ('D1 80), ('D1 10), ('D1 10)])
 randomMnistNet = do
+  let pad :: Pad 2 2 2 2          = Pad
   a :: Convolution 1 10 5 5 1 1  <- randomConvolution
   let b :: Pooling 2 2 2 2        = Pooling
   c :: Convolution 10 16 5 5 1 1 <- randomConvolution
   let d :: Pooling 2 2 2 2        = Pooling
-  e :: FullyConnected 256 80     <- randomFullyConnected
+  e :: FullyConnected 400 80     <- randomFullyConnected
   f :: FullyConnected 80  10     <- randomFullyConnected
-  return $ a :~> b :~> Relu :~> c :~> d :~> FlattenLayer :~> Relu :~> e :~> Logit :~> f :~> O Logit
+  return $ pad :~> a :~> b :~> Relu :~> c :~> d :~> FlattenLayer :~> Relu :~> e :~> Logit :~> f :~> O Logit
 
 convTest :: Int -> FilePath -> FilePath -> Double -> IO ()
 convTest iterations trainFile validateFile rate = do
