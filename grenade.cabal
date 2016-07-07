@@ -38,6 +38,7 @@ library
                        Grenade.Core.Runner
                        Grenade.Core.Shape
                        Grenade.Core.Phase
+                       Grenade.Layers.Crop
                        Grenade.Layers.Convolution
                        Grenade.Layers.Dropout
                        Grenade.Layers.FullyConnected
@@ -46,6 +47,7 @@ library
                        Grenade.Layers.Logit
                        Grenade.Layers.Relu
                        Grenade.Layers.Tanh
+                       Grenade.Layers.Pad
                        Grenade.Layers.Pooling
 
 
