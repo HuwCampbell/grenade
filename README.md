@@ -59,8 +59,8 @@ Grenade is currently known to build with ghc 7.10 and 8.0.
 
 Thanks
 ------
-Writing a library like this has been on my mind for a while now, but a big shout out must go to Justin Le, whose
-dependently typed fully connected network inspired me to get cracking, gave many ideas for the type level tools I
+Writing a library like this has been on my mind for a while now, but a big shout out must go to [Justin Le](https://github.com/mstksg), whose
+[dependently typed fully connected network](https://blog.jle.im/entry/practical-dependent-types-in-haskell-1.html) inspired me to get cracking, gave many ideas for the type level tools I
 needed, and was a great starting point for writing this library.
 
 Performance
