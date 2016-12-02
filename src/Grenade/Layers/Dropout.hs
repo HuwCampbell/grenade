@@ -1,7 +1,5 @@
-{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -32,6 +30,10 @@ import           Numeric.LinearAlgebra.Static
 data Dropout o = Dropout Double (R o)
   deriving Show
 
+instance (MonadRandom m, KnownNat i) => UpdateLayer m (Dropout i) where
+  type Gradient (Dropout i) = ()
+  runUpdate _ (Dropout rate _) _ = randomDropout rate
+
 randomDropout :: (MonadRandom m, KnownNat i)
               => Double -> m (Dropout i)
 randomDropout rate = do
@@ -44,8 +46,6 @@ instance (MonadRandom m, MonadState Phase m, KnownNat i) => Layer m (Dropout i) 
   runForwards (Dropout rate drops) (S1D' x) = isTrainingPhase >>= \case
     True  -> return . S1D' $ x * drops
     False -> return . S1D' $ dvmap (* (1 - rate)) x
-  runBackards _ oldDropout@(Dropout rate drops) _ (S1D' x) = isTrainingPhase >>= \case
-    True -> do
-      newDropout <- randomDropout rate
-      return (newDropout,  S1D' $ x * drops)
-    False -> return (oldDropout,  S1D' $  dvmap (* (1 - rate)) x)
+  runBackards (Dropout rate drops) _ (S1D' x) = isTrainingPhase >>= \case
+    True -> return ((),  S1D' $ x * drops)
+    False -> return ((),  S1D' $  dvmap (* (1 - rate)) x)

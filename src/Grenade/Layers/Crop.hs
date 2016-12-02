@@ -1,7 +1,5 @@
-{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -39,6 +37,10 @@ data Crop :: Nat
 instance Show (Crop cropLeft cropTop cropRight cropBottom) where
   show Crop = "Crop"
 
+instance Monad m => UpdateLayer m (Crop l t r b) where
+  type Gradient (Crop l t r b) = ()
+  runUpdate _ x _ = return x
+
 -- | A two dimentional image can be cropped.
 instance ( Monad m
          , KnownNat cropLeft
@@ -60,11 +62,11 @@ instance ( Monad m
         m  = extract input
         r  = subMatrix (cropt, cropl) (nrows, ncols) m
     in  return . S2D' . fromJust . create $ r
-  runBackards _ crop _ (S2D' dEdy) =
+  runBackards _ _ (S2D' dEdy) =
     let cropl = fromIntegral $ natVal (Proxy :: Proxy cropLeft)
         cropt = fromIntegral $ natVal (Proxy :: Proxy cropTop)
         cropr = fromIntegral $ natVal (Proxy :: Proxy cropRight)
         cropb = fromIntegral $ natVal (Proxy :: Proxy cropBottom)
         eo    = extract dEdy
         vs    = diagBlock [konst 0 (cropt,cropl), eo, konst 0 (cropb,cropr)]
-    in  return (crop, S2D' . fromJust . create $ vs)
+    in  return ((), S2D' . fromJust . create $ vs)

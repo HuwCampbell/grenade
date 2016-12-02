@@ -1,9 +1,7 @@
 {-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
 
@@ -18,7 +16,7 @@ import           Grenade.Core.Shape
 
 -- | Update a network with new weights after training with an instance.
 train :: forall m i o hs. (Monad m, Head hs ~ i, Last hs ~ o, KnownShape i, KnownShape o)
-      => Double               -- ^ learning rate
+      => LearningParameters   -- ^ learning rate
       -> S' i                 -- ^ input vector
       -> S' o                 -- ^ target vector
       -> Network m hs         -- ^ network to train
@@ -35,20 +33,26 @@ train rate x0 target = fmap fst . go x0
               -- run the rest of the network, and get the layer from above.
              (n', dWs')    <- go y n
               -- calculate the gradient for this layer to pass down,
-             (layer', dWs) <- runBackards rate layer x dWs'
-             return (layer' :~> n', dWs)
+             (layer', dWs) <- runBackards layer x dWs'
+
+             -- Update this layer using the gradient
+             newLayer      <- runUpdate rate layer layer'
+
+             return (newLayer :~> n', dWs)
 
     -- handle the output layer, bouncing the derivatives back down.
     go !x (O layer)
-        = do  y                 <- runForwards layer x
+        = do y                 <- runForwards layer x
               -- the gradient (how much y affects the error)
-              (layer', dWs)     <- runBackards rate layer x (y - target)
-              return (O layer', dWs)
+             (layer', dWs)     <- runBackards layer x (y - target)
+             newLayer          <- runUpdate rate layer layer'
+
+             return (O newLayer, dWs)
 
 -- | Just forwards propagation with no training.
 runNet :: forall m hs. (Monad m)
        => Network m hs
-       -> (S' (Head hs))         -- ^ input vector
+       -> S' (Head hs)         -- ^ input vector
        -> m (S' (Last hs))     -- ^ target vector
 runNet (layer :~> n)  !x = do y <- runForwards layer x
                               runNet n y

@@ -43,7 +43,7 @@ randomMnistNet = do
   f :: FullyConnected 80  10     <- randomFullyConnected
   return $ pad :~> a :~> b :~> Relu :~> c :~> d :~> FlattenLayer :~> Relu :~> e :~> Logit :~> f :~> O Logit
 
-convTest :: Int -> FilePath -> FilePath -> Double -> IO ()
+convTest :: Int -> FilePath -> FilePath -> LearningParameters -> IO ()
 convTest iterations trainFile validateFile rate = do
   net0 <- evalRandIO randomMnistNet
   fT   <- T.readFile trainFile
@@ -52,7 +52,7 @@ convTest iterations trainFile validateFile rate = do
   let validateRows = traverse (A.parseOnly p) (T.lines fV)
   case (trainRows, validateRows) of
     (Right tr', Right vr') -> foldM_ (runIteration tr' vr') net0 [1..iterations]
-    err                    -> putStrLn $ show err
+    err                    -> print err
 
   where
     trainEach !rate' !nt !(i, o) = train rate' i o nt
@@ -65,20 +65,24 @@ convTest iterations trainFile validateFile rate = do
       return (S2D' $ SA.fromList pixels, S1D' $ SA.fromList lab')
 
     runIteration trainRows validateRows net i = do
-      let trained' = runIdentity $ foldM (trainEach (rate * (0.9 ^ i))) net trainRows
+      let trained' = runIdentity $ foldM (trainEach rate) net trainRows
       let res      = runIdentity $ traverse (\(rowP,rowL) -> (rowL,) <$> runNet trained' rowP) validateRows
       let res'     = fmap (\(S1D' label, S1D' prediction) -> (maxIndex (SA.extract label), maxIndex (SA.extract prediction))) res
-      putStrLn $ show trained'
+      print trained'
       putStrLn $ "Iteration " ++ show i ++ ": " ++ show (length (filter ((==) <$> fst <*> snd) res')) ++ " of " ++ show (length res')
       return trained'
 
-data MnistOpts = MnistOpts FilePath FilePath Int Double
+data MnistOpts = MnistOpts FilePath FilePath Int LearningParameters
 
 mnist' :: Parser MnistOpts
 mnist' = MnistOpts <$> (argument str (metavar "TRAIN"))
                    <*> (argument str (metavar "VALIDATE"))
                    <*> option auto (long "iterations" <> short 'i' <> value 15)
-                   <*> option auto (long "train_rate" <> short 'r' <> value 0.01)
+                   <*> (LearningParameters
+                       <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
+                       <*> option auto (long "momentum" <> value 0.9)
+                       <*> option auto (long "l2" <> value 0.0001)
+                       )
 
 main :: IO ()
 main = do

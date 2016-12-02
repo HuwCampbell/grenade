@@ -1,7 +1,5 @@
-{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -39,6 +37,10 @@ data Pad  :: Nat
 instance Show (Pad padLeft padTop padRight padBottom) where
   show Pad = "Pad"
 
+instance Monad m => UpdateLayer m (Pad l t r b) where
+  type Gradient (Pad l t r b) = ()
+  runUpdate _ x _ = return x
+
 -- | A two dimentional image can be padped.
 instance ( Monad m
          , KnownNat padLeft
@@ -60,11 +62,11 @@ instance ( Monad m
         m     = extract input
         r     = diagBlock [konst 0 (padt,padl), m, konst 0 (padb,padr)]
     in  return . S2D' . fromJust . create $ r
-  runBackards _ pad _ (S2D' dEdy) =
+  runBackards Pad _ (S2D' dEdy) =
     let padl  = fromIntegral $ natVal (Proxy :: Proxy padLeft)
         padt  = fromIntegral $ natVal (Proxy :: Proxy padTop)
         nrows = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         ncols = fromIntegral $ natVal (Proxy :: Proxy inputColumns)
         m     = extract dEdy
         vs    = subMatrix (padt, padl) (nrows, ncols) m
-    in  return (pad, S2D' . fromJust . create $ vs)
+    in  return ((), S2D' . fromJust . create $ vs)

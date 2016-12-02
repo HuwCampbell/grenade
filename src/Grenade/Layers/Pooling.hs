@@ -51,6 +51,10 @@ instance Show (Pooling k k' s s') where
   show Pooling = "Pooling"
 
 
+instance Monad m => UpdateLayer m (Pooling kernelRows kernelColumns strideRows strideColumns) where
+  type Gradient (Pooling kr kc sr sc) = ()
+  runUpdate _ Pooling _ = return Pooling
+
 -- | A two dimentional image can be pooled.
 instance ( Monad m
          , KnownNat kernelRows
@@ -75,7 +79,7 @@ instance ( Monad m
         r  = poolForward kx ky sx sy ox oy $ ex
         rs = fromJust . create $ r
     in  return . S2D' $ rs
-  runBackards _ Pooling (S2D' input) (S2D' dEdy) =
+  runBackards Pooling (S2D' input) (S2D' dEdy) =
     let kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
         ky = fromIntegral $ natVal (Proxy :: Proxy kernelColumns)
         sx = fromIntegral $ natVal (Proxy :: Proxy strideRows)
@@ -83,7 +87,7 @@ instance ( Monad m
         ex = extract input
         eo = extract dEdy
         vs = poolBackward kx ky sx sy ex eo
-    in  return (Pooling, S2D' . fromJust . create $ vs)
+    in  return ((), S2D' . fromJust . create $ vs)
 
 
 -- | A three dimensional image can be pooled on each layer.
@@ -112,7 +116,7 @@ instance ( Monad m
         r  = poolForwardList kx ky sx sy ix iy ox oy ex
         rs = fmap (fromJust . create) r
     in  return . S3D' $ rs
-  runBackards _ Pooling (S3D' input) (S3D' dEdy) =
+  runBackards Pooling (S3D' input) (S3D' dEdy) =
     let ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         iy = fromIntegral $ natVal (Proxy :: Proxy inputColumns)
         kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
@@ -123,7 +127,7 @@ instance ( Monad m
         eo = fmap extract dEdy
         ez = vectorZip (,) ex eo
         vs = poolBackwardList kx ky sx sy ix iy ez
-    in  return (Pooling, S3D' . fmap (fromJust . create) $ vs)
+    in  return ((), S3D' . fmap (fromJust . create) $ vs)
 
 poolForward :: Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
 poolForward nrows ncols srows scols outputRows outputCols m =

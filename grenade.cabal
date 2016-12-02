@@ -14,6 +14,7 @@ library
   build-depends:
                        base                            >= 4.8         && < 5
                      , bytestring                      == 0.10.*
+                     , async
                      , either                          == 4.4.*
                      , exceptions                      == 0.8.*
                      , hmatrix

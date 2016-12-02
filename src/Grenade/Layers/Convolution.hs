@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -65,6 +66,24 @@ data Convolution :: Nat -- ^ Number of channels, for the first layer this could 
               -> !(L kernelFlattened filters) -- ^ The last kernel update (or momentum)
               -> Convolution channels filters kernelRows kernelColumns strideRows strideColumns
 
+data Convolution' :: Nat -- ^ Number of channels, for the first layer this could be RGB for instance.
+                  -> Nat -- ^ Number of filters, this is the number of channels output by the layer.
+                  -> Nat -- ^ The number of rows in the kernel filter
+                  -> Nat -- ^ The number of column in the kernel filter
+                  -> Nat -- ^ The row stride of the convolution filter
+                  -> Nat -- ^ The columns stride of the convolution filter
+                  -> * where
+  Convolution' :: ( KnownNat channels
+                  , KnownNat filters
+                  , KnownNat kernelRows
+                  , KnownNat kernelColumns
+                  , KnownNat strideRows
+                  , KnownNat strideColumns
+                  , KnownNat kernelFlattened
+                  , kernelFlattened ~ (kernelRows * kernelColumns * channels))
+               => !(L kernelFlattened filters) -- ^ The kernel filter gradient
+               -> Convolution' channels filters kernelRows kernelColumns strideRows strideColumns
+
 instance Show (Convolution c f k k' s s') where
   show (Convolution a _) = renderConv a
     where
@@ -99,6 +118,22 @@ randomConvolution = do
         mm = konst 0
     return $ Convolution wN mm
 
+instance ( Monad m
+         , KnownNat kernelRows
+         , KnownNat kernelCols
+         , KnownNat channels
+         , KnownNat filters
+         , KnownNat strideRows
+         , KnownNat strideCols
+         , kernelFlattened ~ (kernelRows * kernelColumns * channels)
+         ) => UpdateLayer m (Convolution channels filters kernelRows kernelCols strideRows strideCols) where
+  type Gradient (Convolution channels filters kernelRows kernelCols strideRows strideCols) = (Convolution' channels filters kernelRows kernelCols strideRows strideCols)
+  runUpdate LearningParameters {..} (Convolution oldKernel oldMomentum) (Convolution' kernelGradient) = do
+    let newMomentum    = konst learningMomentum * oldMomentum - konst learningRate * kernelGradient
+        regulariser    = konst (learningRegulariser * learningRate) * oldKernel
+        newKernel      = oldKernel + newMomentum - regulariser
+    return $ Convolution newKernel newMomentum
+
 -- | A two dimentional image may have a convolution filter applied to it
 instance ( Monad m
          , KnownNat kernelRows
@@ -127,7 +162,7 @@ instance ( Monad m
         r  = col2vid 1 1 1 1 ox oy mt
         rs = fmap (fromJust . create) r
     in  return . S3D' $ mkVector rs
-  runBackards rate (Convolution kernel momentum) (S2D' input) (S3D' dEdy) =
+  runBackards (Convolution kernel _) (S2D' input) (S3D' dEdy) =
     let ex = extract input
         ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         iy = fromIntegral $ natVal (Proxy :: Proxy inputCols)
@@ -145,14 +180,10 @@ instance ( Monad m
         vs = vid2col 1 1 1 1 ox oy eo
 
         kN = fromJust . create $ tr c LA.<> vs
-        mm = momentum * 0.9 - konst rate * kN
-        wd = konst (0.0001 * rate) * kernel
-        rM = kernel + mm - wd
-
         dW = vs LA.<> tr ek
 
         xW = col2im kx ky sx sy ix iy dW
-    in  return (Convolution rM mm, S2D' . fromJust . create $ xW)
+    in  return (Convolution' kN, S2D' . fromJust . create $ xW)
 
 
 -- | A three dimensional image (or 2d with many channels) can have
@@ -187,7 +218,7 @@ instance ( Monad m
         r  = col2vid 1 1 1 1 ox oy mt
         rs = fmap (fromJust . create) r
     in  return . S3D' $ mkVector rs
-  runBackards rate (Convolution kernel momentum) (S3D' input) (S3D' dEdy) =
+  runBackards (Convolution kernel _) (S3D' input) (S3D' dEdy) =
     let ex = vecToList $ fmap extract input
         ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         iy = fromIntegral $ natVal (Proxy :: Proxy inputCols)
@@ -205,14 +236,11 @@ instance ( Monad m
         vs = vid2col 1 1 1 1 ox oy eo
 
         kN = fromJust . create $ tr c LA.<> vs
-        mm = momentum * 0.9 - konst rate * kN
-        wd = konst (0.0005 * rate) * kernel
-        rM = kernel + mm - wd
 
         dW = vs LA.<> tr ek
 
         xW = col2vid kx ky sx sy ix iy dW
-    in  return (Convolution rM mm, S3D' . mkVector . fmap (fromJust . create) $ xW)
+    in  return (Convolution' kN, S3D' . mkVector . fmap (fromJust . create) $ xW)
 
 im2col :: Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
 im2col nrows ncols srows scols m =

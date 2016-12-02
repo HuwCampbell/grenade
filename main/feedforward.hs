@@ -35,14 +35,13 @@ randomNet = do
   c :: FullyConnected 10 1  <- randomFullyConnected
   return $ a :~> Tanh :~> b :~> Relu :~> c :~> O Logit
 
-netTest :: MonadRandom m => Double -> Int -> m String
+netTest :: MonadRandom m => LearningParameters -> Int -> m String
 netTest rate n = do
     inps <- replicateM n $ do
-      s <- getRandom
+      s  <- getRandom
       return $ S1D' $ SA.randomVector s SA.Uniform * 2 - 1
     let outs = flip map inps $ \(S1D' v) ->
-                 if v `inCircle` (fromRational 0.33, 0.33)
-                      || v `inCircle` (fromRational (-0.33), 0.33)
+                 if v `inCircle` (fromRational 0.33, 0.33)  || v `inCircle` (fromRational (-0.33), 0.33)
                    then S1D' $ fromRational 1
                    else S1D' $ fromRational 0
     net0 <- randomNet
@@ -70,11 +69,16 @@ netTest rate n = do
     normx (S1D' r) = SA.mean r
 
 
-data FeedForwardOpts = FeedForwardOpts Int Double
+data FeedForwardOpts = FeedForwardOpts Int LearningParameters
 
 feedForward' :: Parser FeedForwardOpts
-feedForward' = FeedForwardOpts <$> option auto (long "examples" <> short 'e' <> value 1000000)
-                               <*> option auto (long "train_rate" <> short 'r' <> value 0.01)
+feedForward' =
+  FeedForwardOpts <$> option auto (long "examples" <> short 'e' <> value 1000000)
+                  <*> (LearningParameters
+                      <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
+                      <*> option auto (long "momentum" <> value 0.9)
+                      <*> option auto (long "l2" <> value 0.0001)
+                      )
 
 main :: IO ()
 main = do
