@@ -119,15 +119,7 @@ randomConvolution = do
         mm = konst 0
     return $ Convolution wN mm
 
-instance ( Monad m
-         , KnownNat kernelRows
-         , KnownNat kernelCols
-         , KnownNat channels
-         , KnownNat filters
-         , KnownNat strideRows
-         , KnownNat strideCols
-         , kernelFlattened ~ (kernelRows * kernelColumns * channels)
-         ) => UpdateLayer m (Convolution channels filters kernelRows kernelCols strideRows strideCols) where
+instance ( Monad m ) => UpdateLayer m (Convolution channels filters kernelRows kernelCols strideRows strideCols) where
   type Gradient (Convolution channels filters kernelRows kernelCols strideRows strideCols) = (Convolution' channels filters kernelRows kernelCols strideRows strideCols)
   runUpdate LearningParameters {..} (Convolution oldKernel oldMomentum) (Convolution' kernelGradient) = do
     let newMomentum    = konst learningMomentum * oldMomentum - konst learningRate * kernelGradient
