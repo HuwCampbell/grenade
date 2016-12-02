@@ -1,6 +1,5 @@
 {-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TupleSections         #-}
@@ -8,7 +7,6 @@
 {-# LANGUAGE FlexibleContexts      #-}
 
 import           Control.Monad
-import           Control.Monad.Identity
 import           Control.Monad.Random
 
 import           GHC.TypeLits
@@ -28,7 +26,7 @@ import           Grenade
 -- between the shapes, so inference can't do it all for us.
 
 -- With around 100000 examples, this should show two clear circles which have been learned by the network.
-randomNet :: (MonadRandom m)  => m (Network Identity '[('D1 2), ('D1 40), ('D1 40), ('D1 10), ('D1 10), ('D1 1), ('D1 1)])
+randomNet :: (MonadRandom m)  => m (Network '[('D1 2), ('D1 40), ('D1 40), ('D1 10), ('D1 10), ('D1 1), ('D1 1)])
 randomNet = do
   a :: FullyConnected 2 40  <- randomFullyConnected
   b :: FullyConnected 40 10 <- randomFullyConnected
@@ -46,13 +44,12 @@ netTest rate n = do
                    else S1D' $ fromRational 0
     net0 <- randomNet
 
-    return . runIdentity $ do
-      trained <- foldM trainEach net0 (zip inps outs)
-      let testIns = [ [ (x,y)  | x <- [0..50] ]
-                               | y <- [0..20] ]
+    let trained = foldl trainEach net0 (zip inps outs)
+    let testIns = [ [ (x,y)  | x <- [0..50] ]
+                              | y <- [0..20] ]
 
-      outMat <- traverse (traverse (\(x,y) -> (render . normx) <$> runNet trained (S1D' $ SA.vector [x / 25 - 1,y / 10 - 1]))) testIns
-      return $ unlines outMat
+    let outMat  = fmap (fmap (\(x,y) -> (render . normx) $ runNet trained (S1D' $ SA.vector [x / 25 - 1,y / 10 - 1]))) testIns
+    return $ unlines outMat
 
   where
     inCircle :: KnownNat n => SA.R n -> (SA.R n, Double) -> Bool
@@ -73,7 +70,7 @@ data FeedForwardOpts = FeedForwardOpts Int LearningParameters
 
 feedForward' :: Parser FeedForwardOpts
 feedForward' =
-  FeedForwardOpts <$> option auto (long "examples" <> short 'e' <> value 1000000)
+  FeedForwardOpts <$> option auto (long "examples" <> short 'e' <> value 100000)
                   <*> (LearningParameters
                       <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
                       <*> option auto (long "momentum" <> value 0.9)

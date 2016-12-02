@@ -1,6 +1,5 @@
 {-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TupleSections         #-}
@@ -9,7 +8,6 @@
 
 import           Control.Applicative
 import           Control.Monad
-import           Control.Monad.Identity
 import           Control.Monad.Random
 
 import qualified Data.Attoparsec.Text as A
@@ -32,7 +30,7 @@ import           Grenade
 
 -- With the mnist data from Kaggle normalised to doubles between 0 and 1, learning rate of 0.01 and 15 iterations,
 -- this network should get down to about a 1.3% error rate.
-randomMnistNet :: (MonadRandom m) => m (Network Identity '[('D2 28 28), ('D2 32 32), ('D3 28 28 10), ('D3 14 14 10), ('D3 14 14 10), ('D3 10 10 16), ('D3 5 5 16), ('D1 400), ('D1 400), ('D1 80), ('D1 80), ('D1 10), ('D1 10)])
+randomMnistNet :: (MonadRandom m) => m (Network '[('D2 28 28), ('D2 32 32), ('D3 28 28 10), ('D3 14 14 10), ('D3 14 14 10), ('D3 10 10 16), ('D3 5 5 16), ('D1 400), ('D1 400), ('D1 80), ('D1 80), ('D1 10), ('D1 10)])
 randomMnistNet = do
   let pad :: Pad 2 2 2 2          = Pad
   a :: Convolution 1 10 5 5 1 1  <- randomConvolution
@@ -65,8 +63,8 @@ convTest iterations trainFile validateFile rate = do
       return (S2D' $ SA.fromList pixels, S1D' $ SA.fromList lab')
 
     runIteration trainRows validateRows net i = do
-      let trained' = runIdentity $ foldM (trainEach rate) net trainRows
-      let res      = runIdentity $ traverse (\(rowP,rowL) -> (rowL,) <$> runNet trained' rowP) validateRows
+      let trained' = foldl (trainEach rate) net trainRows
+      let res      = fmap (\(rowP,rowL) -> (rowL,) $ runNet trained' rowP) validateRows
       let res'     = fmap (\(S1D' label, S1D' prediction) -> (maxIndex (SA.extract label), maxIndex (SA.extract prediction))) res
       print trained'
       putStrLn $ "Iteration " ++ show i ++ ": " ++ show (length (filter ((==) <$> fst <*> snd) res')) ++ " of " ++ show (length res')

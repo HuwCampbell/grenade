@@ -119,17 +119,16 @@ randomConvolution = do
         mm = konst 0
     return $ Convolution wN mm
 
-instance ( Monad m ) => UpdateLayer m (Convolution channels filters kernelRows kernelCols strideRows strideCols) where
+instance UpdateLayer (Convolution channels filters kernelRows kernelCols strideRows strideCols) where
   type Gradient (Convolution channels filters kernelRows kernelCols strideRows strideCols) = (Convolution' channels filters kernelRows kernelCols strideRows strideCols)
-  runUpdate LearningParameters {..} (Convolution oldKernel oldMomentum) (Convolution' kernelGradient) = do
+  runUpdate LearningParameters {..} (Convolution oldKernel oldMomentum) (Convolution' kernelGradient) =
     let newMomentum    = konst learningMomentum * oldMomentum - konst learningRate * kernelGradient
         regulariser    = konst (learningRegulariser * learningRate) * oldKernel
         newKernel      = oldKernel + newMomentum - regulariser
-    return $ Convolution newKernel newMomentum
+    in Convolution newKernel newMomentum
 
 -- | A two dimentional image may have a convolution filter applied to it
-instance ( Monad m
-         , KnownNat kernelRows
+instance ( KnownNat kernelRows
          , KnownNat kernelCols
          , KnownNat filters
          , KnownNat strideRows
@@ -140,7 +139,7 @@ instance ( Monad m
          , KnownNat outputCols
          , ((outputRows - 1) * strideRows) ~ (inputRows - kernelRows)
          , ((outputCols - 1) * strideCols) ~ (inputCols - kernelCols)
-         ) => Layer m (Convolution 1 filters kernelRows kernelCols strideRows strideCols) ('D2 inputRows inputCols) ('D3 outputRows outputCols filters) where
+         ) => Layer (Convolution 1 filters kernelRows kernelCols strideRows strideCols) ('D2 inputRows inputCols) ('D3 outputRows outputCols filters) where
   runForwards (Convolution kernel _) (S2D' input) =
     let ex = extract input
         ek = extract kernel
@@ -154,7 +153,7 @@ instance ( Monad m
         mt = c LA.<> ek
         r  = col2vid 1 1 1 1 ox oy mt
         rs = fmap (fromJust . create) r
-    in  return . S3D' $ mkVector rs
+    in  S3D' $ mkVector rs
   runBackards (Convolution kernel _) (S2D' input) (S3D' dEdy) =
     let ex = extract input
         ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
@@ -176,13 +175,12 @@ instance ( Monad m
         dW = vs LA.<> tr ek
 
         xW = col2im kx ky sx sy ix iy dW
-    in  return (Convolution' kN, S2D' . fromJust . create $ xW)
+    in  (Convolution' kN, S2D' . fromJust . create $ xW)
 
 
 -- | A three dimensional image (or 2d with many channels) can have
 --   an appropriately sized convolution filter run across it.
-instance ( Monad m
-         , KnownNat kernelRows
+instance ( KnownNat kernelRows
          , KnownNat kernelCols
          , KnownNat filters
          , KnownNat strideRows
@@ -194,7 +192,7 @@ instance ( Monad m
          , KnownNat channels
          , ((outputRows - 1) * strideRows) ~ (inputRows - kernelRows)
          , ((outputCols - 1) * strideCols) ~ (inputCols - kernelCols)
-         ) => Layer m (Convolution channels filters kernelRows kernelCols strideRows strideCols) ('D3 inputRows inputCols channels) ('D3 outputRows outputCols filters) where
+         ) => Layer (Convolution channels filters kernelRows kernelCols strideRows strideCols) ('D3 inputRows inputCols channels) ('D3 outputRows outputCols filters) where
   runForwards (Convolution kernel _) (S3D' input) =
     let ex = vecToList $ fmap extract input
         ek = extract kernel
@@ -210,7 +208,7 @@ instance ( Monad m
         mt = c LA.<> ek
         r  = col2vid 1 1 1 1 ox oy mt
         rs = fmap (fromJust . create) r
-    in  return . S3D' $ mkVector rs
+    in  S3D' $ mkVector rs
   runBackards (Convolution kernel _) (S3D' input) (S3D' dEdy) =
     let ex = vecToList $ fmap extract input
         ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
@@ -233,7 +231,7 @@ instance ( Monad m
         dW = vs LA.<> tr ek
 
         xW = col2vid kx ky sx sy ix iy dW
-    in  return (Convolution' kN, S3D' . mkVector . fmap (fromJust . create) $ xW)
+    in  (Convolution' kN, S3D' . mkVector . fmap (fromJust . create) $ xW)
 
 im2col :: Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
 im2col nrows ncols srows scols m =

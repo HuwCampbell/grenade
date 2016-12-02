@@ -22,30 +22,30 @@ import qualified Numeric.LinearAlgebra.Static as LAS
 data Relu = Relu
   deriving Show
 
-instance Monad m => UpdateLayer m Relu where
+instance UpdateLayer Relu where
   type Gradient Relu = ()
-  runUpdate _ _ _ = return Relu
+  runUpdate _ _ _ = Relu
 
-instance (Monad m, KnownNat i) => Layer m Relu ('D1 i) ('D1 i) where
-  runForwards _ (S1D' y) = return $ S1D' (relu y)
+instance ( KnownNat i) => Layer Relu ('D1 i) ('D1 i) where
+  runForwards _ (S1D' y) = S1D' (relu y)
     where
       relu = LAS.dvmap (\a -> if a <= 0 then 0 else a)
-  runBackards _ (S1D' y) (S1D' dEdy) = return ((), S1D' (relu' y * dEdy))
+  runBackards _ (S1D' y) (S1D' dEdy) = ((), S1D' (relu' y * dEdy))
     where
       relu' = LAS.dvmap (\a -> if a <= 0 then 0 else 1)
 
-instance (Monad m, KnownNat i, KnownNat j) => Layer m Relu ('D2 i j) ('D2 i j) where
-  runForwards _ (S2D' y) = return $ S2D' (relu y)
+instance (KnownNat i, KnownNat j) => Layer Relu ('D2 i j) ('D2 i j) where
+  runForwards _ (S2D' y) = S2D' (relu y)
     where
       relu = LAS.dmmap (\a -> if a <= 0 then 0 else a)
-  runBackards _ (S2D' y) (S2D' dEdy) = return ((), S2D' (relu' y * dEdy))
+  runBackards _ (S2D' y) (S2D' dEdy) = ((), S2D' (relu' y * dEdy))
     where
       relu' = LAS.dmmap (\a -> if a <= 0 then 0 else 1)
 
-instance (Monad m, KnownNat i, KnownNat j, KnownNat k) => Layer m Relu ('D3 i j k) ('D3 i j k) where
-  runForwards _ (S3D' y) = return $ S3D' (fmap relu y)
+instance (KnownNat i, KnownNat j, KnownNat k) => Layer Relu ('D3 i j k) ('D3 i j k) where
+  runForwards _ (S3D' y) = S3D' (fmap relu y)
     where
       relu = LAS.dmmap (\a -> if a <= 0 then 0 else a)
-  runBackards _ (S3D' y) (S3D' dEdy) = return ((), S3D' (vectorZip (\y' dEdy' -> relu' y' * dEdy') y dEdy))
+  runBackards _ (S3D' y) (S3D' dEdy) = ((), S3D' (vectorZip (\y' dEdy' -> relu' y' * dEdy') y dEdy))
     where
       relu' = LAS.dmmap (\a -> if a <= 0 then 0 else 1)
