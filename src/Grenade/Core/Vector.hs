@@ -26,7 +26,7 @@ instance Foldable (Vector n) where
   foldr f b (Vector as) = foldr f b as
 
 instance KnownNat n => Traversable (Vector n) where
-  traverse f (Vector as) = fmap mkVector $ traverse f as
+  traverse f (Vector as) = mkVector <$> traverse f as
 
 instance Functor (Vector n) where
   fmap f (Vector as) = Vector (fmap f as)
@@ -41,7 +41,7 @@ mkVector :: forall n a. KnownNat n => [a] -> Vector n a
 mkVector as
  = let du = fromIntegral . natVal $ (undefined :: Proxy n)
        la = length as
-   in if (du == la)
+   in if du == la
         then Vector as
         else error $ "Error creating staticly sized Vector of length: " ++
                      show du ++ " list is of length:" ++ show la

@@ -26,7 +26,7 @@ import           Grenade
 -- between the shapes, so inference can't do it all for us.
 
 -- With around 100000 examples, this should show two clear circles which have been learned by the network.
-randomNet :: (MonadRandom m)  => m (Network '[('D1 2), ('D1 40), ('D1 40), ('D1 10), ('D1 10), ('D1 1), ('D1 1)])
+randomNet :: (MonadRandom m)  => m (Network '[ 'D1 2, 'D1 40, 'D1 40, 'D1 10, 'D1 10, 'D1 1, 'D1 1])
 randomNet = do
   a :: FullyConnected 2 40  <- randomFullyConnected
   b :: FullyConnected 40 10 <- randomFullyConnected
