@@ -14,6 +14,7 @@
 
 module Grenade.Layers.Convolution (
     Convolution (..)
+  , Convolution' (..)
   , randomConvolution
   , im2col
   , vid2col

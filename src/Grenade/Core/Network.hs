@@ -16,7 +16,6 @@ module Grenade.Core.Network (
   , LearningParameters (..)
   ) where
 
-import           Data.Typeable
 import           Grenade.Core.Shape
 
 data LearningParameters = LearningParameters {
@@ -51,10 +50,10 @@ class UpdateLayer m x => Layer (m :: * -> *) x (i :: Shape) (o :: Shape) where
 --   Could be considered to be a heterogeneous list of layers which are able to
 --   transform the data shapes of the network.
 data Network :: (* -> *) -> [Shape] -> * where
-    O     :: (Typeable x, Show x, Layer m x i o, KnownShape o, KnownShape i)
+    O     :: (Show x, Layer m x i o, KnownShape o, KnownShape i)
           => !x
           -> Network m '[i, o]
-    (:~>) :: (Typeable x, Show x, Layer m x i h, KnownShape h, KnownShape i)
+    (:~>) :: (Show x, Layer m x i h, KnownShape h, KnownShape i)
           => !x
           -> !(Network m (h ': hs))
           -> Network m (i ': h ': hs)

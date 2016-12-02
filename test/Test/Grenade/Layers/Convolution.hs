@@ -93,11 +93,12 @@ prop_simple_conv_forwards = once $
                  , 0.0,  0.0,  0.0,  0.0
                  , 0.0,  0.0,  0.0,  0.0
                  , 0.0,  0.0,  0.0,  0.0 ] :: HStatic.L 4 4)
-      --expectedKernel = (HStatic.matrix
-      --           [ 0.0,  0.0,  0.0, -2.0
-      --           ,-2.0,  1.0,  1.0, -5.0
-      --           ,-3.0, -1.0,  1.0, -5.0
-      --           ,-5.0,  0.0,  0.0, -7.0 ] :: HStatic.L 4 4)
+
+      expectedGradient = (HStatic.matrix
+                 [ 1.0, 0.0, 0.0, 2.0
+                 , 2.0, 0.0, 0.0, 5.0
+                 , 3.0, 0.0, 0.0, 4.0
+                 , 4.0, 0.0, 0.0, 6.0 ] :: HStatic.L 4 4)
 
       convLayer = Convolution myKernel zeroKernel :: Convolution 1 4 2 2 1 1
 
@@ -128,12 +129,13 @@ prop_simple_conv_forwards = once $
       expectBack = (HStatic.matrix
                    [  1.0,  0.0, 0.0
                    ,  0.0, -2.0,-1.0] :: HStatic.L 2 3)
-      (nc, inX)  = runIdentity $ runBackards 1 convLayer input grad :: ( Convolution 1 4 2 2 1 1 ,  S' ('D2 2 3))
+      (nc, inX)  = runIdentity $ runBackards convLayer input grad
 
   in case (out, inX, nc) of
-    (S3D' out' , S2D' inX', Convolution _ _)
+    (S3D' out' , S2D' inX', Convolution' backGrad)
       -> ((HStatic.extract <$> expect) === (HStatic.extract <$> vecToList out'))
       .&&. ((HStatic.extract expectBack) === (HStatic.extract inX'))
+      .&&. ((HStatic.extract expectedGradient) === (HStatic.extract backGrad))
       -- Temporarily disabled, as l2 adjustment puts in off 5%
       -- .&&. HStatic.extract expectedKernel === HStatic.extract kernel'
 
@@ -203,11 +205,12 @@ prop_single_conv_forwards = once $
                  , 0.0,  0.0,  0.0,  0.0
                  , 0.0,  0.0,  0.0,  0.0
                  , 0.0,  0.0,  0.0,  0.0 ] :: HStatic.L 4 4)
-      --expectedKernel = (HStatic.matrix
-      --           [ 0.0,  0.0,  0.0, -2.0
-      --           ,-2.0,  1.0,  1.0, -5.0
-      --           ,-3.0, -1.0,  1.0, -5.0
-      --           ,-5.0,  0.0,  0.0, -7.0 ] :: HStatic.L 4 4)
+
+      expectedGradient = (HStatic.matrix
+                 [ 1.0, 0.0, 0.0, 2.0
+                 , 2.0, 0.0, 0.0, 5.0
+                 , 3.0, 0.0, 0.0, 4.0
+                 , 4.0, 0.0, 0.0, 6.0 ] :: HStatic.L 4 4)
 
       convLayer = Convolution myKernel zeroKernel :: Convolution 1 4 2 2 1 1
 
@@ -238,13 +241,13 @@ prop_single_conv_forwards = once $
       expectBack = (HStatic.matrix
                    [  1.0,  0.0, 0.0
                    ,  0.0, -2.0,-1.0] :: HStatic.L 2 3)
-      (nc, inX)  = runIdentity $ runBackards 1 convLayer input grad :: ( Convolution 1 4 2 2 1 1 ,  S' ('D3 2 3 1))
+      (nc, inX)  = runIdentity $ runBackards convLayer input grad
 
   in case (out, inX, nc) of
-    (S3D' out' , S3D' inX', Convolution _ _)
+    (S3D' out' , S3D' inX', Convolution' backGrad)
       ->   ((HStatic.extract <$> expect)  === (HStatic.extract <$> vecToList out'))
       .&&. ([HStatic.extract expectBack]  === (HStatic.extract <$> vecToList inX'))
-      -- .&&. HStatic.extract expectedKernel === HStatic.extract kernel'
+      .&&. ((HStatic.extract expectedGradient) === (HStatic.extract backGrad))
 
 return []
 tests :: IO Bool
