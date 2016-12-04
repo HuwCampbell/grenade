@@ -31,7 +31,7 @@ class UpdateLayer x where
   --   Unit if there isn't a gradient to pass back.
   type Gradient x :: *
   -- | Update a layer with its gradient and learning parameters
-  runUpdate      :: LearningParameters -> x -> Gradient x -> x
+  runUpdate       :: LearningParameters -> x -> Gradient x -> x
 
 -- | Class for a layer. All layers implement this, however, they don't
 --   need to implement it for all shapes, only ones which are appropriate.

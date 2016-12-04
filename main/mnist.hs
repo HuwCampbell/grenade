@@ -74,11 +74,11 @@ data MnistOpts = MnistOpts FilePath FilePath Int LearningParameters
 mnist' :: Parser MnistOpts
 mnist' = MnistOpts <$> argument str (metavar "TRAIN")
                    <*> argument str (metavar "VALIDATE")
-                   <*> option auto (long "iterations" <> short 'i' <> value 15)
+                   <*> option auto (long "iterations" <> short 'i' <> value 10)
                    <*> (LearningParameters
                        <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
                        <*> option auto (long "momentum" <> value 0.9)
-                       <*> option auto (long "l2" <> value 0.0001)
+                       <*> option auto (long "l2" <> value 0.0005)
                        )
 
 main :: IO ()
