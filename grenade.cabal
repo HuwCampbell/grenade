@@ -38,7 +38,6 @@ library
                        Grenade.Core.Vector
                        Grenade.Core.Runner
                        Grenade.Core.Shape
-                       Grenade.Core.Phase
                        Grenade.Layers.Crop
                        Grenade.Layers.Convolution
                        Grenade.Layers.Dropout
