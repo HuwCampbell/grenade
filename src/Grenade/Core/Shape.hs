@@ -39,17 +39,17 @@ data Shape =
 instance KnownShape x => Num (S' x) where
   (+) (S1D' x) (S1D' y) = S1D' (x + y)
   (+) (S2D' x) (S2D' y) = S2D' (x + y)
-  (+) (S3D' x) (S3D' y) = S3D' (vectorZip (\x' y' -> x' + y') x y)
+  (+) (S3D' x) (S3D' y) = S3D' (vectorZip (+) x y)
   (+)  _ _ = error "Impossible to have different constructors for the same shaped network"
 
   (-) (S1D' x) (S1D' y) = S1D' (x - y)
   (-) (S2D' x) (S2D' y) = S2D' (x - y)
-  (-) (S3D' x) (S3D' y) = S3D' (vectorZip (\x' y' -> x' - y') x y)
+  (-) (S3D' x) (S3D' y) = S3D' (vectorZip (-) x y)
   (-)  _ _ = error "Impossible to have different constructors for the same shaped network"
 
   (*) (S1D' x) (S1D' y) = S1D' (x * y)
   (*) (S2D' x) (S2D' y) = S2D' (x * y)
-  (*) (S3D' x) (S3D' y) = S3D' (vectorZip (\x' y' -> x' * y') x y)
+  (*) (S3D' x) (S3D' y) = S3D' (vectorZip (*) x y)
   (*)  _ _ = error "Impossible to have different constructors for the same shaped network"
 
   abs (S1D' x) = S1D' (abs x)

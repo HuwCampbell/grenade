@@ -1,7 +1,6 @@
-{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -24,26 +23,39 @@ import           Grenade.Core.Shape
 -- | A basic fully connected (or inner product) neural network layer.
 data FullyConnected i o = FullyConnected
                         !(R o)   -- Bias neuron weights
+                        !(R o)   -- Bias neuron momentum
                         !(L o i) -- Activation weights
-                        !(L o i) -- Activation momentums
+                        !(L o i) -- Momentum
+
+data FullyConnected' i o = FullyConnected'
+                         !(R o)   -- Bias neuron gradient
+                         !(L o i) -- Activation gradient
 
 instance Show (FullyConnected i o) where
-  show (FullyConnected _ _ _) = "FullyConnected"
+  show FullyConnected {} = "FullyConnected"
 
-instance (Monad m, KnownNat i, KnownNat o) => Layer m (FullyConnected i o) ('D1 i) ('D1 o) where
+instance (KnownNat i, KnownNat o) => UpdateLayer (FullyConnected i o) where
+  type Gradient (FullyConnected i o) = (FullyConnected' i o)
+
+  runUpdate LearningParameters {..} (FullyConnected oldBias oldBiasMomentum oldActivations oldMomentum) (FullyConnected' biasGradient activationGradient) =
+    let newBiasMomentum = konst learningMomentum * oldBiasMomentum - konst learningRate * biasGradient
+        newBias         = oldBias + newBiasMomentum
+        newMomentum     = konst learningMomentum * oldMomentum - konst learningRate * activationGradient
+        regulariser     = konst (learningRegulariser * learningRate) * oldActivations
+        newActivations  = oldActivations + newMomentum - regulariser
+    in FullyConnected newBias newBiasMomentum newActivations newMomentum
+
+instance (KnownNat i, KnownNat o) => Layer (FullyConnected i o) ('D1 i) ('D1 o) where
   -- Do a matrix vector multiplication and return the result.
-  runForwards (FullyConnected wB wN _) (S1D' v) = return $ S1D' (wB + wN #> v)
+  runForwards (FullyConnected wB _ wN _) (S1D' v) = S1D' (wB + wN #> v)
 
   -- Run a backpropogation step for a full connected layer.
-  runBackards rate (FullyConnected wB wN mm) (S1D' x) (S1D' dEdy) =
-          let wB'  = wB - konst rate * dEdy
-              mm'  = 0.9 * mm - konst rate * (dEdy `outer` x)
-              wd'  = konst (0.0001 * rate) * wN
-              wN'  = wN + mm' - wd'
-              w'   = FullyConnected wB' wN' mm'
+  runBackards (FullyConnected _ _ wN _) (S1D' x) (S1D' dEdy) =
+          let wB'  = dEdy
+              mm'  = dEdy `outer` x
               -- calcluate derivatives for next step
               dWs  = tr wN #> dEdy
-          in  return (w', S1D' dWs)
+          in  (FullyConnected' wB' mm', S1D' dWs)
 
 randomFullyConnected :: (MonadRandom m, KnownNat i, KnownNat o)
                      => m (FullyConnected i o)
@@ -52,5 +64,6 @@ randomFullyConnected = do
     s2 :: Int <- getRandom
     let wB = randomVector  s1 Uniform * 2 - 1
         wN = uniformSample s2 (-1) 1
+        bm = konst 0
         mm = konst 0
-    return $ FullyConnected wB wN mm
+    return $ FullyConnected wB bm wN mm

@@ -13,10 +13,10 @@ Five is right out.
 Grenade is a dependently typed, practical, and pretty quick neural network library for concise and precise
 specifications of complex networks in Haskell.
 
-As an example, a network which can achieve less than 1.5% error on mnist can be specified and
+As an example, a network which can achieve less than 1.5% error on MNIST can be specified and
 initialised with random weights in under 10 lines of code with
 ```haskell
-randomMnistNet :: MonadRandom m => m (Network Identity '[('D2 28 28), ('D3 24 24 10), ('D3 12 12 10), ('D3 12 12 10), ('D3 8 8 16), ('D3 4 4 16), ('D1 256), ('D1 256), ('D1 80), ('D1 80), ('D1 10), ('D1 10)])
+randomMnistNet :: MonadRandom m => m (Network '[ 'D2 28 28, 'D3 24 24 10, 'D3 12 12 10, 'D3 12 12 10, 'D3 8 8 16, 'D3 4 4 16, 'D1 256, 'D1 256, 'D1 80, 'D1 80, 'D1 10, 'D1 10])
 randomMnistNet = do
   a :: Convolution 1 10 5 5 1 1  <- randomConvolution
   let b :: Pooling 2 2 2 2        = Pooling

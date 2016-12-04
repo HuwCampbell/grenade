@@ -6,7 +6,7 @@
 	url = https://github.com/ambiata/x.git
 [submodule "lib/p"]
 	path = lib/p
-	url = https://github.com/ambiata/p.git
+	url = https://github.com/ambiata/p
 [submodule "lib/disorder.hs"]
 	path = lib/disorder.hs
 	url = https://github.com/ambiata/disorder.hs.git
