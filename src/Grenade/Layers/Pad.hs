@@ -28,11 +28,7 @@ data Pad  :: Nat
           -> Nat
           -> Nat
           -> Nat -> * where
-  Pad  :: ( KnownNat padLeft
-          , KnownNat padTop
-          , KnownNat padRight
-          , KnownNat padBottom
-          ) => Pad padLeft padTop padRight padBottom
+  Pad  :: Pad padLeft padTop padRight padBottom
 
 instance Show (Pad padLeft padTop padRight padBottom) where
   show Pad = "Pad"
@@ -40,6 +36,7 @@ instance Show (Pad padLeft padTop padRight padBottom) where
 instance UpdateLayer (Pad l t r b) where
   type Gradient (Pad l t r b) = ()
   runUpdate _ x _ = x
+  createRandom = return Pad
 
 -- | A two dimentional image can be padped.
 instance ( KnownNat padLeft

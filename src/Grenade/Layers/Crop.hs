@@ -28,11 +28,7 @@ data Crop :: Nat
           -> Nat
           -> Nat
           -> Nat -> * where
-  Crop :: ( KnownNat cropLeft
-          , KnownNat cropTop
-          , KnownNat cropRight
-          , KnownNat cropBottom
-          ) => Crop cropLeft cropTop cropRight cropBottom
+  Crop :: Crop cropLeft cropTop cropRight cropBottom
 
 instance Show (Crop cropLeft cropTop cropRight cropBottom) where
   show Crop = "Crop"
@@ -40,6 +36,7 @@ instance Show (Crop cropLeft cropTop cropRight cropBottom) where
 instance UpdateLayer (Crop l t r b) where
   type Gradient (Crop l t r b) = ()
   runUpdate _ x _ = x
+  createRandom = return Crop
 
 -- | A two dimentional image can be cropped.
 instance ( KnownNat cropLeft

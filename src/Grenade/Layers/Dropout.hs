@@ -34,6 +34,7 @@ data Dropout o =
 instance (KnownNat i) => UpdateLayer (Dropout i) where
   type Gradient (Dropout i) = ()
   runUpdate _ x _ = x
+  createRandom = randomDropout 0.95
 
 randomDropout :: (MonadRandom m, KnownNat i)
               => Double -> m (Dropout i)

@@ -45,6 +45,8 @@ instance (KnownNat i, KnownNat o) => UpdateLayer (FullyConnected i o) where
         newActivations  = oldActivations + newMomentum - regulariser
     in FullyConnected newBias newBiasMomentum newActivations newMomentum
 
+  createRandom = randomFullyConnected
+
 instance (KnownNat i, KnownNat o) => Layer (FullyConnected i o) ('D1 i) ('D1 o) where
   -- Do a matrix vector multiplication and return the result.
   runForwards (FullyConnected wB _ wN _) (S1D' v) = S1D' (wB + wN #> v)

@@ -119,13 +119,22 @@ randomConvolution = do
         mm = konst 0
     return $ Convolution wN mm
 
-instance UpdateLayer (Convolution channels filters kernelRows kernelCols strideRows strideCols) where
+instance ( KnownNat channels
+         , KnownNat filters
+         , KnownNat kernelRows
+         , KnownNat kernelColumns
+         , KnownNat strideRows
+         , KnownNat strideColumns
+         , KnownNat (kernelRows * kernelColumns * channels)
+         ) => UpdateLayer (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) where
   type Gradient (Convolution channels filters kernelRows kernelCols strideRows strideCols) = (Convolution' channels filters kernelRows kernelCols strideRows strideCols)
   runUpdate LearningParameters {..} (Convolution oldKernel oldMomentum) (Convolution' kernelGradient) =
     let newMomentum    = konst learningMomentum * oldMomentum - konst learningRate * kernelGradient
         regulariser    = konst (learningRegulariser * learningRate) * oldKernel
         newKernel      = oldKernel + newMomentum - regulariser
     in Convolution newKernel newMomentum
+
+  createRandom = randomConvolution
 
 -- | A two dimentional image may have a convolution filter applied to it
 instance ( KnownNat kernelRows
@@ -139,6 +148,7 @@ instance ( KnownNat kernelRows
          , KnownNat outputCols
          , ((outputRows - 1) * strideRows) ~ (inputRows - kernelRows)
          , ((outputCols - 1) * strideCols) ~ (inputCols - kernelCols)
+         , KnownNat (kernelRows * kernelCols * 1)
          ) => Layer (Convolution 1 filters kernelRows kernelCols strideRows strideCols) ('D2 inputRows inputCols) ('D3 outputRows outputCols filters) where
   runForwards (Convolution kernel _) (S2D' input) =
     let ex = extract input
@@ -192,6 +202,7 @@ instance ( KnownNat kernelRows
          , KnownNat channels
          , ((outputRows - 1) * strideRows) ~ (inputRows - kernelRows)
          , ((outputCols - 1) * strideCols) ~ (inputCols - kernelCols)
+         , KnownNat (kernelRows * kernelCols * channels)
          ) => Layer (Convolution channels filters kernelRows kernelCols strideRows strideCols) ('D3 inputRows inputCols channels) ('D3 outputRows outputCols filters) where
   runForwards (Convolution kernel _) (S3D' input) =
     let ex = vecToList $ fmap extract input

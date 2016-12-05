@@ -41,11 +41,7 @@ data Pooling :: Nat
              -> Nat
              -> Nat
              -> Nat -> * where
-  Pooling :: ( KnownNat kernelRows
-             , KnownNat kernelColumns
-             , KnownNat strideRows
-             , KnownNat strideColumns
-             ) => Pooling kernelRows kernelColumns strideRows strideColumns
+  Pooling :: Pooling kernelRows kernelColumns strideRows strideColumns
 
 instance Show (Pooling k k' s s') where
   show Pooling = "Pooling"
@@ -54,6 +50,7 @@ instance Show (Pooling k k' s s') where
 instance UpdateLayer (Pooling kernelRows kernelColumns strideRows strideColumns) where
   type Gradient (Pooling kr kc sr sc) = ()
   runUpdate _ Pooling _ = Pooling
+  createRandom = return Pooling
 
 -- | A two dimentional image can be pooled.
 instance ( KnownNat kernelRows
