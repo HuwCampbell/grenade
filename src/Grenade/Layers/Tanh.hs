@@ -15,13 +15,14 @@ import           Grenade.Core.Network
 import           Grenade.Core.Shape
 
 -- | A Tanh layer.
---   A layer which can act between any shape of the same dimension, perfoming an tanh function.s
+--   A layer which can act between any shape of the same dimension, perfoming a tanh function.
 data Tanh = Tanh
   deriving Show
 
 instance UpdateLayer Tanh where
   type Gradient Tanh = ()
   runUpdate _ _ _ = Tanh
+  createRandom = return Tanh
 
 instance KnownNat i => Layer Tanh ('D1 i) ('D1 i) where
   runForwards _ (S1D' y) = S1D' (tanh y)

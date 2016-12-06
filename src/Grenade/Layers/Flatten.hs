@@ -28,6 +28,8 @@ data FlattenLayer = FlattenLayer
 instance UpdateLayer FlattenLayer where
   type Gradient FlattenLayer = ()
   runUpdate _ _ _ = FlattenLayer
+  createRandom = return FlattenLayer
+
 
 instance (KnownNat a, KnownNat x, KnownNat y, a ~ (x * y)) => Layer FlattenLayer ('D2 x y) ('D1 a) where
   runForwards _ (S2D' y)   = S1D' . fromList . toList . flatten . extract $ y

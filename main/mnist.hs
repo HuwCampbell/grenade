@@ -30,19 +30,15 @@ import           Grenade
 
 -- With the mnist data from Kaggle normalised to doubles between 0 and 1, learning rate of 0.01 and 15 iterations,
 -- this network should get down to about a 1.3% error rate.
-randomMnistNet :: MonadRandom m => m (Network '[ 'D2 28 28, 'D3 24 24 10, 'D3 12 12 10, 'D3 12 12 10, 'D3 8 8 16, 'D3 4 4 16, 'D1 256, 'D1 256, 'D1 80, 'D1 80, 'D1 10, 'D1 10])
-randomMnistNet = do
-  a :: Convolution 1 10 5 5 1 1  <- randomConvolution
-  let b :: Pooling 2 2 2 2        = Pooling
-  c :: Convolution 10 16 5 5 1 1 <- randomConvolution
-  let d :: Pooling 2 2 2 2        = Pooling
-  e :: FullyConnected 256 80     <- randomFullyConnected
-  f :: FullyConnected 80  10     <- randomFullyConnected
-  return $ a :~> b :~> Relu :~> c :~> d :~> FlattenLayer :~> Relu :~> e :~> Logit :~> f :~> O Logit
+randomMnist :: MonadRandom m
+            => m (Network '[ Convolution 1 10 5 5 1 1, Pooling 2 2 2 2, Relu, Convolution 10 16 5 5 1 1, Pooling 2 2 2 2, FlattenLayer, Relu, FullyConnected 256 80, Logit, FullyConnected 80 10, Logit]
+                          '[ 'D2 28 28, 'D3 24 24 10, 'D3 12 12 10, 'D3 12 12 10, 'D3 8 8 16, 'D3 4 4 16, 'D1 256, 'D1 256, 'D1 80, 'D1 80, 'D1 10, 'D1 10])
+randomMnist = randomNetwork
+
 
 convTest :: Int -> FilePath -> FilePath -> LearningParameters -> IO ()
 convTest iterations trainFile validateFile rate = do
-  net0 <- evalRandIO randomMnistNet
+  net0 <- evalRandIO randomMnist
   fT   <- T.readFile trainFile
   fV   <- T.readFile validateFile
   let trainRows = traverse (A.parseOnly p) (T.lines fT)
@@ -52,7 +48,7 @@ convTest iterations trainFile validateFile rate = do
     err                    -> print err
 
   where
-    trainEach !rate' !nt !(i, o) = train rate' i o nt
+    trainEach !rate' !nt !(i, o) = train rate' nt i o
 
     p :: A.Parser (S' ('D2 28 28), S' ('D1 10))
     p = do

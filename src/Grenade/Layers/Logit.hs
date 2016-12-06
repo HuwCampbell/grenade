@@ -25,6 +25,7 @@ data Logit = Logit
 instance UpdateLayer Logit where
   type Gradient Logit = ()
   runUpdate _ _ _ = Logit
+  createRandom = return Logit
 
 instance (KnownNat i) => Layer Logit ('D1 i) ('D1 i) where
   runForwards _ (S1D' y) = S1D' (logistic y)

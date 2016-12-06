@@ -1,9 +1,7 @@
-{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE PolyKinds             #-}
@@ -18,11 +16,9 @@
 module Grenade.Core.Shape (
     Shape (..)
   , S' (..)
-  , KnownShape (..)
   ) where
 
 import           Data.Singletons.TypeLits
-import           Data.Proxy
 
 import           Numeric.LinearAlgebra.Static
 
@@ -36,7 +32,7 @@ data Shape =
   | D2 Nat Nat
   | D3 Nat Nat Nat
 
-instance KnownShape x => Num (S' x) where
+instance Num (S' x) where
   (+) (S1D' x) (S1D' y) = S1D' (x + y)
   (+) (S2D' x) (S2D' y) = S2D' (x + y)
   (+) (S3D' x) (S3D' y) = S3D' (vectorZip (+) x y)
@@ -72,16 +68,3 @@ instance Show (S' n) where
   show (S1D' a) = "S1D' " ++ show a
   show (S2D' a) = "S2D' " ++ show a
   show (S3D' a) = "S3D' " ++ show a
-
--- | Singleton for Shape
-class KnownShape (n :: Shape) where
-  shapeSing :: Proxy n
-
-instance KnownShape ('D1 n) where
-  shapeSing = Proxy
-
-instance KnownShape ('D2 n m) where
-  shapeSing = Proxy
-
-instance KnownShape ('D3 l n m) where
-  shapeSing = Proxy

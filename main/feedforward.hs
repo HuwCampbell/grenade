@@ -17,7 +17,6 @@ import           Options.Applicative
 
 import           Grenade
 
-
 -- The defininition for our simple feed forward network.
 -- The type level list represents the shapes passed through the layers. One can see that for this demonstration
 -- we are using relu, tanh and logit non-linear units, which can be easily subsituted for each other in and out.
@@ -26,12 +25,10 @@ import           Grenade
 -- between the shapes, so inference can't do it all for us.
 
 -- With around 100000 examples, this should show two clear circles which have been learned by the network.
-randomNet :: MonadRandom m => m (Network '[ 'D1 2, 'D1 40, 'D1 40, 'D1 10, 'D1 10, 'D1 1, 'D1 1])
-randomNet = do
-  a :: FullyConnected 2 40  <- randomFullyConnected
-  b :: FullyConnected 40 10 <- randomFullyConnected
-  c :: FullyConnected 10 1  <- randomFullyConnected
-  return $ a :~> Tanh :~> b :~> Relu :~> c :~> O Logit
+randomNet :: MonadRandom m
+          => m (Network '[ FullyConnected 2 40, Tanh, FullyConnected 40 10, Relu, FullyConnected 10 1, Logit ]
+                        '[ 'D1 2, 'D1 40, 'D1 40, 'D1 10, 'D1 10, 'D1 1, 'D1 1])
+randomNet = randomNetwork
 
 netTest :: MonadRandom m => LearningParameters -> Int -> m String
 netTest rate n = do
@@ -46,7 +43,7 @@ netTest rate n = do
 
     let trained = foldl trainEach net0 (zip inps outs)
     let testIns = [ [ (x,y)  | x <- [0..50] ]
-                              | y <- [0..20] ]
+                             | y <- [0..20] ]
 
     let outMat  = fmap (fmap (\(x,y) -> (render . normx) $ runNet trained (S1D' $ SA.vector [x / 25 - 1,y / 10 - 1]))) testIns
     return $ unlines outMat
@@ -54,7 +51,7 @@ netTest rate n = do
   where
     inCircle :: KnownNat n => SA.R n -> (SA.R n, Double) -> Bool
     v `inCircle` (o, r) = SA.norm_2 (v - o) <= r
-    trainEach !nt !(i, o) = train rate i o nt
+    trainEach !nt !(i, o) = train rate nt i o
 
     render n'  | n' <= 0.2  = ' '
                | n' <= 0.4  = '.'
@@ -64,7 +61,6 @@ netTest rate n = do
 
     normx :: S' ('D1 1) -> Double
     normx (S1D' r) = SA.mean r
-
 
 data FeedForwardOpts = FeedForwardOpts Int LearningParameters
 

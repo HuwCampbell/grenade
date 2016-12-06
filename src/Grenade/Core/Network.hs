@@ -8,13 +8,19 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE LambdaCase            #-}
 
 module Grenade.Core.Network (
     Layer (..)
   , Network (..)
   , UpdateLayer (..)
   , LearningParameters (..)
+  , Gradients (..)
+  , CreatableNetwork (..)
   ) where
+
+import           Control.Monad.Random (MonadRandom)
+
 
 import           Grenade.Core.Shape
 
@@ -26,12 +32,14 @@ data LearningParameters = LearningParameters {
 
 -- | Class for updating a layer. All layers implement this, and it is
 --   shape independent.
-class UpdateLayer x where
+class Show x => UpdateLayer x where
   -- | The type for the gradient for this layer.
   --   Unit if there isn't a gradient to pass back.
   type Gradient x :: *
   -- | Update a layer with its gradient and learning parameters
   runUpdate       :: LearningParameters -> x -> Gradient x -> x
+  -- | Create a random layer, many layers will use pure
+  createRandom    :: MonadRandom m => m x
 
 -- | Class for a layer. All layers implement this, however, they don't
 --   need to implement it for all shapes, only ones which are appropriate.
@@ -46,19 +54,35 @@ class UpdateLayer x => Layer x (i :: Shape) (o :: Shape) where
   runBackards    :: x -> S' i -> S' o -> (Gradient x, S' i)
 
 -- | Type of a network.
+--   The [*] type specifies the types of the layers. This is needed for parallel
+--   running and being all the gradients beck together.
 --   The [Shape] type specifies the shapes of data passed between the layers.
 --   Could be considered to be a heterogeneous list of layers which are able to
 --   transform the data shapes of the network.
-data Network :: [Shape] -> * where
-    O     :: (Show x, Layer x i o, KnownShape o, KnownShape i)
-          => !x
-          -> Network '[i, o]
-    (:~>) :: (Show x, Layer x i h, KnownShape h, KnownShape i)
-          => !x
-          -> !(Network (h ': hs))
-          -> Network (i ': h ': hs)
+data Network :: [*] -> [Shape] -> * where
+    O     :: Layer x i o => !x -> Network '[x] '[i, o]
+    (:~>) :: Layer x i h => !x -> !(Network xs (h ': hs)) -> Network (x ': xs) (i ': h ': hs)
 infixr 5 :~>
 
-instance Show (Network h) where
+instance Show (Network l h) where
   show (O a) = "O " ++ show a
   show (i :~> o) = show i ++ "\n:~>\n" ++ show o
+
+-- | Gradients of a network.
+--   Parameterised on the layers of a Network.
+data Gradients :: [*] -> * where
+   OG    :: UpdateLayer x => Gradient x -> Gradients '[x]
+   (:/>) :: UpdateLayer x => Gradient x -> Gradients xs -> Gradients (x ': xs)
+
+
+-- | A network can easily be created by hand with (:~>), but an easy way to initialise a random
+--   network is with the randomNetwork.
+class CreatableNetwork (xs :: [*]) (ss :: [Shape]) where
+  -- | Create a network of the types requested
+  randomNetwork :: MonadRandom m => m (Network xs ss)
+
+instance Layer x i o => CreatableNetwork (x ': '[]) (i ': o ': '[]) where
+  randomNetwork = O <$> createRandom
+
+instance (Layer x i o, CreatableNetwork xs (o ': r ': rs)) => CreatableNetwork (x ': xs) (i ': o ': r ': rs) where
+  randomNetwork = (:~>) <$> createRandom <*> randomNetwork

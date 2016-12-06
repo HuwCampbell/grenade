@@ -25,6 +25,7 @@ data Relu = Relu
 instance UpdateLayer Relu where
   type Gradient Relu = ()
   runUpdate _ _ _ = Relu
+  createRandom = return Relu
 
 instance ( KnownNat i) => Layer Relu ('D1 i) ('D1 i) where
   runForwards _ (S1D' y) = S1D' (relu y)

@@ -23,23 +23,24 @@ import           Grenade.Core.Shape
 --   This does however have a trade off, internal incremental states in the Wengert tape are
 --   not retained during reverse accumulation. So less RAM is used, but more compute is required.
 data Fuse :: * -> * -> Shape -> Shape -> Shape -> * where
-    (:$$) :: (Show x, Show y, Layer x i h, Layer y h o, KnownShape h, KnownShape i, KnownShape o)
+    (:$$) :: (Layer x i h, Layer y h o)
           => !x
           -> !y
           -> Fuse x y i h o
 infixr 5 :$$
 
-instance Show (Fuse x y i h o) where
+instance (Show x, Show y) => Show (Fuse x y i h o) where
   show (x :$$ y) = "(" ++ show x ++ " :$$ " ++ show y ++ ")"
 
-instance (KnownShape i, KnownShape h, KnownShape o) => UpdateLayer (Fuse x y i h o) where
+instance (Layer x i h, Layer y h o) => UpdateLayer (Fuse x y i h o) where
   type Gradient (Fuse x y i h o) = (Gradient x, Gradient y)
   runUpdate lr (x :$$ y) (x', y') =
     let newX = runUpdate lr x x'
         newY = runUpdate lr y y'
     in (newX :$$ newY)
+  createRandom = (:$$) <$> createRandom <*> createRandom
 
-instance (KnownShape i, KnownShape h, KnownShape o) => Layer (Fuse x y i h o) i o where
+instance (Layer x i h, Layer y h o) => Layer (Fuse x y i h o) i o where
   runForwards (x :$$ y) input =
     let yInput  :: S' h = runForwards x input
     in runForwards y yInput
