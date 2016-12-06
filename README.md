@@ -14,17 +14,12 @@ Grenade is a dependently typed, practical, and pretty quick neural network libra
 specifications of complex networks in Haskell.
 
 As an example, a network which can achieve less than 1.5% error on MNIST can be specified and
-initialised with random weights in under 10 lines of code with
+initialised with random weights in a few lines of code with
 ```haskell
-randomMnistNet :: MonadRandom m => m (Network '[ 'D2 28 28, 'D3 24 24 10, 'D3 12 12 10, 'D3 12 12 10, 'D3 8 8 16, 'D3 4 4 16, 'D1 256, 'D1 256, 'D1 80, 'D1 80, 'D1 10, 'D1 10])
-randomMnistNet = do
-  a :: Convolution 1 10 5 5 1 1  <- randomConvolution
-  let b :: Pooling 2 2 2 2        = Pooling
-  c :: Convolution 10 16 5 5 1 1 <- randomConvolution
-  let d :: Pooling 2 2 2 2        = Pooling
-  e :: FullyConnected 256 80     <- randomFullyConnected
-  f :: FullyConnected 80  10     <- randomFullyConnected
-  return $ a :~> b :~> Relu :~> c :~> d :~> FlattenLayer :~> Relu :~> e :~> Logit :~> f :~> O Logit
+randomMnist :: MonadRandom m
+            => m (Network '[ Convolution 1 10 5 5 1 1, Pooling 2 2 2 2, Relu, Convolution 10 16 5 5 1 1, Pooling 2 2 2 2, FlattenLayer, Relu, FullyConnected 256 80, Logit, FullyConnected 80 10, Logit]
+                          '[ 'D2 28 28, 'D3 24 24 10, 'D3 12 12 10, 'D3 12 12 10, 'D3 8 8 16, 'D3 4 4 16, 'D1 256, 'D1 256, 'D1 80, 'D1 80, 'D1 10, 'D1 10])
+randomMnist = randomNetwork
 ```
 
 The network can be thought of as a heterogeneous list of layers, and its type signature includes a type
