@@ -10,6 +10,7 @@ import           Control.Monad.ST ( runST )
 
 import           Data.STRef ( newSTRef, modifySTRef, writeSTRef, readSTRef )
 import           Data.Foldable ( forM_ )
+import           Data.Traversable ( forM )
 
 import           Numeric.LinearAlgebra hiding ( uniformSample, konst )
 import qualified Numeric.LinearAlgebra.Devel as U
@@ -96,14 +97,11 @@ col2vidUnsafe kernelRows kernelColumns strideRows strideColumns destinationRows 
   let columnMatrixRows = rows columnMatrix
   let filters = cols columnMatrix `div` (kernelRows * kernelColumns)
 
-  dataIms    <- traverse (\_ -> U.newMatrix 0 destinationRows destinationCols) [0 .. filters-1]
-
-  offsetM    <- newSTRef 0
-
-  forM_ dataIms $ \dataIm -> do
+  forM [0 .. filters - 1] $ \iter -> do
+    let offsetM = iter * (kernelRows * kernelColumns)
+    dataIm     <- U.newMatrix 0 destinationRows destinationCols
     offsetR    <- newSTRef 0
     offsetC    <- newSTRef 0
-    offsetM'   <- readSTRef offsetM
     forM_ [0 .. columnMatrixRows - 1] $ \ir -> do
       inputColumn <- newSTRef 0
       forM_ [0 .. kernelRows -1] $ \kr ->
@@ -111,7 +109,7 @@ col2vidUnsafe kernelRows kernelColumns strideRows strideColumns destinationRows 
           ic       <- readSTRef inputColumn
           offsetR' <- readSTRef offsetR
           offsetC' <- readSTRef offsetC
-          U.modifyMatrix dataIm (kr + offsetR') (kc + offsetC') (+ U.atM' columnMatrix ir (ic + offsetM'))
+          U.modifyMatrix dataIm (kr + offsetR') (kc + offsetC') (+ U.atM' columnMatrix ir (ic + offsetM))
           modifySTRef inputColumn (+1)
 
       offsetC' <- readSTRef offsetC
@@ -119,9 +117,7 @@ col2vidUnsafe kernelRows kernelColumns strideRows strideColumns destinationRows 
         then modifySTRef offsetC (+ strideColumns)
         else writeSTRef offsetC 0 >> modifySTRef offsetR (+ strideRows)
 
-    modifySTRef offsetM (+ (kernelRows * kernelColumns))
-
-  traverse U.unsafeFreezeMatrix dataIms
+    U.unsafeFreezeMatrix dataIm
 
 vid2colUnsafe :: Int -> Int -> Int -> Int -> Int -> Int -> [Matrix Double] -> Matrix Double
 vid2colUnsafe kernelRows kernelColumns striderows stridecols vidrows vidcols dataVid = U.runSTMatrix $ do
