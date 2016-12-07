@@ -32,7 +32,7 @@ backPropagate network input target =
               -- recursively run the rest of the network, and get the gradients from above.
               (n', dWs')    = go y n
               -- calculate the gradient for this layer to pass down,
-              (layer', dWs) = runBackards layer x dWs'
+              (layer', dWs) = runBackwards layer x dWs'
 
           in (layer' :/> n', dWs)
 
@@ -40,7 +40,7 @@ backPropagate network input target =
     go !x (O layer)
         = let y                 = runForwards layer x
             -- the gradient (how much y affects the error)
-              (layer', dWs)     = runBackards layer x (y - target)
+              (layer', dWs)     = runBackwards layer x (y - target)
 
           in (OG layer', dWs)
 

@@ -24,7 +24,7 @@ import           GHC.TypeLits
 import           Grenade.Core.Network
 import           Grenade.Core.Shape
 import           Grenade.Core.Vector
-import           Grenade.Layers.Convolution
+import           Grenade.Layers.Convolution.Internal
 
 import           Numeric.LinearAlgebra hiding (uniformSample)
 import qualified Numeric.LinearAlgebra as LA
@@ -75,7 +75,7 @@ instance ( KnownNat kernelRows
         r  = poolForward kx ky sx sy ox oy $ ex
         rs = fromJust . create $ r
     in  S2D' $ rs
-  runBackards Pooling (S2D' input) (S2D' dEdy) =
+  runBackwards Pooling (S2D' input) (S2D' dEdy) =
     let kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
         ky = fromIntegral $ natVal (Proxy :: Proxy kernelColumns)
         sx = fromIntegral $ natVal (Proxy :: Proxy strideRows)
@@ -111,7 +111,7 @@ instance ( KnownNat kernelRows
         r  = poolForwardList kx ky sx sy ix iy ox oy ex
         rs = fmap (fromJust . create) r
     in  S3D' rs
-  runBackards Pooling (S3D' input) (S3D' dEdy) =
+  runBackwards Pooling (S3D' input) (S3D' dEdy) =
     let ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         iy = fromIntegral $ natVal (Proxy :: Proxy inputColumns)
         kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)

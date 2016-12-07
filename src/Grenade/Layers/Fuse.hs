@@ -45,8 +45,8 @@ instance (Layer x i h, Layer y h o) => Layer (Fuse x y i h o) i o where
     let yInput  :: S' h = runForwards x input
     in runForwards y yInput
 
-  runBackards (x :$$ y) input backGradient =
+  runBackwards (x :$$ y) input backGradient =
     let yInput  :: S' h = runForwards x input
-        (y', yGrad)     = runBackards y yInput backGradient
-        (x', xGrad)     = runBackards x input yGrad
+        (y', yGrad)     = runBackwards y yInput backGradient
+        (x', xGrad)     = runBackwards x input yGrad
     in ((x', y'), xGrad)

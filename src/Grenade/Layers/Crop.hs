@@ -58,7 +58,7 @@ instance ( KnownNat cropLeft
         m  = extract input
         r  = subMatrix (cropt, cropl) (nrows, ncols) m
     in  S2D' . fromJust . create $ r
-  runBackards _ _ (S2D' dEdy) =
+  runBackwards _ _ (S2D' dEdy) =
     let cropl = fromIntegral $ natVal (Proxy :: Proxy cropLeft)
         cropt = fromIntegral $ natVal (Proxy :: Proxy cropTop)
         cropr = fromIntegral $ natVal (Proxy :: Proxy cropRight)

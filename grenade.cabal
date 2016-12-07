@@ -40,6 +40,7 @@ library
                        Grenade.Core.Shape
                        Grenade.Layers.Crop
                        Grenade.Layers.Convolution
+                       Grenade.Layers.Convolution.Internal
                        Grenade.Layers.Dropout
                        Grenade.Layers.FullyConnected
                        Grenade.Layers.Flatten
