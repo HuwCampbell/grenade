@@ -27,7 +27,7 @@ prop_im2col_no_stride = once $
                , 5.0,  6.0,  9.0,  10.0
                , 6.0,  7.0,  10.0, 11.0
                , 7.0,  8.0,  11.0, 12.0 ]
-     out = im2col 2 2 1 1 input
+     out = im2colUnsafe 2 2 1 1 input
  in expected === out
 
 prop_im2col_stride = once $
@@ -40,7 +40,7 @@ prop_im2col_stride = once $
                , 3.0,  4.0,  7.0,  8.0
                , 5.0,  6.0,  9.0,  10.0
                , 7.0,  8.0,  11.0, 12.0 ]
-     out = im2col 2 2 1 2 input
+     out = im2colUnsafe 2 2 1 2 input
  in expected === out
 
 prop_im2col_other = once $
@@ -61,7 +61,7 @@ prop_im2col_sym_on_same_stride = once $
                [ 1.0,  2.0,  3.0,  4.0
                , 5.0,  6.0,  7.0,  8.0
                , 9.0, 10.0, 11.0, 12.0 ]
-     out = col2im 3 2 3 2 3 4 . im2col 3 2 3 2 $ input
+     out = col2imUnsafe 3 2 3 2 3 4 . im2colUnsafe 3 2 3 2 $ input
  in input === out
 
 -- If there's no overlap (stride is the same size as the kernel)
@@ -186,20 +186,7 @@ prop_vid2col_stride = once $
      out = vid2colUnsafe 2 2 1 2 3 4 input
  in expected === out
 
-
 prop_vid2col_invert = once $
- let input = [(3><4)
-               [ 1.0,  2.0,  3.0,  4.0
-               , 5.0,  6.0,  7.0,  8.0
-               , 9.0, 10.0, 11.0, 12.0 ]
-             , (3><4)
-               [ 21.0,  22.0,  23.0,  24.0
-               , 25.0,  26.0,  27.0,  28.0
-               , 29.0,  30.0,  31.0,  32.0 ] ]
-     out = col2vid 3 2 3 2 3 4 . vid2col 3 2 3 2 3 4 $ input
- in input === out
-
-prop_vid2col_invert_unsafe = once $
  let input = [(3><4)
                [ 1.0,  2.0,  3.0,  4.0
                , 5.0,  6.0,  7.0,  8.0
