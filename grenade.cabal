@@ -76,7 +76,7 @@ executable             mnist
                      , optparse-applicative            == 0.12.*
                      , text                            == 1.2.*
                      , mtl                             >= 2.2.1      && < 2.3
-                     , hmatrix
+                     , hmatrix                         >= 0.18       && < 0.19
                      , transformers
                      , singletons
                      , MonadRandom

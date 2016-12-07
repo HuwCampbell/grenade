@@ -16,7 +16,7 @@ import           Data.Singletons.Prelude
 import           Grenade.Core.Network
 import           Grenade.Core.Shape
 
--- | Drive and network and collect it's back propogated gradients.
+-- | Drive and network and collect its back propogated gradients.
 backPropagate :: forall input output shapes layers. (Head shapes ~ input, Last shapes ~ output)
               => Network layers shapes -> S' input -> S' output -> Gradients layers
 backPropagate network input target =
@@ -29,7 +29,7 @@ backPropagate network input target =
     -- handle input from the beginning, feeding upwards.
     go !x (layer :~> n)
         = let y             = runForwards layer x
-              -- recursively run the rest of the network, and get the layer from above.
+              -- recursively run the rest of the network, and get the gradients from above.
               (n', dWs')    = go y n
               -- calculate the gradient for this layer to pass down,
               (layer', dWs) = runBackards layer x dWs'
