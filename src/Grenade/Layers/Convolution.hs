@@ -31,7 +31,7 @@ import           Numeric.LinearAlgebra.Static hiding ((|||), build, toRows)
 import           Grenade.Core.Network
 import           Grenade.Core.Shape
 import           Grenade.Core.Vector
-import           Grenade.Layers.Convolution.Internal
+import           Grenade.Layers.Internal.Convolution
 
 -- | A convolution layer for a neural network.
 --   This uses the im2col convolution trick popularised by Caffe, which essentially turns the
@@ -149,15 +149,13 @@ instance ( KnownNat kernelRows
   runForwards (Convolution kernel _) (S2D' input) =
     let ex = extract input
         ek = extract kernel
-        ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
-        iy = fromIntegral $ natVal (Proxy :: Proxy inputCols)
         kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
         ky = fromIntegral $ natVal (Proxy :: Proxy kernelCols)
         sx = fromIntegral $ natVal (Proxy :: Proxy strideRows)
         sy = fromIntegral $ natVal (Proxy :: Proxy strideCols)
         ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
         oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
-        c  = im2colUnsafe kx ky sx sy ix iy ex
+        c  = im2colUnsafe kx ky sx sy ex
         mt = c LA.<> ek
         r  = col2vidUnsafe 1 1 1 1 ox oy mt
         rs = fmap (fromJust . create) r
@@ -173,14 +171,13 @@ instance ( KnownNat kernelRows
         sy = fromIntegral $ natVal (Proxy :: Proxy strideCols)
         ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
         oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
-        fl = fromIntegral $ natVal (Proxy :: Proxy filters)
 
-        c  = im2colUnsafe kx ky sx sy ix iy ex
+        c  = im2colUnsafe kx ky sx sy ex
 
         eo = vecToList $ fmap extract dEdy
         ek = extract kernel
 
-        vs = vid2colUnsafe fl 1 1 1 1 ox oy eo
+        vs = vid2colUnsafe 1 1 1 1 ox oy eo
 
         kN = fromJust . create $ tr c LA.<> vs
         dW = vs LA.<> tr ek
@@ -216,8 +213,8 @@ instance ( KnownNat kernelRows
         sy = fromIntegral $ natVal (Proxy :: Proxy strideCols)
         ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
         oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
-        ch = fromIntegral $ natVal (Proxy :: Proxy channels)
-        c  = vid2colUnsafe ch kx ky sx sy ix iy ex
+
+        c  = vid2colUnsafe kx ky sx sy ix iy ex
         mt = c LA.<> ek
         r  = col2vidUnsafe 1 1 1 1 ox oy mt
         rs = fmap (fromJust . create) r
@@ -232,14 +229,13 @@ instance ( KnownNat kernelRows
         sy = fromIntegral $ natVal (Proxy :: Proxy strideCols)
         ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
         oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
-        ch = fromIntegral $ natVal (Proxy :: Proxy channels)
-        fl = fromIntegral $ natVal (Proxy :: Proxy filters)
-        c  = vid2colUnsafe ch kx ky sx sy ix iy ex
+
+        c  = vid2colUnsafe kx ky sx sy ix iy ex
 
         eo = vecToList $ fmap extract dEdy
         ek = extract kernel
 
-        vs = vid2colUnsafe fl 1 1 1 1 ox oy eo
+        vs = vid2colUnsafe 1 1 1 1 ox oy eo
 
         kN = fromJust . create $ tr c LA.<> vs
 

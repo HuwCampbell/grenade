@@ -1,4 +1,4 @@
-module Grenade.Layers.Convolution.Internal (
+module Grenade.Layers.Internal.Convolution (
     im2col
 --   , im2colUnsafe
   , vid2col
@@ -72,7 +72,7 @@ fittingStart width kernel steps =
               | left + kernel == width
               = [left]
               | otherwise
-              = error "Kernel and step do not fit in matrix."
+              = [] -- error "Kernel and step do not fit in matrix."
   in  go 0
 
 col2imFit :: [(Int,Int)] -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
@@ -119,14 +119,9 @@ col2imFit starts krows kcols drows dcols m =
 --   }
 -- }
 
-
---   let starts = fittingStart (cols m) (krows * kcols) (krows * kcols)
---       r      = rows m
---       mats   = fmap (\s -> subMatrix (0,s) (r, krows * kcols) m) starts
---   in  parMap rseq (col2imUnsafe krows kcols srows scols drows dcols) mats
-
 col2imUnsafe :: Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
 col2imUnsafe kernelRows kernelColumns strideRows strideColumns destinationRows destinationCols columnMatrix = U.runSTMatrix $ do
+
   let columnMatrixRows = rows columnMatrix
 
   dataIm  <- U.newMatrix 0 destinationRows destinationCols
@@ -134,15 +129,15 @@ col2imUnsafe kernelRows kernelColumns strideRows strideColumns destinationRows d
   offsetR <- newSTRef 0
   offsetC <- newSTRef 0
 
-  forM_ [0 .. columnMatrixRows - 1] $ \ir -> do
-    inputColumn <- newSTRef 0
+  forM_ [0 .. columnMatrixRows - 1] $ \inputRow -> do
+    inputColumnRef <- newSTRef 0
     forM_ [0 .. kernelRows -1] $ \kr ->
       forM_ [0 .. kernelColumns -1] $ \kc -> do
-        ic       <- readSTRef inputColumn
-        offsetR' <- readSTRef offsetR
-        offsetC' <- readSTRef offsetC
-        U.modifyMatrix dataIm (kr + offsetR') (kc + offsetC') (+ atIndex columnMatrix (ir,ic))
-        modifySTRef inputColumn (+1)
+        inputColumn <- readSTRef inputColumnRef
+        offsetR'    <- readSTRef offsetR
+        offsetC'    <- readSTRef offsetC
+        U.modifyMatrix dataIm (kr + offsetR') (kc + offsetC') (+ U.atM' columnMatrix inputRow inputColumn)
+        modifySTRef inputColumnRef (+1)
 
     offsetC' <- readSTRef offsetC
     if offsetC' + kernelColumns < destinationCols
@@ -158,12 +153,12 @@ col2vidUnsafe kernelRows kernelColumns strideRows strideColumns destinationRows 
 
   dataIms    <- traverse (\_ -> U.newMatrix 0 destinationRows destinationCols) [0 .. filters-1]
 
-  offsetR    <- newSTRef 0
-  offsetC    <- newSTRef 0
   offsetM    <- newSTRef 0
 
   forM_ dataIms $ \dataIm -> do
-    offsetM' <- readSTRef offsetM
+    offsetR    <- newSTRef 0
+    offsetC    <- newSTRef 0
+    offsetM'   <- readSTRef offsetM
     forM_ [0 .. columnMatrixRows - 1] $ \ir -> do
       inputColumn <- newSTRef 0
       forM_ [0 .. kernelRows -1] $ \kr ->
@@ -171,7 +166,7 @@ col2vidUnsafe kernelRows kernelColumns strideRows strideColumns destinationRows 
           ic       <- readSTRef inputColumn
           offsetR' <- readSTRef offsetR
           offsetC' <- readSTRef offsetC
-          U.modifyMatrix dataIm (kr + offsetR') (kc + offsetC') (+ atIndex columnMatrix (ir, ic + offsetM'))
+          U.modifyMatrix dataIm (kr + offsetR') (kc + offsetC') (+ U.atM' columnMatrix ir (ic + offsetM'))
           modifySTRef inputColumn (+1)
 
       offsetC' <- readSTRef offsetC
@@ -179,60 +174,55 @@ col2vidUnsafe kernelRows kernelColumns strideRows strideColumns destinationRows 
         then modifySTRef offsetC (+ strideColumns)
         else writeSTRef offsetC 0 >> modifySTRef offsetR (+ strideRows)
 
-    writeSTRef offsetR 0
-    writeSTRef offsetC 0
     modifySTRef offsetM (+ (kernelRows * kernelColumns))
 
-  traverse U.freezeMatrix dataIms
+  traverse U.unsafeFreezeMatrix dataIms
 
-vid2colUnsafe :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> [Matrix Double] -> Matrix Double
-vid2colUnsafe channels kernelRows kernelColumns striderows stridecols vidrows vidcols dataVid = U.runSTMatrix $ do
+vid2colUnsafe :: Int -> Int -> Int -> Int -> Int -> Int -> [Matrix Double] -> Matrix Double
+vid2colUnsafe kernelRows kernelColumns striderows stridecols vidrows vidcols dataVid = U.runSTMatrix $ do
   let starts          = fittingStarts vidrows kernelRows striderows vidcols kernelColumns stridecols
-      matWidth        = kernelRows * kernelColumns
-      destinationRows = 1 + (vidrows - kernelRows) `div` striderows
-      destinationCols = 1 + (vidcols - kernelColumns) `div` stridecols
-      destinationSize = destinationRows * destinationCols
+      kernelSize      = kernelRows * kernelColumns
+      numberOfPatches = length starts
+      channels        = length dataVid
 
-  dataCol <- U.newMatrix 0 destinationSize (channels * matWidth)
+  dataCol <- U.newMatrix 0 numberOfPatches (channels * kernelSize)
 
   offsetC <- newSTRef 0
 
   forM_ dataVid $ \dataIm -> do
-    inputRow <- newSTRef 0
+    inputRowRef  <- newSTRef 0
     offsetC'     <- readSTRef offsetC
     forM_ starts $ \(startRow, startCol) -> do
-      inputColumn <- newSTRef 0
-      inputRow'   <- readSTRef inputRow
+      inputColumnRef <- newSTRef 0
+      inputRow       <- readSTRef inputRowRef
       forM_ [0 .. kernelRows -1] $ \kr ->
         forM_ [0 .. kernelColumns -1] $ \kc -> do
-          inputColumn' <- readSTRef inputColumn
-          U.modifyMatrix dataCol inputRow' (inputColumn' + offsetC') (+ atIndex dataIm (kr + startRow, kc + startCol))
-          modifySTRef inputColumn (+1)
-      modifySTRef inputRow (+1)
+          inputColumn <- readSTRef inputColumnRef
+          U.modifyMatrix dataCol inputRow (inputColumn + offsetC') (+ U.atM' dataIm (kr + startRow) (kc + startCol))
+          modifySTRef inputColumnRef (+1)
+      modifySTRef inputRowRef (+1)
 
-    modifySTRef offsetC (+ matWidth)
+    modifySTRef offsetC (+ kernelSize)
 
   return dataCol
 
-im2colUnsafe :: Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
-im2colUnsafe kernelRows kernelColumns striderows stridecols vidrows vidcols dataIm = U.runSTMatrix $ do
-  let starts          = fittingStarts vidrows kernelRows striderows vidcols kernelColumns stridecols
-      matWidth        = kernelRows * kernelColumns
-      destinationRows = 1 + (vidrows - kernelRows) `div` striderows
-      destinationCols = 1 + (vidcols - kernelColumns) `div` stridecols
-      destinationSize = destinationRows * destinationCols
+im2colUnsafe :: Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
+im2colUnsafe kernelRows kernelColumns striderows stridecols dataIm = U.runSTMatrix $ do
+  let starts          = fittingStarts (rows dataIm) kernelRows striderows (cols dataIm) kernelColumns stridecols
+      kernelSize      = kernelRows * kernelColumns
+      numberOfPatches = length starts
 
-  dataCol <- U.newMatrix 0 destinationSize matWidth
+  dataCol <- U.newMatrix 0 numberOfPatches kernelSize
 
-  inputRow <- newSTRef 0
+  inputRowRef <- newSTRef 0
   forM_ starts $ \(startRow, startCol) -> do
-    inputColumn <- newSTRef 0
-    inputRow'   <- readSTRef inputRow
+    inputColumnRef <- newSTRef 0
+    inputRow       <- readSTRef inputRowRef
     forM_ [0 .. kernelRows -1] $ \kr ->
       forM_ [0 .. kernelColumns -1] $ \kc -> do
-        inputColumn' <- readSTRef inputColumn
-        U.modifyMatrix dataCol inputRow' inputColumn' (+ atIndex dataIm (kr + startRow, kc + startCol))
-        modifySTRef inputColumn (+1)
-    modifySTRef inputRow (+1)
+        inputColumn <- readSTRef inputColumnRef
+        U.modifyMatrix dataCol inputRow inputColumn (+ U.atM' dataIm (kr + startRow) (kc + startCol))
+        modifySTRef inputColumnRef (+1)
+    modifySTRef inputRowRef (+1)
 
   return dataCol

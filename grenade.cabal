@@ -40,7 +40,6 @@ library
                        Grenade.Core.Shape
                        Grenade.Layers.Crop
                        Grenade.Layers.Convolution
-                       Grenade.Layers.Convolution.Internal
                        Grenade.Layers.Dropout
                        Grenade.Layers.FullyConnected
                        Grenade.Layers.Flatten
@@ -50,6 +49,9 @@ library
                        Grenade.Layers.Tanh
                        Grenade.Layers.Pad
                        Grenade.Layers.Pooling
+
+                       Grenade.Layers.Internal.Convolution
+                       Grenade.Layers.Internal.Pooling
 
 
 executable             feedforward
