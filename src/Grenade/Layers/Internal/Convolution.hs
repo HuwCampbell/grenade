@@ -175,8 +175,7 @@ fittingStarts :: Int -> Int -> Int -> Int -> Int -> Int -> [(Int,Int)]
 fittingStarts nrows kernelrows steprows ncols kernelcols stepcolsh =
   let rs = fittingStart nrows kernelrows steprows
       cs = fittingStart ncols kernelcols stepcolsh
-      ls = sequence [rs, cs]
-  in  fmap (\[a,b] -> (a,b)) ls
+  in  concatMap ( \r -> fmap (\c -> (r , c)) cs ) rs
 
 -- | Returns the starting sub vector which fit inside the larger vector for the
 --   convolution. Takes into account the stride and kernel size.
