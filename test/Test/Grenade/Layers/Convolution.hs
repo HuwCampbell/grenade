@@ -93,22 +93,22 @@ prop_simple_conv_forwards = once $
   -- Create a convolution kernel with 4 filters.
   -- [ 1, 0    [ 0, 1    [ 0, 1    [ 0, 0
   -- , 0,-1 ]  ,-1, 0 ]  , 1, 0 ]  ,-1,-1 ]
-  let myKernel = (HStatic.matrix
+  let myKernel = HStatic.matrix
                  [ 1.0,  0.0,  0.0,  0.0
                  , 0.0,  1.0,  1.0,  0.0
                  , 0.0, -1.0,  1.0, -1.0
-                 ,-1.0,  0.0,  0.0, -1.0 ] :: HStatic.L 4 4)
-      zeroKernel = (HStatic.matrix
+                 ,-1.0,  0.0,  0.0, -1.0 ] :: HStatic.L 4 4
+      zeroKernel = HStatic.matrix
                  [ 0.0,  0.0,  0.0,  0.0
                  , 0.0,  0.0,  0.0,  0.0
                  , 0.0,  0.0,  0.0,  0.0
-                 , 0.0,  0.0,  0.0,  0.0 ] :: HStatic.L 4 4)
+                 , 0.0,  0.0,  0.0,  0.0 ] :: HStatic.L 4 4
 
-      expectedGradient = (HStatic.matrix
+      expectedGradient = HStatic.matrix
                  [ 1.0, 0.0, 0.0, 2.0
                  , 2.0, 0.0, 0.0, 5.0
                  , 3.0, 0.0, 0.0, 4.0
-                 , 4.0, 0.0, 0.0, 6.0 ] :: HStatic.L 4 4)
+                 , 4.0, 0.0, 0.0, 6.0 ] :: HStatic.L 4 4
 
       convLayer = Convolution myKernel zeroKernel :: Convolution 1 4 2 2 1 1
 
@@ -116,25 +116,25 @@ prop_simple_conv_forwards = once $
                  [ 1.0, 2.0, 5.0
                  , 3.0, 4.0, 6.0] :: HStatic.L 2 3)
 
-      expect = ([(HStatic.matrix
-                 [ -3.0 , -4.0  ] :: HStatic.L 1 2)
-               ,(HStatic.matrix
-                 [ -1.0 ,  1.0  ] :: HStatic.L 1 2)
-               ,(HStatic.matrix
-                 [  5.0 ,  9.0  ] :: HStatic.L 1 2)
-               ,(HStatic.matrix
-                 [ -7.0 , -10.0 ] :: HStatic.L 1 2)]) :: [HStatic.L 1 2]
+      expect = [ HStatic.matrix
+                 [ -3.0 , -4.0  ] :: HStatic.L 1 2
+               , HStatic.matrix
+                 [ -1.0 ,  1.0  ] :: HStatic.L 1 2
+               , HStatic.matrix
+                 [  5.0 ,  9.0  ] :: HStatic.L 1 2
+               , HStatic.matrix
+                 [ -7.0 , -10.0 ] :: HStatic.L 1 2] :: [HStatic.L 1 2]
       out  = runForwards convLayer input :: S' ('D3 1 2 4)
 
       grad =  S3D' ( mkVector
-               [(HStatic.matrix
-                 [ 1 , 0 ] :: HStatic.L 1 2)
-               ,(HStatic.matrix
-                 [ 0 , 0 ] :: HStatic.L 1 2)
-               ,(HStatic.matrix
-                 [ 0 , 0 ] :: HStatic.L 1 2)
-               ,(HStatic.matrix
-                 [ 0 , 1 ] :: HStatic.L 1 2)] ) :: S' ('D3 1 2 4)
+               [ HStatic.matrix
+                 [ 1 , 0 ] :: HStatic.L 1 2
+               , HStatic.matrix
+                 [ 0 , 0 ] :: HStatic.L 1 2
+               , HStatic.matrix
+                 [ 0 , 0 ] :: HStatic.L 1 2
+               , HStatic.matrix
+                 [ 0 , 1 ] :: HStatic.L 1 2] ) :: S' ('D3 1 2 4)
 
       expectBack = (HStatic.matrix
                    [  1.0,  0.0, 0.0
@@ -144,11 +144,8 @@ prop_simple_conv_forwards = once $
   in case (out, inX, nc) of
     (S3D' out' , S2D' inX', Convolution' backGrad)
       -> ((HStatic.extract <$> expect) === (HStatic.extract <$> vecToList out'))
-      .&&. ((HStatic.extract expectBack) === (HStatic.extract inX'))
-      .&&. ((HStatic.extract expectedGradient) === (HStatic.extract backGrad))
-      -- Temporarily disabled, as l2 adjustment puts in off 5%
-      -- .&&. HStatic.extract expectedKernel === HStatic.extract kernel'
-
+      .&&. (HStatic.extract expectBack === HStatic.extract inX')
+      .&&. (HStatic.extract expectedGradient === HStatic.extract backGrad)
 
 prop_vid2col_no_stride = once $
  let input = [(3><4)
@@ -228,25 +225,25 @@ prop_single_conv_forwards = once $
                  [ 1.0, 2.0, 5.0
                  , 3.0, 4.0, 6.0] :: HStatic.L 2 3] ) :: S' ('D3 2 3 1)
 
-      expect = ([(HStatic.matrix
-                 [ -3.0 , -4.0  ] :: HStatic.L 1 2)
-               ,(HStatic.matrix
-                 [ -1.0 ,  1.0  ] :: HStatic.L 1 2)
-               ,(HStatic.matrix
-                 [  5.0 ,  9.0  ] :: HStatic.L 1 2)
-               ,(HStatic.matrix
-                 [ -7.0 , -10.0 ] :: HStatic.L 1 2)]) :: [HStatic.L 1 2]
+      expect = [HStatic.matrix
+                 [ -3.0 , -4.0  ] :: HStatic.L 1 2
+               ,HStatic.matrix
+                 [ -1.0 ,  1.0  ] :: HStatic.L 1 2
+               ,HStatic.matrix
+                 [  5.0 ,  9.0  ] :: HStatic.L 1 2
+               ,HStatic.matrix
+                 [ -7.0 , -10.0 ] :: HStatic.L 1 2] :: [HStatic.L 1 2]
       out  = runForwards convLayer input :: S' ('D3 1 2 4)
 
       grad =  S3D' ( mkVector
-               [(HStatic.matrix
-                 [ 1 , 0 ] :: HStatic.L 1 2)
-               ,(HStatic.matrix
-                 [ 0 , 0 ] :: HStatic.L 1 2)
-               ,(HStatic.matrix
-                 [ 0 , 0 ] :: HStatic.L 1 2)
-               ,(HStatic.matrix
-                 [ 0 , 1 ] :: HStatic.L 1 2)] ) :: S' ('D3 1 2 4)
+               [HStatic.matrix
+                 [ 1 , 0 ] :: HStatic.L 1 2
+               ,HStatic.matrix
+                 [ 0 , 0 ] :: HStatic.L 1 2
+               ,HStatic.matrix
+                 [ 0 , 0 ] :: HStatic.L 1 2
+               ,HStatic.matrix
+                 [ 0 , 1 ] :: HStatic.L 1 2] ) :: S' ('D3 1 2 4)
 
       expectBack = (HStatic.matrix
                    [  1.0,  0.0, 0.0
@@ -257,7 +254,7 @@ prop_single_conv_forwards = once $
     (S3D' out' , S3D' inX', Convolution' backGrad)
       ->   ((HStatic.extract <$> expect)  === (HStatic.extract <$> vecToList out'))
       .&&. ([HStatic.extract expectBack]  === (HStatic.extract <$> vecToList inX'))
-      .&&. ((HStatic.extract expectedGradient) === (HStatic.extract backGrad))
+      .&&. (HStatic.extract expectedGradient === HStatic.extract backGrad)
 
 return []
 tests :: IO Bool

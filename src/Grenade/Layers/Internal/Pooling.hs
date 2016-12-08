@@ -5,8 +5,13 @@ module Grenade.Layers.Internal.Pooling (
   , poolBackwardList
   ) where
 
+import           Data.Function ( on )
+import           Data.List ( maximumBy )
+
 import           Numeric.LinearAlgebra hiding ( uniformSample, konst )
 import qualified Numeric.LinearAlgebra as LA
+import qualified Numeric.LinearAlgebra.Devel as U
+
 
 import           Grenade.Layers.Internal.Convolution
 
@@ -22,7 +27,7 @@ poolForwardList nrows ncols srows scols inRows inCols outputRows outputCols ms =
 
 poolForwardFit :: [(Int,Int)] -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
 poolForwardFit starts nrows ncols _ outputCols m =
-  let els    = fmap (\start -> maxElement $ subMatrix start (nrows, ncols) m) starts
+  let els    = fmap (\start -> unsafeMaxElement $ subMatrix start (nrows, ncols) m) starts
   in  LA.matrix outputCols els
 
 poolBackward :: Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double -> Matrix Double
@@ -41,8 +46,18 @@ poolBackwardFit :: [(Int,Int)] -> Int -> Int -> Matrix Double -> Matrix Double -
 poolBackwardFit starts krows kcols inputMatrix gradientMatrix =
   let inRows     = rows inputMatrix
       inCols     = cols inputMatrix
-      inds       = fmap (\start -> maxIndex $ subMatrix start (krows, kcols) inputMatrix) starts
+      inds       = fmap (\start -> unsafeMaxIndex $ subMatrix start (krows, kcols) inputMatrix) starts
       grads      = toList $ flatten gradientMatrix
       grads'     = zip3 starts grads inds
       accums     = fmap (\((stx',sty'),grad,(inx, iny)) -> ((stx' + inx, sty' + iny), grad)) grads'
   in  accum (LA.konst 0 (inRows, inCols)) (+) accums
+
+unsafeMaxElement :: Matrix Double -> Double
+unsafeMaxElement m = uncurry (U.atM' m) $ unsafeMaxIndex m
+
+unsafeMaxIndex :: Matrix Double -> (Int, Int)
+unsafeMaxIndex m =
+  let mrows = [0 .. rows m - 1]
+      mcols = [0 .. cols m - 1]
+      pairs = concatMap ( \r -> fmap (\c -> (r , c)) mcols ) mrows
+  in  maximumBy (compare `on` uncurry (U.atM' m)) pairs

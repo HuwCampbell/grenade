@@ -4,7 +4,7 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Test.Grenade.Layers.Pooling where
 
-import           Grenade.Layers.Pooling
+import           Grenade.Layers.Internal.Pooling
 
 import           Numeric.LinearAlgebra hiding (uniformSample, konst, (===))
 
@@ -12,11 +12,11 @@ import           Test.QuickCheck hiding ((><))
 
 prop_pool = once $
  let input = (3><4)
-               [ 1.0,  2.0,  3.0,  4.0
+               [ 1.0, 14.0,  3.0,  4.0
                , 5.0,  6.0,  7.0,  8.0
                , 9.0, 10.0, 11.0, 12.0 ]
      expected = (2><3)
-               [ 6.0,   7.0,  8.0
+               [ 14.0,  14.0,  8.0
                , 10.0, 11.0, 12.0 ]
      out = poolForward 2 2 1 1 2 3 input
  in expected === out

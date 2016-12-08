@@ -12,8 +12,6 @@
 
 module Grenade.Layers.Pooling (
     Pooling (..)
-  , poolForward
-  , poolBackward
   ) where
 
 import           Data.Maybe
