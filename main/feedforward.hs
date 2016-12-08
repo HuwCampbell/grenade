@@ -8,7 +8,6 @@
 
 import           Control.Monad
 import           Control.Monad.Random
-
 import           GHC.TypeLits
 
 import qualified Numeric.LinearAlgebra.Static as SA
@@ -51,7 +50,7 @@ netTest rate n = do
   where
     inCircle :: KnownNat n => SA.R n -> (SA.R n, Double) -> Bool
     v `inCircle` (o, r) = SA.norm_2 (v - o) <= r
-    trainEach !nt !(i, o) = train rate nt i o
+    trainEach !network (i,o) = train rate network i o
 
     render n'  | n' <= 0.2  = ' '
                | n' <= 0.4  = '.'

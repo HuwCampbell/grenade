@@ -16,26 +16,22 @@ module Grenade.Layers.Convolution (
     Convolution (..)
   , Convolution' (..)
   , randomConvolution
-  , im2col
-  , vid2col
-  , col2im
-  , col2vid
-  , fittingStarts
   ) where
 
-import           Control.Monad.Random hiding (fromList)
+import           Control.Monad.Random hiding ( fromList )
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Singletons.TypeLits
 import           GHC.TypeLits
 
-import           Numeric.LinearAlgebra hiding (uniformSample, konst)
+import           Numeric.LinearAlgebra hiding ( uniformSample, konst )
 import qualified Numeric.LinearAlgebra as LA
 import           Numeric.LinearAlgebra.Static hiding ((|||), build, toRows)
 
 import           Grenade.Core.Network
 import           Grenade.Core.Shape
 import           Grenade.Core.Vector
+import           Grenade.Layers.Internal.Convolution
 
 -- | A convolution layer for a neural network.
 --   This uses the im2col convolution trick popularised by Caffe, which essentially turns the
@@ -159,12 +155,13 @@ instance ( KnownNat kernelRows
         sy = fromIntegral $ natVal (Proxy :: Proxy strideCols)
         ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
         oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
-        c  = im2col kx ky sx sy ex
+        c  = im2colUnsafe kx ky sx sy ex
         mt = c LA.<> ek
-        r  = col2vid 1 1 1 1 ox oy mt
+        r  = col2vidUnsafe 1 1 1 1 ox oy mt
         rs = fmap (fromJust . create) r
     in  S3D' $ mkVector rs
-  runBackards (Convolution kernel _) (S2D' input) (S3D' dEdy) =
+
+  runBackwards (Convolution kernel _) (S2D' input) (S3D' dEdy) =
     let ex = extract input
         ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         iy = fromIntegral $ natVal (Proxy :: Proxy inputCols)
@@ -174,17 +171,18 @@ instance ( KnownNat kernelRows
         sy = fromIntegral $ natVal (Proxy :: Proxy strideCols)
         ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
         oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
-        c  = im2col kx ky sx sy ex
+
+        c  = im2colUnsafe kx ky sx sy ex
 
         eo = vecToList $ fmap extract dEdy
         ek = extract kernel
 
-        vs = vid2col 1 1 1 1 ox oy eo
+        vs = vid2colUnsafe 1 1 1 1 ox oy eo
 
         kN = fromJust . create $ tr c LA.<> vs
         dW = vs LA.<> tr ek
 
-        xW = col2im kx ky sx sy ix iy dW
+        xW = col2imUnsafe kx ky sx sy ix iy dW
     in  (Convolution' kN, S2D' . fromJust . create $ xW)
 
 
@@ -215,12 +213,13 @@ instance ( KnownNat kernelRows
         sy = fromIntegral $ natVal (Proxy :: Proxy strideCols)
         ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
         oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
-        c  = vid2col kx ky sx sy ix iy ex
+
+        c  = vid2colUnsafe kx ky sx sy ix iy ex
         mt = c LA.<> ek
-        r  = col2vid 1 1 1 1 ox oy mt
+        r  = col2vidUnsafe 1 1 1 1 ox oy mt
         rs = fmap (fromJust . create) r
     in  S3D' $ mkVector rs
-  runBackards (Convolution kernel _) (S3D' input) (S3D' dEdy) =
+  runBackwards (Convolution kernel _) (S3D' input) (S3D' dEdy) =
     let ex = vecToList $ fmap extract input
         ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         iy = fromIntegral $ natVal (Proxy :: Proxy inputCols)
@@ -230,77 +229,17 @@ instance ( KnownNat kernelRows
         sy = fromIntegral $ natVal (Proxy :: Proxy strideCols)
         ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
         oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
-        c  = vid2col kx ky sx sy ix iy ex
+
+        c  = vid2colUnsafe kx ky sx sy ix iy ex
 
         eo = vecToList $ fmap extract dEdy
         ek = extract kernel
 
-        vs = vid2col 1 1 1 1 ox oy eo
+        vs = vid2colUnsafe 1 1 1 1 ox oy eo
 
         kN = fromJust . create $ tr c LA.<> vs
 
         dW = vs LA.<> tr ek
 
-        xW = col2vid kx ky sx sy ix iy dW
+        xW = col2vidUnsafe kx ky sx sy ix iy dW
     in  (Convolution' kN, S3D' . mkVector . fmap (fromJust . create) $ xW)
-
-im2col :: Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
-im2col nrows ncols srows scols m =
-  let starts = fittingStarts (rows m) nrows srows (cols m) ncols scols
-  in  im2colFit starts nrows ncols m
-
-im2colFit :: [(Int,Int)] -> Int -> Int -> Matrix Double -> Matrix Double
-im2colFit starts nrows ncols m =
-  let imRows = fmap (\start -> flatten $ subMatrix start (nrows, ncols) m) starts
-  in  fromRows imRows
-
-vid2col :: Int -> Int -> Int -> Int -> Int -> Int -> [Matrix Double] -> Matrix Double
-vid2col nrows ncols srows scols inputrows inputcols ms =
-  let starts = fittingStarts inputrows nrows srows inputcols ncols scols
-      subs   = fmap (im2colFit starts nrows ncols) ms
-  in  foldl1 (|||) subs
-
-col2vid :: Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> [Matrix Double]
-col2vid nrows ncols srows scols drows dcols m =
-  let starts = fittingStart (cols m) (nrows * ncols) (nrows * ncols)
-      r      = rows m
-      mats   = fmap (\s -> subMatrix (0,s) (r, nrows * ncols) m) starts
-      colSts = fittingStarts drows nrows srows dcols ncols scols
-  in  fmap (col2imfit colSts nrows ncols drows dcols) mats
-
-col2im :: Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
-col2im krows kcols srows scols drows dcols m =
-  let starts     = fittingStarts drows krows srows dcols kcols scols
-  in  col2imfit starts krows kcols drows dcols m
-
-col2imfit :: [(Int,Int)] -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
-col2imfit starts krows kcols drows dcols m =
-  let indicies   = fmap (\[a,b] -> (a,b)) $ sequence [[0..(krows-1)], [0..(kcols-1)]]
-      convs      = fmap (zip indicies . toList) . toRows $ m
-      pairs      = zip convs starts
-      accums     = concat $ fmap (\(conv',(stx',sty')) -> fmap (\((ix,iy), val) -> ((ix + stx', iy + sty'), val)) conv') pairs
-  in  accum (LA.konst 0 (drows, dcols)) (+) accums
-
-
--- | These functions are not even remotely safe, but it's only called from the statically typed
---   commands, so we should be good ?!?!?
---   Returns the starting sub matrix locations which fit inside the larger matrix for the
---   convolution. Takes into account the stride and kernel size.
-fittingStarts :: Int -> Int -> Int -> Int -> Int -> Int -> [(Int,Int)]
-fittingStarts nrows kernelrows steprows ncols kernelcols stepcolsh =
-  let rs = fittingStart nrows kernelrows steprows
-      cs = fittingStart ncols kernelcols stepcolsh
-      ls = sequence [rs, cs]
-  in  fmap (\[a,b] -> (a,b)) ls
-
--- | Returns the starting sub vector which fit inside the larger vector for the
---   convolution. Takes into account the stride and kernel size.
-fittingStart :: Int -> Int -> Int -> [Int]
-fittingStart width kernel steps =
-  let go left | left + kernel < width
-              = left : go (left + steps)
-              | left + kernel == width
-              = left : []
-              | otherwise
-              = error "Kernel and step do not fit in matrix."
-  in  go 0

@@ -58,7 +58,7 @@ instance ( KnownNat padLeft
         m     = extract input
         r     = diagBlock [konst 0 (padt,padl), m, konst 0 (padb,padr)]
     in  S2D' . fromJust . create $ r
-  runBackards Pad _ (S2D' dEdy) =
+  runBackwards Pad _ (S2D' dEdy) =
     let padl  = fromIntegral $ natVal (Proxy :: Proxy padLeft)
         padt  = fromIntegral $ natVal (Proxy :: Proxy padTop)
         nrows = fromIntegral $ natVal (Proxy :: Proxy inputRows)

@@ -52,7 +52,7 @@ instance (KnownNat i, KnownNat o) => Layer (FullyConnected i o) ('D1 i) ('D1 o) 
   runForwards (FullyConnected wB _ wN _) (S1D' v) = S1D' (wB + wN #> v)
 
   -- Run a backpropogation step for a full connected layer.
-  runBackards (FullyConnected _ _ wN _) (S1D' x) (S1D' dEdy) =
+  runBackwards (FullyConnected _ _ wN _) (S1D' x) (S1D' dEdy) =
           let wB'  = dEdy
               mm'  = dEdy `outer` x
               -- calcluate derivatives for next step

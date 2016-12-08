@@ -50,6 +50,9 @@ library
                        Grenade.Layers.Pad
                        Grenade.Layers.Pooling
 
+                       Grenade.Layers.Internal.Convolution
+                       Grenade.Layers.Internal.Pooling
+
 
 executable             feedforward
     ghc-options:       -Wall -threaded -O2
@@ -76,7 +79,7 @@ executable             mnist
                      , optparse-applicative            == 0.12.*
                      , text                            == 1.2.*
                      , mtl                             >= 2.2.1      && < 2.3
-                     , hmatrix
+                     , hmatrix                         >= 0.18       && < 0.19
                      , transformers
                      , singletons
                      , MonadRandom

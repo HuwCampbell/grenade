@@ -33,11 +33,11 @@ instance UpdateLayer FlattenLayer where
 
 instance (KnownNat a, KnownNat x, KnownNat y, a ~ (x * y)) => Layer FlattenLayer ('D2 x y) ('D1 a) where
   runForwards _ (S2D' y)   = S1D' . fromList . toList . flatten . extract $ y
-  runBackards _ _ (S1D' y) = ((), S2D' . fromList . toList . unwrap $ y)
+  runBackwards _ _ (S1D' y) = ((), S2D' . fromList . toList . unwrap $ y)
 
 instance (KnownNat a, KnownNat x, KnownNat y, KnownNat z, a ~ (x * y * z)) => Layer FlattenLayer ('D3 x y z) ('D1 a) where
   runForwards _ (S3D' y)     = S1D' . raiseShapeError . create . vjoin . vecToList . fmap (flatten . extract) $ y
-  runBackards _ _ (S1D' o) =
+  runBackwards _ _ (S1D' o) =
     let x'     = fromIntegral $ natVal (Proxy :: Proxy x)
         y'     = fromIntegral $ natVal (Proxy :: Proxy y)
         z'     = fromIntegral $ natVal (Proxy :: Proxy z)

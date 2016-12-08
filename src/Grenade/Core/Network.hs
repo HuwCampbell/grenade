@@ -51,7 +51,7 @@ class UpdateLayer x => Layer x (i :: Shape) (o :: Shape) where
   --   layer gave from the input and the back propagated derivatives from
   --   the layer above.
   --   Returns the gradient layer and the derivatives to push back further.
-  runBackards    :: x -> S' i -> S' o -> (Gradient x, S' i)
+  runBackwards   :: x -> S' i -> S' o -> (Gradient x, S' i)
 
 -- | Type of a network.
 --   The [*] type specifies the types of the layers. This is needed for parallel
