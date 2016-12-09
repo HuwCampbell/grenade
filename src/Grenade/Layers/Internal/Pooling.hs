@@ -5,13 +5,13 @@ module Grenade.Layers.Internal.Pooling (
   , poolBackwardList
   ) where
 
+import           Data.Foldable ( forM_ )
 import           Data.Function ( on )
 import           Data.List ( maximumBy )
 
 import           Numeric.LinearAlgebra hiding ( uniformSample, konst )
 import qualified Numeric.LinearAlgebra as LA
 import qualified Numeric.LinearAlgebra.Devel as U
-
 
 import           Grenade.Layers.Internal.Convolution
 
@@ -27,7 +27,7 @@ poolForwardList nrows ncols srows scols inRows inCols outputRows outputCols ms =
 
 poolForwardFit :: [(Int,Int)] -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
 poolForwardFit starts nrows ncols _ outputCols m =
-  let els    = fmap (\start -> unsafeMaxElement $ subMatrix start (nrows, ncols) m) starts
+  let els    = fmap (\start -> unsafeMaxElementSubmatrix start (nrows, ncols) m) starts
   in  LA.matrix outputCols els
 
 poolBackward :: Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double -> Matrix Double
@@ -43,21 +43,27 @@ poolBackwardList krows kcols srows scols inRows inCols inputMatrices =
   in  uncurry (poolBackwardFit starts krows kcols) <$> inputMatrices
 
 poolBackwardFit :: [(Int,Int)] -> Int -> Int -> Matrix Double -> Matrix Double -> Matrix Double
-poolBackwardFit starts krows kcols inputMatrix gradientMatrix =
+poolBackwardFit starts krows kcols inputMatrix gradientMatrix = U.runSTMatrix $ do
   let inRows     = rows inputMatrix
       inCols     = cols inputMatrix
-      inds       = fmap (\start -> unsafeMaxIndex $ subMatrix start (krows, kcols) inputMatrix) starts
-      grads      = toList $ flatten gradientMatrix
-      grads'     = zip3 starts grads inds
-      accums     = fmap (\((stx',sty'),grad,(inx, iny)) -> ((stx' + inx, sty' + iny), grad)) grads'
-  in  accum (LA.konst 0 (inRows, inCols)) (+) accums
+      gradCol    = cols gradientMatrix
+      extent     = (krows, kcols)
 
-unsafeMaxElement :: Matrix Double -> Double
-unsafeMaxElement m = uncurry (U.atM' m) $ unsafeMaxIndex m
+  retM <- U.newMatrix 0 inRows inCols
 
-unsafeMaxIndex :: Matrix Double -> (Int, Int)
-unsafeMaxIndex m =
-  let mrows = [0 .. rows m - 1]
-      mcols = [0 .. cols m - 1]
+  forM_ (zip [0..] starts) $ \(ix, start) -> do
+    let loc = unsafeMaxIndexSubMatrix start extent inputMatrix
+    uncurry (unsafeModifyMatrix retM) loc ((+) $ uncurry (U.atM' gradientMatrix) $ divMod ix gradCol)
+
+  return retM
+
+unsafeMaxElementSubmatrix :: (Int,Int) -> (Int,Int) -> Matrix Double -> Double
+unsafeMaxElementSubmatrix starts extent m = uncurry (U.atM' m) $ unsafeMaxIndexSubMatrix starts extent m
+
+unsafeMaxIndexSubMatrix :: (Int,Int) -> (Int,Int) -> Matrix Double -> (Int, Int)
+unsafeMaxIndexSubMatrix  (startRow, startCol) (extentRow, extentCold) m =
+  let mrows = [startRow .. startRow + extentRow  - 1]
+      mcols = [startCol .. startCol + extentCold - 1]
       pairs = concatMap ( \r -> fmap (\c -> (r , c)) mcols ) mrows
   in  maximumBy (compare `on` uncurry (U.atM' m)) pairs
+
