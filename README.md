@@ -10,11 +10,11 @@ Five is right out.
 
 💣 Machine learning which might blow up in your face 💣
 
-Grenade is a dependently typed, practical, and pretty quick neural network library for concise and precise
-specifications of complex networks in Haskell.
+Grenade is a dependently typed, practical, and pretty quick neural network
+library for concise and precise specifications of complex networks in Haskell.
 
-As an example, a network which can achieve less than 1.5% error on MNIST can be specified and
-initialised with random weights in a few lines of code with
+As an example, a network which can achieve less than 1% error on MNIST can be
+specified and initialised with random weights in a few lines of code with
 ```haskell
 randomMnist :: MonadRandom m
             => m (Network '[ Convolution 1 10 5 5 1 1, Pooling 2 2 2 2, Relu, Convolution 10 16 5 5 1 1, Pooling 2 2 2 2, FlattenLayer, Relu, FullyConnected 256 80, Logit, FullyConnected 80 10, Logit]
@@ -22,22 +22,56 @@ randomMnist :: MonadRandom m
 randomMnist = randomNetwork
 ```
 
-The network can be thought of as a heterogeneous list of layers, and its type signature includes a type
-level list of the shapes of the data passed between the layers of the network.
+And that's it. Because the types contain all the information we need, there's
+no specific term level code required; although it is of course possible and
+easy to build one oneself.
 
-In the above example, the input layer can be seen to be a two dimensional (`D2`) image with 28 by 28 pixels.
-The last item in the list is one dimensional (`D1`) with 10 values, representing the categories of the mnist data.
+The network can be thought of as a heterogeneous list of layers, where its type
+includes not only the layers of the network, but also the shapes of data that
+are passed between the layers.
 
-Layers in Grenade are represented as Haskell classes, so creating one's own is easy in downstream code. If the shapes
-of a network are not specified correctly and a layer can not sensibly perform the operation between two shapes, then
+```haskell
+data Network :: [*] -> [Shape] -> * where
+    O     :: Layer x i o => !x -> Network '[x] '[i, o]
+    (:~>) :: Layer x i h => !x -> !(Network xs (h ': hs)) -> Network (x ': xs) (i ': h ': hs)
+```
+
+In the above example, the input layer can be seen to be a two dimensional (`D2`),
+image with 28 by 28 pixels. When the first *Convolution* layer runs, it outputs
+a three dimensional (`D3`) 24x24x10 image. The last item in the list is one
+dimensional (`D1`) with 10 values, representing the categories of the MNIST
+data.
+
+Usage
+-----
+
+To perform back propagation, one can call the eponymous function
+```haskell
+backPropagate :: forall input target shapes layers. (Head shapes ~ input, Last shapes ~ target)
+              => Network layers shapes -> S' input -> S' target -> Gradients layers
+```
+which takes a network, appropriate input and target data, and returns the
+back propagated gradients for the network. The shapes of the gradients are
+appropriate for each layer, and may be trivial for layers like `Rulu` which
+have no learnable parameters.
+
+The gradients however can always be applied, yielding a new (hopefully better)
+layer with
+```haskell
+applyUpdate :: LearningParameters -> Network ls ss -> Gradients ls -> Network ls ss
+```
+
+Layers in Grenade are represented as Haskell classes, so creating one's own is
+easy in downstream code. If the shapes of a network are not specified correctly
+and a layer can not sensibly perform the operation between two shapes, then
 it will result in a compile time error.
-
 
 Build Instructions
 ------------------
-Grenade currently only builds with the [mafia](https://github.com/ambiata/mafia) scipt that is located in the
-repository. You will also need the `lapack` and `blas` libraries and development tools. Once you have all
-that, Grenade can be build using:
+Grenade currently only builds with the [mafia](https://github.com/ambiata/mafia)
+script that is located in the repository. You will also need the `lapack` and
+`blas` libraries and development tools. Once you have all that, Grenade can be
+build using:
 
 ```
 ./mafia build
@@ -54,19 +88,23 @@ Grenade is currently known to build with ghc 7.10 and 8.0.
 
 Thanks
 ------
-Writing a library like this has been on my mind for a while now, but a big shout out must go to [Justin Le](https://github.com/mstksg), whose
-[dependently typed fully connected network](https://blog.jle.im/entry/practical-dependent-types-in-haskell-1.html) inspired me to get cracking, gave many ideas for the type level tools I
+Writing a library like this has been on my mind for a while now, but a big shout
+out must go to [Justin Le](https://github.com/mstksg), whose
+[dependently typed fully connected network](https://blog.jle.im/entry/practical-dependent-types-in-haskell-1.html)
+inspired me to get cracking, gave many ideas for the type level tools I
 needed, and was a great starting point for writing this library.
 
 Performance
 -----------
-Grenade is backed by hmatrix and blas, and uses a pretty clever convolution trick popularised by Caffe, which
-is surprisingly effective and fast. So for many small scale problems it should be sufficient.
+Grenade is backed by hmatrix and blas, and uses a pretty clever convolution
+trick popularised by Caffe, which is surprisingly effective and fast. So for many
+small scale problems it should be sufficient.
 
-That said, it's currently stuck on a single core and doesn't hit up the GPU, so there's a fair bit of performance
-sitting there begging.
+Being purely functional, it's probably pretty easy to parallelise and batch up.
+My current examples however are single threaded.
 
-Training 15 generations over Kaggle's mnist training data took a few hours.
+Training 15 generations over Kaggle's 42000 sample MNIST training set took under
+an hour, achieving 0.5% error rate on a 1000 sample holdout set.
 
 Contributing
 ------------
