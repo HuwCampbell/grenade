@@ -22,6 +22,7 @@ library
                      , containers
                      , deepseq
                      , either                          == 4.4.*
+                     , cereal
                      , exceptions                      == 0.8.*
                      , hmatrix
                      , MonadRandom
@@ -85,6 +86,8 @@ executable             feedforward
     build-depends:     base
                      , grenade
                      , attoparsec
+                     , bytestring
+                     , cereal
                      , either
                      , optparse-applicative            == 0.12.*
                      , text                            == 1.2.*

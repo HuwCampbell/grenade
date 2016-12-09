@@ -89,7 +89,6 @@ and the tests run using:
 
 Grenade is currently known to build with ghc 7.10 and 8.0.
 
-
 Thanks
 ------
 Writing a library like this has been on my mind for a while now, but a big shout
@@ -108,8 +107,13 @@ Being purely functional, it should also be easy to run batches in parallel, whic
 would be appropriate for larger networks, my current examples however are single
 threaded.
 
+<<<<<<< 20e7e483d75613f16580baa71b44fa9864c940fd
 Training 15 generations over Kaggle's 41000 sample MNIST training set on a single
 core took around 12 minutes, achieving 1.5% error rate on a 1000 sample holdout set.
+=======
+Training 15 generations over Kaggle's 42000 sample MNIST training set took under
+an hour on my laptop, achieving 0.5% error rate on a 1000 sample holdout set.
+>>>>>>> Add very basic model saving and loading
 
 Contributing
 ------------

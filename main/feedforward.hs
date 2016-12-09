@@ -8,6 +8,9 @@ import           Control.Monad
 import           Control.Monad.Random
 import           Data.List ( foldl' )
 
+import qualified Data.ByteString as B
+import           Data.Serialize
+
 import           GHC.TypeLits
 
 import qualified Numeric.LinearAlgebra.Static as SA
@@ -16,13 +19,12 @@ import           Options.Applicative
 
 import           Grenade
 
+
 -- The defininition for our simple feed forward network.
--- The type level list represents the shapes passed through the layers. One can see that for this demonstration
--- we are using relu, tanh and logit non-linear units, which can be easily subsituted for each other in and out.
-
--- It's important to keep the type signatures, as there's many layers which can "squeeze" into the gaps
--- between the shapes, so inference can't do it all for us.
-
+-- The type level lists represents the layers and the shapes passed through the layers.
+-- One can see that for this demonstration we are using relu, tanh and logit non-linear
+-- units, which can be easily subsituted for each other in and out.
+--
 -- With around 100000 examples, this should show two clear circles which have been learned by the network.
 type FFNet = Network '[ FullyConnected 2 40, Tanh, FullyConnected 40 10, Relu, FullyConnected 10 1, Logit ]
                      '[ 'D1 2, 'D1 40, 'D1 40, 'D1 10, 'D1 10, 'D1 1, 'D1 1]
@@ -30,8 +32,8 @@ type FFNet = Network '[ FullyConnected 2 40, Tanh, FullyConnected 40 10, Relu, F
 randomNet :: MonadRandom m => m FFNet
 randomNet = randomNetwork
 
-netTest :: MonadRandom m => LearningParameters -> Int -> m String
-netTest rate n = do
+netTrain :: FFNet -> LearningParameters -> Int -> IO FFNet
+netTrain net0 rate n = do
     inps <- replicateM n $ do
       s  <- getRandom
       return $ S1D $ SA.randomVector s SA.Uniform * 2 - 1
@@ -39,20 +41,28 @@ netTest rate n = do
                  if v `inCircle` (fromRational 0.33, 0.33)  || v `inCircle` (fromRational (-0.33), 0.33)
                    then S1D $ fromRational 1
                    else S1D $ fromRational 0
-    net0 <- randomNet
 
     let trained = foldl' trainEach net0 (zip inps outs)
-    let testIns = [ [ (x,y)  | x <- [0..50] ]
-                             | y <- [0..20] ]
-
-    let outMat  = fmap (fmap (\(x,y) -> (render . normx) $ runNet trained (S1D $ SA.vector [x / 25 - 1,y / 10 - 1]))) testIns
-    return $ unlines outMat
+    return trained
 
   where
     inCircle :: KnownNat n => SA.R n -> (SA.R n, Double) -> Bool
     v `inCircle` (o, r) = SA.norm_2 (v - o) <= r
     trainEach !network (i,o) = train rate network i o
 
+netLoad :: FilePath -> IO FFNet
+netLoad modelPath = do
+  modelData <- B.readFile modelPath
+  either fail return $ runGet (get :: Get FFNet) modelData
+
+netScore :: FFNet -> IO ()
+netScore network = do
+    let testIns = [ [ (x,y)  | x <- [0..50] ]
+                             | y <- [0..20] ]
+        outMat  = fmap (fmap (\(x,y) -> (render . normx) $ runNet network (S1D $ SA.vector [x / 25 - 1,y / 10 - 1]))) testIns
+    putStrLn $ unlines outMat
+
+  where
     render n'  | n' <= 0.2  = ' '
                | n' <= 0.4  = '.'
                | n' <= 0.6  = '-'
@@ -62,7 +72,7 @@ netTest rate n = do
     normx :: S ('D1 1) -> Double
     normx (S1D r) = SA.mean r
 
-data FeedForwardOpts = FeedForwardOpts Int LearningParameters
+data FeedForwardOpts = FeedForwardOpts Int LearningParameters (Maybe FilePath) (Maybe FilePath)
 
 feedForward' :: Parser FeedForwardOpts
 feedForward' =
@@ -72,9 +82,19 @@ feedForward' =
                       <*> option auto (long "momentum" <> value 0.9)
                       <*> option auto (long "l2" <> value 0.0005)
                       )
+                  <*> optional (strOption (long "load"))
+                  <*> optional (strOption (long "save"))
 
 main :: IO ()
 main = do
-    FeedForwardOpts examples rate <- execParser (info (feedForward' <**> helper) idm)
-    putStrLn "Training network..."
-    putStrLn =<< evalRandIO (netTest rate examples)
+    FeedForwardOpts examples rate load save <- execParser (info (feedForward' <**> helper) idm)
+    net0 <- case load of
+      Just loadFile -> netLoad loadFile
+      Nothing -> randomNet
+
+    net <- netTrain net0 rate examples
+    netScore net
+
+    case save of
+      Just saveFile -> B.writeFile saveFile $ runPut (put net)
+      Nothing -> return ()

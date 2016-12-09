@@ -7,6 +7,8 @@ module Grenade.Layers.Flatten (
     FlattenLayer (..)
   ) where
 
+import           Data.Serialize
+
 import           Data.Singletons.TypeLits
 import           GHC.TypeLits
 
@@ -40,6 +42,11 @@ instance (KnownNat a, KnownNat x, KnownNat y, KnownNat (x * z), KnownNat z, a ~ 
 instance (KnownNat y, KnownNat x, KnownNat z, z ~ 1) => Layer FlattenLayer ('D3 x y z) ('D2 x y) where
   runForwards _ (S3D y)    = S2D y
   runBackwards _ _ (S2D y) = ((), S3D y)
+
+instance Serialize FlattenLayer where
+  put _ = return ()
+  get = return FlattenLayer
+
 
 fromJust' :: Maybe x -> x
 fromJust' (Just x) = x

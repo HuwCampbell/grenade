@@ -12,6 +12,7 @@ module Grenade.Layers.Pooling (
 
 import           Data.Maybe
 import           Data.Proxy
+import           Data.Serialize
 import           Data.Singletons.TypeLits
 import           GHC.TypeLits
 
@@ -38,6 +39,10 @@ instance UpdateLayer (Pooling kernelRows kernelColumns strideRows strideColumns)
   type Gradient (Pooling kr kc sr sc) = ()
   runUpdate _ Pooling _ = Pooling
   createRandom = return Pooling
+
+instance Serialize (Pooling kernelRows kernelColumns strideRows strideColumns) where
+  put _ = return ()
+  get = return Pooling
 
 -- | A two dimentional image can be pooled.
 instance ( KnownNat kernelRows
