@@ -104,3 +104,21 @@ test-suite test
                      , text                            == 1.2.*
                      , QuickCheck                      >= 2.7        && < 2.9
                      , quickcheck-instances            == 0.3.*
+
+
+benchmark bench
+  type:                exitcode-stdio-1.0
+
+  main-is:             bench.hs
+
+  ghc-options:         -Wall -threaded -O2
+
+  hs-source-dirs:
+                       bench
+
+  build-depends:
+                       base                            >= 3          && < 5
+                     , bytestring                      == 0.10.*
+                     , criterion                       == 1.1.*
+                     , grenade
+                     , hmatrix
