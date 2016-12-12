@@ -39,7 +39,6 @@ library
   exposed-modules:
                        Grenade
                        Grenade.Core.Network
-                       Grenade.Core.Vector
                        Grenade.Core.Runner
                        Grenade.Core.Shape
                        Grenade.Layers.Crop
