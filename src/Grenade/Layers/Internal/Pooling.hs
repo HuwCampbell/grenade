@@ -1,69 +1,55 @@
+{-# LANGUAGE ForeignFunctionInterface #-}
 module Grenade.Layers.Internal.Pooling (
     poolForward
   , poolBackward
-  , poolForwardList
-  , poolBackwardList
   ) where
 
-import           Data.Foldable ( forM_ )
-import           Data.Function ( on )
-import           Data.List ( maximumBy )
+import           Foreign ( mallocForeignPtrArray0, withForeignPtr )
+import           Foreign.Ptr ( Ptr )
 
-import           Numeric.LinearAlgebra hiding ( uniformSample, konst )
-import qualified Numeric.LinearAlgebra as LA
+import           Numeric.LinearAlgebra ( Matrix , flatten )
 import qualified Numeric.LinearAlgebra.Devel as U
 
-import           Grenade.Layers.Internal.Convolution
+import           System.IO.Unsafe ( unsafePerformIO )
 
-poolForward :: Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
-poolForward nrows ncols srows scols outputRows outputCols m =
-  let starts = fittingStarts (rows m) nrows srows (cols m) ncols scols
-  in  poolForwardFit starts nrows ncols outputRows outputCols m
+poolForward :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
+poolForward channels height width kernelRows kernelColumns strideRows strideColumns dataIm =
+  let vec             = flatten dataIm
+      rowOut          = (height - kernelRows) `div` strideRows + 1
+      colOut          = (width - kernelColumns) `div` strideColumns + 1
+      numberOfPatches = rowOut * colOut
+  in unsafePerformIO $ do
+    outPtr <- mallocForeignPtrArray0 (numberOfPatches * channels)
+    let (inPtr, inOffset, _) = U.unsafeToForeignPtr vec
 
-poolForwardList :: Functor f => Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> f (Matrix Double) -> f (Matrix Double)
-poolForwardList nrows ncols srows scols inRows inCols outputRows outputCols ms =
-  let starts = fittingStarts inRows nrows srows inCols ncols scols
-  in  poolForwardFit starts nrows ncols outputRows outputCols <$> ms
+    withForeignPtr inPtr $ \inPtr' ->
+      withForeignPtr outPtr $ \outPtr' ->
+        pool_forwards_cpu inPtr' inOffset channels height width kernelRows kernelColumns strideRows strideColumns outPtr'
 
-poolForwardFit :: [(Int,Int)] -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
-poolForwardFit starts nrows ncols _ outputCols m =
-  let els    = fmap (\start -> unsafeMaxElementSubmatrix start (nrows, ncols) m) starts
-  in  LA.matrix outputCols els
+    let matVec = U.unsafeFromForeignPtr outPtr 0 (numberOfPatches * channels)
+    return $ U.matrixFromVector U.RowMajor (rowOut * channels) colOut matVec
 
-poolBackward :: Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double -> Matrix Double
-poolBackward krows kcols srows scols inputMatrix gradientMatrix =
-  let inRows     = rows inputMatrix
-      inCols     = cols inputMatrix
-      starts     = fittingStarts inRows krows srows inCols kcols scols
-  in  poolBackwardFit starts krows kcols inputMatrix gradientMatrix
+foreign import ccall unsafe
+    pool_forwards_cpu
+      :: Ptr Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr Double -> IO ()
 
-poolBackwardList :: Functor f => Int -> Int -> Int -> Int -> Int -> Int -> f (Matrix Double, Matrix Double) -> f (Matrix Double)
-poolBackwardList krows kcols srows scols inRows inCols inputMatrices =
-  let starts     = fittingStarts inRows krows srows inCols kcols scols
-  in  uncurry (poolBackwardFit starts krows kcols) <$> inputMatrices
+poolBackward :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double -> Matrix Double
+poolBackward channels height width kernelRows kernelColumns strideRows strideColumns dataCol dataGrad =
+  let vecIm     = flatten dataCol
+      vecGrad   = flatten dataGrad
+  in unsafePerformIO $ do
+    outPtr <- mallocForeignPtrArray0 (height * width * channels)
+    let (imPtr, imOffset, _) = U.unsafeToForeignPtr vecIm
+    let (gradPtr, gradOffset, _) = U.unsafeToForeignPtr vecGrad
 
-poolBackwardFit :: [(Int,Int)] -> Int -> Int -> Matrix Double -> Matrix Double -> Matrix Double
-poolBackwardFit starts krows kcols inputMatrix gradientMatrix = U.runSTMatrix $ do
-  let inRows     = rows inputMatrix
-      inCols     = cols inputMatrix
-      gradCol    = cols gradientMatrix
-      extent     = (krows, kcols)
+    withForeignPtr imPtr $ \imPtr' ->
+      withForeignPtr gradPtr $ \gradPtr' ->
+        withForeignPtr outPtr $ \outPtr' ->
+          pool_backwards_cpu imPtr' imOffset gradPtr' gradOffset channels height width kernelRows kernelColumns strideRows strideColumns outPtr'
 
-  retM <- U.newMatrix 0 inRows inCols
+    let matVec = U.unsafeFromForeignPtr outPtr 0 (height * width * channels)
+    return $ U.matrixFromVector U.RowMajor (height * channels) width matVec
 
-  forM_ (zip [0..] starts) $ \(ix, start) -> do
-    let loc = unsafeMaxIndexSubMatrix start extent inputMatrix
-    uncurry (unsafeModifyMatrix retM) loc ((+) $ uncurry (U.atM' gradientMatrix) $ divMod ix gradCol)
-
-  return retM
-
-unsafeMaxElementSubmatrix :: (Int,Int) -> (Int,Int) -> Matrix Double -> Double
-unsafeMaxElementSubmatrix starts extent m = uncurry (U.atM' m) $ unsafeMaxIndexSubMatrix starts extent m
-
-unsafeMaxIndexSubMatrix :: (Int,Int) -> (Int,Int) -> Matrix Double -> (Int, Int)
-unsafeMaxIndexSubMatrix  (startRow, startCol) (extentRow, extentCold) m =
-  let mrows = [startRow .. startRow + extentRow  - 1]
-      mcols = [startCol .. startCol + extentCold - 1]
-      pairs = concatMap ( \r -> fmap (\c -> (r , c)) mcols ) mrows
-  in  maximumBy (compare `on` uncurry (U.atM' m)) pairs
-
+foreign import ccall unsafe
+    pool_backwards_cpu
+      :: Ptr Double -> Int -> Ptr Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr Double -> IO ()

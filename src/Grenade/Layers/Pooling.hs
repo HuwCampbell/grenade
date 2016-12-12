@@ -21,7 +21,6 @@ import           GHC.TypeLits
 
 import           Grenade.Core.Network
 import           Grenade.Core.Shape
-import           Grenade.Core.Vector
 import           Grenade.Layers.Internal.Pooling
 
 import           Numeric.LinearAlgebra.Static as LAS hiding ((|||), build, toRows)
@@ -57,24 +56,26 @@ instance ( KnownNat kernelRows
          , ((outputColumns - 1) * strideColumns) ~ (inputColumns - kernelColumns)
          ) => Layer (Pooling kernelRows kernelColumns strideRows strideColumns) ('D2 inputRows inputColumns) ('D2 outputRows outputColumns) where
   runForwards Pooling (S2D' input) =
-    let kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
+    let height = fromIntegral $ natVal (Proxy :: Proxy inputRows)
+        width  = fromIntegral $ natVal (Proxy :: Proxy inputColumns)
+        kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
         ky = fromIntegral $ natVal (Proxy :: Proxy kernelColumns)
         sx = fromIntegral $ natVal (Proxy :: Proxy strideRows)
         sy = fromIntegral $ natVal (Proxy :: Proxy strideColumns)
-        ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
-        oy = fromIntegral $ natVal (Proxy :: Proxy outputColumns)
         ex = extract input
-        r  = poolForward kx ky sx sy ox oy $ ex
+        r  = poolForward 1 height width kx ky sx sy ex
         rs = fromJust . create $ r
     in  S2D' $ rs
   runBackwards Pooling (S2D' input) (S2D' dEdy) =
-    let kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
+    let height = fromIntegral $ natVal (Proxy :: Proxy inputRows)
+        width  = fromIntegral $ natVal (Proxy :: Proxy inputColumns)
+        kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
         ky = fromIntegral $ natVal (Proxy :: Proxy kernelColumns)
         sx = fromIntegral $ natVal (Proxy :: Proxy strideRows)
         sy = fromIntegral $ natVal (Proxy :: Proxy strideColumns)
         ex = extract input
         eo = extract dEdy
-        vs = poolBackward kx ky sx sy ex eo
+        vs = poolBackward 1 height width kx ky sx sy ex eo
     in  ((), S2D' . fromJust . create $ vs)
 
 
@@ -87,6 +88,8 @@ instance ( KnownNat kernelRows
          , KnownNat inputColumns
          , KnownNat outputRows
          , KnownNat outputColumns
+         , KnownNat channels
+         , KnownNat (outputRows * channels)
          , ((outputRows - 1) * strideRows) ~ (inputRows - kernelRows)
          , ((outputColumns - 1) * strideColumns) ~ (inputColumns - kernelColumns)
          ) => Layer (Pooling kernelRows kernelColumns strideRows strideColumns) ('D3 inputRows inputColumns channels) ('D3 outputRows outputColumns channels) where
@@ -97,11 +100,10 @@ instance ( KnownNat kernelRows
         ky = fromIntegral $ natVal (Proxy :: Proxy kernelColumns)
         sx = fromIntegral $ natVal (Proxy :: Proxy strideRows)
         sy = fromIntegral $ natVal (Proxy :: Proxy strideColumns)
-        ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
-        oy = fromIntegral $ natVal (Proxy :: Proxy outputColumns)
-        ex = fmap extract input
-        r  = poolForwardList kx ky sx sy ix iy ox oy ex
-        rs = fmap (fromJust . create) r
+        ch = fromIntegral $ natVal (Proxy :: Proxy channels)
+        ex = extract input
+        r  = poolForward ch ix iy kx ky sx sy ex
+        rs = fromJust . create $ r
     in  S3D' rs
   runBackwards Pooling (S3D' input) (S3D' dEdy) =
     let ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
@@ -110,8 +112,8 @@ instance ( KnownNat kernelRows
         ky = fromIntegral $ natVal (Proxy :: Proxy kernelColumns)
         sx = fromIntegral $ natVal (Proxy :: Proxy strideRows)
         sy = fromIntegral $ natVal (Proxy :: Proxy strideColumns)
-        ex = fmap extract input
-        eo = fmap extract dEdy
-        ez = vectorZip (,) ex eo
-        vs = poolBackwardList kx ky sx sy ix iy ez
-    in  ((), S3D' . fmap (fromJust . create) $ vs)
+        ch = fromIntegral $ natVal (Proxy :: Proxy channels)
+        ex = extract input
+        eo = extract dEdy
+        vs = poolBackward ch ix iy kx ky sx sy ex eo
+    in  ((), S3D' . fromJust . create $ vs)

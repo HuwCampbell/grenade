@@ -30,7 +30,6 @@ import           Numeric.LinearAlgebra.Static hiding ((|||), build, toRows)
 
 import           Grenade.Core.Network
 import           Grenade.Core.Shape
-import           Grenade.Core.Vector
 import           Grenade.Layers.Internal.Convolution
 
 -- | A convolution layer for a neural network.
@@ -145,6 +144,7 @@ instance ( KnownNat kernelRows
          , ((outputRows - 1) * strideRows) ~ (inputRows - kernelRows)
          , ((outputCols - 1) * strideCols) ~ (inputCols - kernelCols)
          , KnownNat (kernelRows * kernelCols * 1)
+         , KnownNat (outputRows * filters)
          ) => Layer (Convolution 1 filters kernelRows kernelCols strideRows strideCols) ('D2 inputRows inputCols) ('D3 outputRows outputCols filters) where
   runForwards (Convolution kernel _) (S2D' input) =
     let ex = extract input
@@ -158,8 +158,8 @@ instance ( KnownNat kernelRows
         c  = im2col kx ky sx sy ex
         mt = c LA.<> ek
         r  = col2vid 1 1 1 1 ox oy mt
-        rs = fmap (fromJust . create) r
-    in  S3D' $ mkVector rs
+        rs = fromJust . create $ r
+    in  S3D' rs
 
   runBackwards (Convolution kernel _) (S2D' input) (S3D' dEdy) =
     let ex = extract input
@@ -174,7 +174,7 @@ instance ( KnownNat kernelRows
 
         c  = im2col kx ky sx sy ex
 
-        eo = vecToList $ fmap extract dEdy
+        eo = extract dEdy
         ek = extract kernel
 
         vs = vid2col 1 1 1 1 ox oy eo
@@ -201,9 +201,10 @@ instance ( KnownNat kernelRows
          , ((outputRows - 1) * strideRows) ~ (inputRows - kernelRows)
          , ((outputCols - 1) * strideCols) ~ (inputCols - kernelCols)
          , KnownNat (kernelRows * kernelCols * channels)
+         , KnownNat (outputRows * filters)
          ) => Layer (Convolution channels filters kernelRows kernelCols strideRows strideCols) ('D3 inputRows inputCols channels) ('D3 outputRows outputCols filters) where
   runForwards (Convolution kernel _) (S3D' input) =
-    let ex = vecToList $ fmap extract input
+    let ex = extract input
         ek = extract kernel
         ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         iy = fromIntegral $ natVal (Proxy :: Proxy inputCols)
@@ -217,10 +218,10 @@ instance ( KnownNat kernelRows
         c  = vid2col kx ky sx sy ix iy ex
         mt = c LA.<> ek
         r  = col2vid 1 1 1 1 ox oy mt
-        rs = fmap (fromJust . create) r
-    in  S3D' $ mkVector rs
+        rs = fromJust . create $ r
+    in  S3D' rs
   runBackwards (Convolution kernel _) (S3D' input) (S3D' dEdy) =
-    let ex = vecToList $ fmap extract input
+    let ex = extract input
         ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         iy = fromIntegral $ natVal (Proxy :: Proxy inputCols)
         kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
@@ -232,7 +233,7 @@ instance ( KnownNat kernelRows
 
         c  = vid2col kx ky sx sy ix iy ex
 
-        eo = vecToList $ fmap extract dEdy
+        eo = extract dEdy
         ek = extract kernel
 
         vs = vid2col 1 1 1 1 ox oy eo
@@ -242,4 +243,4 @@ instance ( KnownNat kernelRows
         dW = vs LA.<> tr ek
 
         xW = col2vid kx ky sx sy ix iy dW
-    in  (Convolution' kN, S3D' . mkVector . fmap (fromJust . create) $ xW)
+    in  (Convolution' kN, S3D' . fromJust . create $ xW)

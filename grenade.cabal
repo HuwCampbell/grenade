@@ -60,6 +60,8 @@ library
   includes:           cbits/im2col.h
   c-sources:          cbits/im2col.c
 
+  cc-options:         -std=c99 -O3 -msse4.2 -Wall -Werror -DCABAL=1
+
 executable             feedforward
     ghc-options:       -Wall -threaded -O2
     main-is:           main/feedforward.hs
