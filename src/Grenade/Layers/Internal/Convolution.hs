@@ -1,8 +1,11 @@
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 module Grenade.Layers.Internal.Convolution (
     col2vidUnsafe
   , col2imUnsafe
   , vid2colUnsafe
   , im2colUnsafe
+  , im2col_c
   , fittingStarts
   , unsafeModifyMatrix
   ) where
@@ -13,10 +16,14 @@ import           Data.STRef ( newSTRef, modifySTRef', writeSTRef, readSTRef )
 import           Data.Foldable ( forM_ )
 import           Data.Traversable ( forM )
 
+import           Foreign ( mallocForeignPtrArray0, withForeignPtr )
+import           Foreign.Ptr ( Ptr )
 import           Foreign.Storable( Storable )
 
 import           Numeric.LinearAlgebra hiding ( uniformSample, konst )
 import qualified Numeric.LinearAlgebra.Devel as U
+
+import           System.IO.Unsafe ( unsafePerformIO )
 
 -- This module provides provides im2col function and friends, ala caffe.
 --
@@ -105,13 +112,13 @@ col2vidUnsafe kernelRows kernelColumns strideRows strideColumns destinationRows 
     offsetR    <- newSTRef 0
     offsetC    <- newSTRef 0
     forM_ [0 .. columnMatrixRows - 1] $ \ir -> do
-      inputColumn <- newSTRef 0
-      offsetR' <- readSTRef offsetR
-      offsetC' <- readSTRef offsetC
+      inputColumn <- newSTRef offsetM
+      offsetR'    <- readSTRef offsetR
+      offsetC'    <- readSTRef offsetC
       forM_ [offsetR' .. offsetR' + kernelRows -1] $ \kr ->
         forM_ [offsetC' .. offsetC' + kernelColumns -1] $ \kc -> do
           ic       <- readSTRef inputColumn
-          unsafeModifyMatrix dataIm kr kc (+ U.atM' columnMatrix ir (ic + offsetM))
+          unsafeModifyMatrix dataIm kr kc (+ U.atM' columnMatrix ir ic)
           modifySTRef' inputColumn (+1)
 
       if offsetC' + kernelColumns < destinationCols
@@ -119,6 +126,62 @@ col2vidUnsafe kernelRows kernelColumns strideRows strideColumns destinationRows 
         else writeSTRef offsetC 0 >> modifySTRef' offsetR (+ strideRows)
 
     U.unsafeFreezeMatrix dataIm
+
+
+im2col_c :: Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
+im2col_c kernelRows kernelColumns strideRows strideColumns dataIm =
+  let height = rows dataIm
+      width  = cols dataIm
+      vec    = flatten dataIm
+      rowOut = (height - kernelRows) `div` strideRows + 1
+      colOut = (width - kernelColumns) `div` strideColumns + 1
+      kernelSize      = kernelRows * kernelColumns
+      numberOfPatches = rowOut * colOut
+  in unsafePerformIO $ do
+    outPtr <- mallocForeignPtrArray0 (numberOfPatches * kernelSize)
+    let (inPtr, inOffset, _) = U.unsafeToForeignPtr vec
+
+    withForeignPtr inPtr $ \inPtr' ->
+      withForeignPtr outPtr $ \outPtr' ->
+        im2col_cpu inPtr' inOffset 1 height width kernelRows kernelColumns strideRows strideColumns outPtr'
+
+    let matVec = U.unsafeFromForeignPtr outPtr 0 (numberOfPatches * kernelSize)
+    return $ U.matrixFromVector U.RowMajor numberOfPatches kernelSize matVec
+
+foreign import ccall safe
+    im2col_cpu
+      :: Ptr Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr Double -> IO ()
+
+
+unsafeModifyMatrix :: (Storable t) => U.STMatrix s t -> Int -> Int -> (t -> t) -> ST s ()
+unsafeModifyMatrix x r c f = U.unsafeReadMatrix x r c >>= U.unsafeWriteMatrix x r c . f
+{-# INLINE unsafeModifyMatrix #-}
+
+
+-- | Returns the starting sub matrix locations which fit inside the larger matrix for the
+--   convolution. Takes into account the stride and kernel size.
+fittingStarts :: Int -> Int -> Int -> Int -> Int -> Int -> [(Int,Int)]
+fittingStarts nrows kernelrows steprows ncols kernelcols stepcolsh =
+  let rs = fittingStart nrows kernelrows steprows
+      cs = fittingStart ncols kernelcols stepcolsh
+  in  concatMap ( \r -> fmap (\c -> (r , c)) cs ) rs
+
+-- | Returns the starting sub vector which fit inside the larger vector for the
+--   convolution. Takes into account the stride and kernel size.
+fittingStart :: Int -> Int -> Int -> [Int]
+fittingStart width kernel steps =
+  let go left | left + kernel < width
+              = left : go (left + steps)
+              | left + kernel == width
+              = [left]
+              | otherwise
+              = []
+  in  go 0
+
+
+
+
+-- | Old functions (useful for sanity checking and benchmarking)
 
 vid2colUnsafe :: Int -> Int -> Int -> Int -> Int -> Int -> [Matrix Double] -> Matrix Double
 vid2colUnsafe kernelRows kernelColumns striderows stridecols vidrows vidcols dataVid = U.runSTMatrix $ do
@@ -168,28 +231,3 @@ im2colUnsafe kernelRows kernelColumns striderows stridecols dataIm = U.runSTMatr
     modifySTRef' inputRowRef (+1)
 
   return dataCol
-
-unsafeModifyMatrix :: (Storable t) => U.STMatrix s t -> Int -> Int -> (t -> t) -> ST s ()
-unsafeModifyMatrix x r c f = U.unsafeReadMatrix x r c >>= U.unsafeWriteMatrix x r c . f
-{-# INLINE unsafeModifyMatrix #-}
-
-
--- | Returns the starting sub matrix locations which fit inside the larger matrix for the
---   convolution. Takes into account the stride and kernel size.
-fittingStarts :: Int -> Int -> Int -> Int -> Int -> Int -> [(Int,Int)]
-fittingStarts nrows kernelrows steprows ncols kernelcols stepcolsh =
-  let rs = fittingStart nrows kernelrows steprows
-      cs = fittingStart ncols kernelcols stepcolsh
-  in  concatMap ( \r -> fmap (\c -> (r , c)) cs ) rs
-
--- | Returns the starting sub vector which fit inside the larger vector for the
---   convolution. Takes into account the stride and kernel size.
-fittingStart :: Int -> Int -> Int -> [Int]
-fittingStart width kernel steps =
-  let go left | left + kernel < width
-              = left : go (left + steps)
-              | left + kernel == width
-              = [left]
-              | otherwise
-              = []
-  in  go 0

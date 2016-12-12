@@ -30,6 +30,21 @@ prop_im2col_no_stride = once $
      out = im2colUnsafe 2 2 1 1 input
  in expected === out
 
+prop_im2col_c = once $
+ let input = (3><4)
+               [ 1.0,  2.0,  3.0,  4.0
+               , 5.0,  6.0,  7.0,  8.0
+               , 9.0, 10.0, 11.0, 12.0 ]
+     expected = (6><4)
+               [ 1.0,  2.0,  5.0,  6.0
+               , 2.0,  3.0,  6.0,  7.0
+               , 3.0,  4.0,  7.0,  8.0
+               , 5.0,  6.0,  9.0,  10.0
+               , 6.0,  7.0,  10.0, 11.0
+               , 7.0,  8.0,  11.0, 12.0 ]
+     out = im2col_c 2 2 1 1 input
+ in expected === out
+
 prop_im2col_stride = once $
  let input = (3><4)
                [ 1.0,  2.0,  3.0,  4.0
@@ -43,6 +58,19 @@ prop_im2col_stride = once $
      out = im2colUnsafe 2 2 1 2 input
  in expected === out
 
+prop_im2col_c_stride = once $
+ let input = (3><4)
+               [ 1.0,  2.0,  3.0,  4.0
+               , 5.0,  6.0,  7.0,  8.0
+               , 9.0, 10.0, 11.0, 12.0 ]
+     expected = (4><4)
+               [ 1.0,  2.0,  5.0,  6.0
+               , 3.0,  4.0,  7.0,  8.0
+               , 5.0,  6.0,  9.0,  10.0
+               , 7.0,  8.0,  11.0, 12.0 ]
+     out = im2col_c 2 2 1 2 input
+ in expected === out
+
 prop_im2col_other = once $
  let input = (3><4)
                [ 1.0,  2.0,  3.0,  4.0
@@ -53,6 +81,21 @@ prop_im2col_other = once $
                , 3.0,  4.0,  7.0,  8.0 , 11.0 ,12.0 ]
      out = im2colUnsafe 3 2 1 2 input
  in expected === out
+
+prop_im2col_c_other = once $
+ let input = (3><4)
+               [ 1.0,  2.0,  3.0,  4.0
+               , 5.0,  6.0,  7.0,  8.0
+               , 9.0, 10.0, 11.0, 12.0 ]
+     expected = (2><6)
+               [ 1.0,  2.0,  5.0,  6.0 , 9.0,  10.0
+               , 3.0,  4.0,  7.0,  8.0 , 11.0 ,12.0 ]
+     out = im2col_c 3 2 1 2 input
+ in expected === out
+
+prop_im2col_bigger = once $
+ let input = (7><7) [ 1.0 .. ]
+ in im2colUnsafe 5 5 2 2 input === im2col_c 5 5 2 2 input
 
 -- If there's no overlap (stride is the same size as the kernel)
 -- then col2im . im2col should be symmetric.

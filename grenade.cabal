@@ -10,6 +10,10 @@ cabal-version:         >= 1.8
 build-type:            Simple
 description:           grenade.
 
+extra-source-files:
+    cbits/im2col.h
+    cbits/im2col.c
+
 library
   build-depends:
                        base                            >= 4.8         && < 5
@@ -53,6 +57,8 @@ library
                        Grenade.Layers.Internal.Convolution
                        Grenade.Layers.Internal.Pooling
 
+  includes:           cbits/im2col.h
+  c-sources:          cbits/im2col.c
 
 executable             feedforward
     ghc-options:       -Wall -threaded -O2

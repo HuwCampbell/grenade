@@ -155,7 +155,7 @@ instance ( KnownNat kernelRows
         sy = fromIntegral $ natVal (Proxy :: Proxy strideCols)
         ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
         oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
-        c  = im2colUnsafe kx ky sx sy ex
+        c  = im2col_c kx ky sx sy ex
         mt = c LA.<> ek
         r  = col2vidUnsafe 1 1 1 1 ox oy mt
         rs = fmap (fromJust . create) r
@@ -172,7 +172,7 @@ instance ( KnownNat kernelRows
         ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
         oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
 
-        c  = im2colUnsafe kx ky sx sy ex
+        c  = im2col_c kx ky sx sy ex
 
         eo = vecToList $ fmap extract dEdy
         ek = extract kernel

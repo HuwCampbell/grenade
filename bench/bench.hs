@@ -11,6 +11,10 @@ main = defaultMain [
                     , bench "im2col 28x28"    $ whnf (im2colUnsafe 5 5 1 1)   ((28><28) [1..])
                     , bench "im2col 100x100"  $ whnf (im2colUnsafe 10 10 1 1) ((100><100) [1..])
                     ]
+  , bgroup "im2col_c" [ bench "im2col_c 3x4"     $ whnf (im2col_c 2 2 1 1)   ((3><4) [1..])
+                      , bench "im2col_c 28x28"   $ whnf (im2col_c 5 5 1 1)   ((28><28) [1..])
+                      , bench "im2col_c 100x100" $ whnf (im2col_c 10 10 1 1) ((100><100) [1..])
+                      ]
   , bgroup "col2im" [ bench "col2im 3x4"      $ whnf (col2imUnsafe 2 2 1 1 3 4)       ((6><4) [1..])
                     , bench "col2im 28x28"    $ whnf (col2imUnsafe 5 5 1 1 28 28)     ((576><25) [1..])
                     , bench "col2im 100x100"  $ whnf (col2imUnsafe 10 10 1 1 100 100) ((8281><100) [1..])
