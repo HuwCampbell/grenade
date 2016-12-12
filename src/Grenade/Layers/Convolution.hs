@@ -155,9 +155,9 @@ instance ( KnownNat kernelRows
         sy = fromIntegral $ natVal (Proxy :: Proxy strideCols)
         ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
         oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
-        c  = im2col_c kx ky sx sy ex
+        c  = im2col kx ky sx sy ex
         mt = c LA.<> ek
-        r  = col2vidUnsafe 1 1 1 1 ox oy mt
+        r  = col2vid 1 1 1 1 ox oy mt
         rs = fmap (fromJust . create) r
     in  S3D' $ mkVector rs
 
@@ -172,17 +172,17 @@ instance ( KnownNat kernelRows
         ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
         oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
 
-        c  = im2col_c kx ky sx sy ex
+        c  = im2col kx ky sx sy ex
 
         eo = vecToList $ fmap extract dEdy
         ek = extract kernel
 
-        vs = vid2colUnsafe 1 1 1 1 ox oy eo
+        vs = vid2col 1 1 1 1 ox oy eo
 
         kN = fromJust . create $ tr c LA.<> vs
         dW = vs LA.<> tr ek
 
-        xW = col2imUnsafe kx ky sx sy ix iy dW
+        xW = col2im kx ky sx sy ix iy dW
     in  (Convolution' kN, S2D' . fromJust . create $ xW)
 
 
@@ -214,9 +214,9 @@ instance ( KnownNat kernelRows
         ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
         oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
 
-        c  = vid2colUnsafe kx ky sx sy ix iy ex
+        c  = vid2col kx ky sx sy ix iy ex
         mt = c LA.<> ek
-        r  = col2vidUnsafe 1 1 1 1 ox oy mt
+        r  = col2vid 1 1 1 1 ox oy mt
         rs = fmap (fromJust . create) r
     in  S3D' $ mkVector rs
   runBackwards (Convolution kernel _) (S3D' input) (S3D' dEdy) =
@@ -230,16 +230,16 @@ instance ( KnownNat kernelRows
         ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
         oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
 
-        c  = vid2colUnsafe kx ky sx sy ix iy ex
+        c  = vid2col kx ky sx sy ix iy ex
 
         eo = vecToList $ fmap extract dEdy
         ek = extract kernel
 
-        vs = vid2colUnsafe 1 1 1 1 ox oy eo
+        vs = vid2col 1 1 1 1 ox oy eo
 
         kN = fromJust . create $ tr c LA.<> vs
 
         dW = vs LA.<> tr ek
 
-        xW = col2vidUnsafe kx ky sx sy ix iy dW
+        xW = col2vid kx ky sx sy ix iy dW
     in  (Convolution' kN, S3D' . mkVector . fmap (fromJust . create) $ xW)

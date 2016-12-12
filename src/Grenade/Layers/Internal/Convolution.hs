@@ -1,11 +1,13 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 module Grenade.Layers.Internal.Convolution (
     col2vidUnsafe
   , col2imUnsafe
   , vid2colUnsafe
   , im2colUnsafe
-  , im2col_c
+  , im2col
+  , col2im
+  , col2vid
+  , vid2col
   , fittingStarts
   , unsafeModifyMatrix
   ) where
@@ -67,6 +69,36 @@ import           System.IO.Unsafe ( unsafePerformIO )
 -- @
 --
 
+col2vid :: Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> [Matrix Double]
+col2vid kernelRows kernelColumns strideRows strideColumns height width dataCol =
+  let channels = cols dataCol `div` (kernelRows * kernelColumns)
+      retMat  = col2im_c channels height width kernelRows kernelColumns strideRows strideColumns dataCol
+  in  (\f -> subMatrix (f * height, 0) (height, width) retMat) <$> [0..channels -1]
+
+col2im :: Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
+col2im kernelRows kernelColumns strideRows strideColumns height width dataCol =
+  let channels = 1
+  in  col2im_c channels height width kernelRows kernelColumns strideRows strideColumns dataCol
+
+col2im_c :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
+col2im_c channels height width kernelRows kernelColumns strideRows strideColumns dataCol =
+  let vec = flatten dataCol
+  in unsafePerformIO $ do
+    outPtr <- mallocForeignPtrArray0 (height * width * channels)
+    let (inPtr, inOffset, _) = U.unsafeToForeignPtr vec
+
+    withForeignPtr inPtr $ \inPtr' ->
+      withForeignPtr outPtr $ \outPtr' ->
+        col2im_cpu inPtr' inOffset channels height width kernelRows kernelColumns strideRows strideColumns outPtr'
+
+    let matVec = U.unsafeFromForeignPtr outPtr 0 (height * width * channels)
+    return $ U.matrixFromVector U.RowMajor (height * channels) width matVec
+
+foreign import ccall safe
+    col2im_cpu
+      :: Ptr Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr Double -> IO ()
+
+
 -- | col2im function.
 --
 -- Takes a column patch, and reconstitutes it into a normal image.
@@ -127,26 +159,36 @@ col2vidUnsafe kernelRows kernelColumns strideRows strideColumns destinationRows 
 
     U.unsafeFreezeMatrix dataIm
 
+vid2col :: Int -> Int -> Int -> Int -> Int -> Int -> [Matrix Double] -> Matrix Double
+vid2col  kernelRows kernelColumns strideRows strideColumns height width dataVid =
+  let channels = length dataVid
+  in  im2col_c channels height width kernelRows kernelColumns strideRows strideColumns (foldl1 (===) dataVid)
 
-im2col_c :: Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
-im2col_c kernelRows kernelColumns strideRows strideColumns dataIm =
-  let height = rows dataIm
+
+im2col :: Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
+im2col kernelRows kernelColumns strideRows strideColumns dataIm =
+  let channels = 1
+      height = rows dataIm
       width  = cols dataIm
-      vec    = flatten dataIm
+  in  im2col_c channels height width kernelRows kernelColumns strideRows strideColumns dataIm
+
+im2col_c :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
+im2col_c channels height width kernelRows kernelColumns strideRows strideColumns dataIm =
+  let vec    = flatten dataIm
       rowOut = (height - kernelRows) `div` strideRows + 1
       colOut = (width - kernelColumns) `div` strideColumns + 1
       kernelSize      = kernelRows * kernelColumns
       numberOfPatches = rowOut * colOut
   in unsafePerformIO $ do
-    outPtr <- mallocForeignPtrArray0 (numberOfPatches * kernelSize)
+    outPtr <- mallocForeignPtrArray0 (numberOfPatches * kernelSize * channels)
     let (inPtr, inOffset, _) = U.unsafeToForeignPtr vec
 
     withForeignPtr inPtr $ \inPtr' ->
       withForeignPtr outPtr $ \outPtr' ->
-        im2col_cpu inPtr' inOffset 1 height width kernelRows kernelColumns strideRows strideColumns outPtr'
+        im2col_cpu inPtr' inOffset channels height width kernelRows kernelColumns strideRows strideColumns outPtr'
 
-    let matVec = U.unsafeFromForeignPtr outPtr 0 (numberOfPatches * kernelSize)
-    return $ U.matrixFromVector U.RowMajor numberOfPatches kernelSize matVec
+    let matVec = U.unsafeFromForeignPtr outPtr 0 (numberOfPatches * kernelSize * channels)
+    return $ U.matrixFromVector U.RowMajor numberOfPatches (kernelSize * channels) matVec
 
 foreign import ccall safe
     im2col_cpu
@@ -231,3 +273,6 @@ im2colUnsafe kernelRows kernelColumns striderows stridecols dataIm = U.runSTMatr
     modifySTRef' inputRowRef (+1)
 
   return dataCol
+
+
+{-# ANN module "HLint: ignore Reduce duplication" #-}
