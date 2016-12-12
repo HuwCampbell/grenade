@@ -127,7 +127,7 @@ vid2colUnsafe kernelRows kernelColumns striderows stridecols vidrows vidcols dat
       numberOfPatches = length starts
       channels        = length dataVid
 
-  dataCol <- U.newMatrix 0 numberOfPatches (channels * kernelSize)
+  dataCol <- U.newUndefinedMatrix U.RowMajor numberOfPatches (channels * kernelSize)
 
   offsetC <- newSTRef 0
 
@@ -140,7 +140,7 @@ vid2colUnsafe kernelRows kernelColumns striderows stridecols vidrows vidcols dat
       forM_ [startRow .. startRow + kernelRows -1] $ \kr ->
         forM_ [startCol .. startCol + kernelColumns -1] $ \kc -> do
           inputColumn <- readSTRef inputColumnRef
-          unsafeModifyMatrix dataCol inputRow (inputColumn + offsetC') (+ U.atM' dataIm kr kc)
+          U.unsafeWriteMatrix dataCol inputRow (inputColumn + offsetC') (U.atM' dataIm kr kc)
           modifySTRef' inputColumnRef (+1)
       modifySTRef' inputRowRef (+1)
 
@@ -154,7 +154,7 @@ im2colUnsafe kernelRows kernelColumns striderows stridecols dataIm = U.runSTMatr
       kernelSize      = kernelRows * kernelColumns
       numberOfPatches = length starts
 
-  dataCol <- U.newMatrix 0 numberOfPatches kernelSize
+  dataCol <- U.newUndefinedMatrix U.RowMajor numberOfPatches kernelSize
 
   inputRowRef <- newSTRef 0
   forM_ starts $ \(startRow, startCol) -> do
@@ -163,7 +163,7 @@ im2colUnsafe kernelRows kernelColumns striderows stridecols dataIm = U.runSTMatr
     forM_ [startRow .. startRow + kernelRows -1] $ \kr ->
       forM_ [startCol .. startCol + kernelColumns -1] $ \kc -> do
         inputColumn <- readSTRef inputColumnRef
-        unsafeModifyMatrix dataCol inputRow inputColumn (+ U.atM' dataIm kr kc)
+        U.unsafeWriteMatrix dataCol inputRow inputColumn (U.atM' dataIm kr kc)
         modifySTRef' inputColumnRef (+1)
     modifySTRef' inputRowRef (+1)
 
