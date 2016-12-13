@@ -1,9 +1,5 @@
 #include "im2col.h"
 
-inline int is_a_ge_zero_and_a_lt_b(int a, int b) {
-  return a >= 0 && a < b;
-}
-
 void im2col_cpu(const double* data_im, int dataOffset, const int channels,
     const int height, const int width, const int kernel_h, const int kernel_w,
     const int stride_h, const int stride_w,
