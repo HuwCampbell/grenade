@@ -2,7 +2,6 @@ module Grenade (
     module X
   ) where
 
-import           Grenade.Core.Vector as X
 import           Grenade.Core.Network as X
 import           Grenade.Core.Runner  as X
 import           Grenade.Core.Shape  as X

@@ -10,21 +10,22 @@ Five is right out.
 
 💣 Machine learning which might blow up in your face 💣
 
-Grenade is a dependently typed, practical, and pretty quick neural network
-library for concise and precise specifications of complex networks in Haskell.
+Grenade is a dependently typed, practical, and fast neural network library for
+concise and precise specifications of complex networks in Haskell.
 
-As an example, a network which can achieve less than 1% error on MNIST can be
+As an example, a network which can achieve ~1.5% error on MNIST can be
 specified and initialised with random weights in a few lines of code with
 ```haskell
-randomMnist :: MonadRandom m
-            => m (Network '[ Convolution 1 10 5 5 1 1, Pooling 2 2 2 2, Relu, Convolution 10 16 5 5 1 1, Pooling 2 2 2 2, FlattenLayer, Relu, FullyConnected 256 80, Logit, FullyConnected 80 10, Logit]
-                          '[ 'D2 28 28, 'D3 24 24 10, 'D3 12 12 10, 'D3 12 12 10, 'D3 8 8 16, 'D3 4 4 16, 'D1 256, 'D1 256, 'D1 80, 'D1 80, 'D1 10, 'D1 10])
+type MNIST = Network '[ Convolution 1 10 5 5 1 1, Pooling 2 2 2 2, Relu, Convolution 10 16 5 5 1 1, Pooling 2 2 2 2, FlattenLayer, Relu, FullyConnected 256 80, Logit, FullyConnected 80 10, Logit]
+                     '[ 'D2 28 28, 'D3 24 24 10, 'D3 12 12 10, 'D3 12 12 10, 'D3 8 8 16, 'D3 4 4 16, 'D1 256, 'D1 256, 'D1 80, 'D1 80, 'D1 10, 'D1 10]
+
+randomMnist :: MonadRandom m => m MNIST
 randomMnist = randomNetwork
 ```
 
-And that's it. Because the types contain all the information we need, there's
-no specific term level code required; although it is of course possible and
-easy to build one oneself.
+And that's it. Because the types are rich, there's no specific term level code
+required; although it is of course possible and easy to construct one explicitly
+oneself.
 
 The network can be thought of as a heterogeneous list of layers, where its type
 includes not only the layers of the network, but also the shapes of data that
@@ -35,6 +36,9 @@ data Network :: [*] -> [Shape] -> * where
     O     :: Layer x i o => !x -> Network '[x] '[i, o]
     (:~>) :: Layer x i h => !x -> !(Network xs (h ': hs)) -> Network (x ': xs) (i ': h ': hs)
 ```
+
+The `Layer x i o` constraint ensures that the layer `x` can sensibly perform a
+transformation between the input and output shapes `i` and `o`.
 
 In the above example, the input layer can be seen to be a two dimensional (`D2`),
 image with 28 by 28 pixels. When the first *Convolution* layer runs, it outputs
@@ -96,15 +100,16 @@ needed, and was a great starting point for writing this library.
 
 Performance
 -----------
-Grenade is backed by hmatrix and blas, and uses a pretty clever convolution
-trick popularised by Caffe, which is surprisingly effective and fast. So for many
-small scale problems it should be sufficient.
+Grenade is backed by hmatrix, BLAS, and LAPACK, with critical functions optimised
+in C. Using the im2col trick popularised by Caffe, it should be sufficient for
+many problems.
 
-Being purely functional, it's probably pretty easy to parallelise and batch up.
-My current examples however are single threaded.
+Being purely functional, it should also be easy to run batches in parallel, which
+would be appropriate for larger networks, my current examples however are single
+threaded.
 
-Training 15 generations over Kaggle's 42000 sample MNIST training set took under
-an hour, achieving 0.5% error rate on a 1000 sample holdout set.
+Training 15 generations over Kaggle's 41000 sample MNIST training set on a single
+core took around 12 minutes, achieving 1.5% error rate on a 1000 sample holdout set.
 
 Contributing
 ------------

@@ -10,7 +10,6 @@ module Grenade.Layers.Tanh (
   ) where
 
 import           GHC.TypeLits
-import           Grenade.Core.Vector
 import           Grenade.Core.Network
 import           Grenade.Core.Shape
 
@@ -33,8 +32,8 @@ instance (KnownNat i, KnownNat j) => Layer Tanh ('D2 i j) ('D2 i j) where
   runBackwards _ (S2D' y) (S2D' dEdy) = ((), S2D' (tanh' y * dEdy))
 
 instance (KnownNat i, KnownNat j, KnownNat k) => Layer Tanh ('D3 i j k) ('D3 i j k) where
-  runForwards _ (S3D' y) = S3D' (fmap tanh y)
-  runBackwards _ (S3D' y) (S3D' dEdy) = ((), S3D' (vectorZip (\y' dEdy' -> tanh' y' * dEdy') y dEdy))
+  runForwards _ (S3D' y) = S3D' (tanh y)
+  runBackwards _ (S3D' y) (S3D' dEdy) = ((), S3D' (tanh' y * dEdy))
 
 tanh' :: (Floating a) => a -> a
 tanh' t = 1 - s ^ (2 :: Int)  where s = tanh t

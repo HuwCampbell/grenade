@@ -19,10 +19,10 @@ module Grenade.Core.Shape (
   ) where
 
 import           Data.Singletons.TypeLits
+import           GHC.TypeLits
 
 import           Numeric.LinearAlgebra.Static
 
-import           Grenade.Core.Vector
 
 -- | The current shapes we accept.
 --   at the moment this is just one, two, and three dimensional
@@ -35,34 +35,39 @@ data Shape =
 instance Num (S' x) where
   (+) (S1D' x) (S1D' y) = S1D' (x + y)
   (+) (S2D' x) (S2D' y) = S2D' (x + y)
-  (+) (S3D' x) (S3D' y) = S3D' (vectorZip (+) x y)
+  (+) (S3D' x) (S3D' y) = S3D' (x + y)
   (+)  _ _ = error "Impossible to have different constructors for the same shaped network"
 
   (-) (S1D' x) (S1D' y) = S1D' (x - y)
   (-) (S2D' x) (S2D' y) = S2D' (x - y)
-  (-) (S3D' x) (S3D' y) = S3D' (vectorZip (-) x y)
+  (-) (S3D' x) (S3D' y) = S3D' (x - y)
   (-)  _ _ = error "Impossible to have different constructors for the same shaped network"
 
   (*) (S1D' x) (S1D' y) = S1D' (x * y)
   (*) (S2D' x) (S2D' y) = S2D' (x * y)
-  (*) (S3D' x) (S3D' y) = S3D' (vectorZip (*) x y)
+  (*) (S3D' x) (S3D' y) = S3D' (x * y)
   (*)  _ _ = error "Impossible to have different constructors for the same shaped network"
 
   abs (S1D' x) = S1D' (abs x)
   abs (S2D' x) = S2D' (abs x)
-  abs (S3D' x) = S3D' (fmap abs x)
+  abs (S3D' x) = S3D' (abs x)
 
   signum (S1D' x) = S1D' (signum x)
   signum (S2D' x) = S2D' (signum x)
-  signum (S3D' x) = S3D' (fmap signum x)
+  signum (S3D' x) = S3D' (signum x)
 
   fromInteger _ = error "Unimplemented: fromInteger on Shape"
 
 -- | Given a Shape n, these are the possible data structures with that shape.
+--   All shapes are held in contiguous memory.
+--   3D is held in a matrix (usually row oriented) which has height depth * rows.
 data S' (n :: Shape) where
-  S1D' :: (KnownNat o)                                      => R o -> S' ('D1 o)
-  S2D' :: (KnownNat rows, KnownNat columns)                 => L rows columns -> S' ('D2 rows columns)
-  S3D' :: (KnownNat rows, KnownNat columns, KnownNat depth) => Vector depth (L rows columns) -> S' ('D3 rows columns depth)
+  S1D' :: ( KnownNat o )                      => R o             -> S' ('D1 o)
+  S2D' :: ( KnownNat rows, KnownNat columns ) => L rows columns  -> S' ('D2 rows columns)
+  S3D' :: ( KnownNat rows
+          , KnownNat columns
+          , KnownNat depth
+          , KnownNat (rows * depth)) => L (rows * depth) columns -> S' ('D3 rows columns depth)
 
 instance Show (S' n) where
   show (S1D' a) = "S1D' " ++ show a

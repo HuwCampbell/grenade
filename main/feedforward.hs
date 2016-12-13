@@ -24,9 +24,10 @@ import           Grenade
 -- between the shapes, so inference can't do it all for us.
 
 -- With around 100000 examples, this should show two clear circles which have been learned by the network.
-randomNet :: MonadRandom m
-          => m (Network '[ FullyConnected 2 40, Tanh, FullyConnected 40 10, Relu, FullyConnected 10 1, Logit ]
-                        '[ 'D1 2, 'D1 40, 'D1 40, 'D1 10, 'D1 10, 'D1 1, 'D1 1])
+type FFNet = Network '[ FullyConnected 2 40, Tanh, FullyConnected 40 10, Relu, FullyConnected 10 1, Logit ]
+                     '[ 'D1 2, 'D1 40, 'D1 40, 'D1 10, 'D1 10, 'D1 1, 'D1 1]
+
+randomNet :: MonadRandom m => m FFNet
 randomNet = randomNetwork
 
 netTest :: MonadRandom m => LearningParameters -> Int -> m String

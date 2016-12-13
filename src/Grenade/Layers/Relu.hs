@@ -10,7 +10,6 @@ module Grenade.Layers.Relu (
   ) where
 
 import           GHC.TypeLits
-import           Grenade.Core.Vector
 import           Grenade.Core.Network
 import           Grenade.Core.Shape
 
@@ -44,9 +43,9 @@ instance (KnownNat i, KnownNat j) => Layer Relu ('D2 i j) ('D2 i j) where
       relu' = LAS.dmmap (\a -> if a <= 0 then 0 else 1)
 
 instance (KnownNat i, KnownNat j, KnownNat k) => Layer Relu ('D3 i j k) ('D3 i j k) where
-  runForwards _ (S3D' y) = S3D' (fmap relu y)
+  runForwards _ (S3D' y) = S3D' (relu y)
     where
       relu = LAS.dmmap (\a -> if a <= 0 then 0 else a)
-  runBackwards _ (S3D' y) (S3D' dEdy) = ((), S3D' (vectorZip (\y' dEdy' -> relu' y' * dEdy') y dEdy))
+  runBackwards _ (S3D' y) (S3D' dEdy) = ((), S3D' (relu' y * dEdy))
     where
       relu' = LAS.dmmap (\a -> if a <= 0 then 0 else 1)

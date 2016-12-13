@@ -10,6 +10,10 @@ cabal-version:         >= 1.8
 build-type:            Simple
 description:           grenade.
 
+extra-source-files:
+    cbits/im2col.h
+    cbits/im2col.c
+
 library
   build-depends:
                        base                            >= 4.8         && < 5
@@ -35,7 +39,6 @@ library
   exposed-modules:
                        Grenade
                        Grenade.Core.Network
-                       Grenade.Core.Vector
                        Grenade.Core.Runner
                        Grenade.Core.Shape
                        Grenade.Layers.Crop
@@ -53,6 +56,10 @@ library
                        Grenade.Layers.Internal.Convolution
                        Grenade.Layers.Internal.Pooling
 
+  includes:           cbits/im2col.h
+  c-sources:          cbits/im2col.c
+
+  cc-options:         -std=c99 -O3 -msse4.2 -Wall -Werror -DCABAL=1
 
 executable             feedforward
     ghc-options:       -Wall -threaded -O2
@@ -104,3 +111,21 @@ test-suite test
                      , text                            == 1.2.*
                      , QuickCheck                      >= 2.7        && < 2.9
                      , quickcheck-instances            == 0.3.*
+
+
+benchmark bench
+  type:                exitcode-stdio-1.0
+
+  main-is:             bench.hs
+
+  ghc-options:         -Wall -threaded -O2
+
+  hs-source-dirs:
+                       bench
+
+  build-depends:
+                       base                            >= 3          && < 5
+                     , bytestring                      == 0.10.*
+                     , criterion                       == 1.1.*
+                     , grenade
+                     , hmatrix

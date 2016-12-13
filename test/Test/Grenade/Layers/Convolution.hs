@@ -5,7 +5,6 @@
 module Test.Grenade.Layers.Convolution where
 
 import           Grenade.Core.Shape
-import           Grenade.Core.Vector as Grenade
 import           Grenade.Core.Network
 import           Grenade.Layers.Convolution
 import           Grenade.Layers.Internal.Convolution
@@ -27,7 +26,7 @@ prop_im2col_no_stride = once $
                , 5.0,  6.0,  9.0,  10.0
                , 6.0,  7.0,  10.0, 11.0
                , 7.0,  8.0,  11.0, 12.0 ]
-     out = im2colUnsafe 2 2 1 1 input
+     out = im2col 2 2 1 1 input
  in expected === out
 
 prop_im2col_stride = once $
@@ -40,7 +39,7 @@ prop_im2col_stride = once $
                , 3.0,  4.0,  7.0,  8.0
                , 5.0,  6.0,  9.0,  10.0
                , 7.0,  8.0,  11.0, 12.0 ]
-     out = im2colUnsafe 2 2 1 2 input
+     out = im2col 2 2 1 2 input
  in expected === out
 
 prop_im2col_other = once $
@@ -51,7 +50,7 @@ prop_im2col_other = once $
      expected = (2><6)
                [ 1.0,  2.0,  5.0,  6.0 , 9.0,  10.0
                , 3.0,  4.0,  7.0,  8.0 , 11.0 ,12.0 ]
-     out = im2colUnsafe 3 2 1 2 input
+     out = im2col 3 2 1 2 input
  in expected === out
 
 -- If there's no overlap (stride is the same size as the kernel)
@@ -61,19 +60,8 @@ prop_im2col_sym_on_same_stride = once $
                [ 1.0,  2.0,  3.0,  4.0
                , 5.0,  6.0,  7.0,  8.0
                , 9.0, 10.0, 11.0, 12.0 ]
-     out = col2imUnsafe 3 2 3 2 3 4 . im2colUnsafe 3 2 3 2 $ input
+     out = col2im 3 2 3 2 3 4 . im2col 3 2 3 2 $ input
  in input === out
-
--- If there's no overlap (stride is the same size as the kernel)
--- then col2im . im2col should be symmetric.
-prop_im2colunsafe_sym_on_same_stride = once $
- let input = (3><4)
-               [ 1.0,  2.0,  3.0,  4.0
-               , 5.0,  6.0,  7.0,  8.0
-               , 9.0, 10.0, 11.0, 12.0 ]
-     out = col2imUnsafe 3 2 3 2 3 4 . im2colUnsafe 3 2 3 2 $ input
- in input === out
-
 
 -- If there is an overlap, then the gradient passed back should be
 -- the sum of the gradients across the filters.
@@ -86,7 +74,7 @@ prop_im2col_col2im_additive = once $
                [ 1.0,  2.0,  2.0,  1.0
                , 2.0,  4.0,  4.0,  2.0
                , 1.0,  2.0,  2.0,  1.0 ]
-     out = col2imUnsafe 2 2 1 1 3 4 . im2colUnsafe 2 2 1 1 $ input
+     out = col2im 2 2 1 1 3 4 . im2col 2 2 1 1 $ input
  in expected === out
 
 prop_simple_conv_forwards = once $
@@ -116,25 +104,18 @@ prop_simple_conv_forwards = once $
                  [ 1.0, 2.0, 5.0
                  , 3.0, 4.0, 6.0] :: HStatic.L 2 3)
 
-      expect = [ HStatic.matrix
-                 [ -3.0 , -4.0  ] :: HStatic.L 1 2
-               , HStatic.matrix
-                 [ -1.0 ,  1.0  ] :: HStatic.L 1 2
-               , HStatic.matrix
-                 [  5.0 ,  9.0  ] :: HStatic.L 1 2
-               , HStatic.matrix
-                 [ -7.0 , -10.0 ] :: HStatic.L 1 2] :: [HStatic.L 1 2]
+      expect = HStatic.matrix
+               [  -3.0 , -4.0
+               ,  -1.0 ,  1.0
+               ,  5.0 ,  9.0
+               , -7.0 , -10.0 ] :: HStatic.L 4 2
       out  = runForwards convLayer input :: S' ('D3 1 2 4)
 
-      grad =  S3D' ( mkVector
-               [ HStatic.matrix
-                 [ 1 , 0 ] :: HStatic.L 1 2
-               , HStatic.matrix
-                 [ 0 , 0 ] :: HStatic.L 1 2
-               , HStatic.matrix
-                 [ 0 , 0 ] :: HStatic.L 1 2
-               , HStatic.matrix
-                 [ 0 , 1 ] :: HStatic.L 1 2] ) :: S' ('D3 1 2 4)
+      grad =  S3D' ( HStatic.matrix
+                   [ 1 , 0
+                   , 0 , 0
+                   , 0 , 0
+                   , 0 , 1 ] :: HStatic.L 4 2 ) :: S' ('D3 1 2 4)
 
       expectBack = (HStatic.matrix
                    [  1.0,  0.0, 0.0
@@ -143,19 +124,19 @@ prop_simple_conv_forwards = once $
 
   in case (out, inX, nc) of
     (S3D' out' , S2D' inX', Convolution' backGrad)
-      -> ((HStatic.extract <$> expect) === (HStatic.extract <$> vecToList out'))
+      ->   (HStatic.extract expect === HStatic.extract out')
       .&&. (HStatic.extract expectBack === HStatic.extract inX')
       .&&. (HStatic.extract expectedGradient === HStatic.extract backGrad)
 
 prop_vid2col_no_stride = once $
- let input = [(3><4)
+ let input = (6><4)
                [ 1.0,  2.0,  3.0,  4.0
                , 5.0,  6.0,  7.0,  8.0
-               , 9.0, 10.0, 11.0, 12.0 ]
-             , (3><4)
-               [ 21.0,  22.0,  23.0,  24.0
+               , 9.0, 10.0, 11.0, 12.0
+               -- -- --
+               , 21.0,  22.0,  23.0,  24.0
                , 25.0,  26.0,  27.0,  28.0
-               , 29.0,  30.0,  31.0,  32.0 ] ]
+               , 29.0,  30.0,  31.0,  32.0 ]
      expected = (6><8)
                [ 1.0,  2.0,  5.0,  6.0  , 21.0,  22.0,  25.0,  26.0
                , 2.0,  3.0,  6.0,  7.0  , 22.0,  23.0,  26.0,  27.0
@@ -163,36 +144,36 @@ prop_vid2col_no_stride = once $
                , 5.0,  6.0,  9.0,  10.0 , 25.0,  26.0,  29.0,  30.0
                , 6.0,  7.0,  10.0, 11.0 , 26.0,  27.0,  30.0,  31.0
                , 7.0,  8.0,  11.0, 12.0 , 27.0,  28.0,  31.0,  32.0 ]
-     out = vid2colUnsafe 2 2 1 1 3 4 input
- in expected === out
+     out_c = vid2col 2 2 1 1 3 4 input
+ in expected === out_c
 
 prop_vid2col_stride = once $
- let input = [(3><4)
+ let input = (6><4)
                [ 1.0,  2.0,  3.0,  4.0
                , 5.0,  6.0,  7.0,  8.0
-               , 9.0, 10.0, 11.0, 12.0 ]
-             , (3><4)
-               [ 21.0,  22.0,  23.0,  24.0
+               , 9.0, 10.0, 11.0, 12.0
+               -- -- -- -- --
+               , 21.0,  22.0,  23.0,  24.0
                , 25.0,  26.0,  27.0,  28.0
-               , 29.0,  30.0,  31.0,  32.0 ] ]
+               , 29.0,  30.0,  31.0,  32.0 ]
      expected = (4><8)
                [ 1.0,  2.0,  5.0,  6.0  , 21.0, 22.0, 25.0, 26.0
                , 3.0,  4.0,  7.0,  8.0  , 23.0, 24.0, 27.0, 28.0
                , 5.0,  6.0,  9.0,  10.0 , 25.0, 26.0, 29.0, 30.0
                , 7.0,  8.0,  11.0, 12.0 , 27.0, 28.0, 31.0, 32.0 ]
-     out = vid2colUnsafe 2 2 1 2 3 4 input
- in expected === out
+     out_c    = vid2col 2 2 1 2 3 4 input
+ in expected === out_c
 
 prop_vid2col_invert = once $
- let input = [(3><4)
+ let input = (6><4)
                [ 1.0,  2.0,  3.0,  4.0
                , 5.0,  6.0,  7.0,  8.0
-               , 9.0, 10.0, 11.0, 12.0 ]
-             , (3><4)
-               [ 21.0,  22.0,  23.0,  24.0
+               , 9.0, 10.0, 11.0, 12.0
+               -- -- -- -- --
+               , 21.0,  22.0,  23.0,  24.0
                , 25.0,  26.0,  27.0,  28.0
-               , 29.0,  30.0,  31.0,  32.0 ] ]
-     out = col2vidUnsafe 3 2 3 2 3 4 . vid2colUnsafe 3 2 3 2 3 4 $ input
+               , 29.0,  30.0,  31.0,  32.0 ]
+     out = col2vid 3 2 3 2 3 4 . vid2col 3 2 3 2 3 4 $ input
  in input === out
 
 
@@ -221,29 +202,22 @@ prop_single_conv_forwards = once $
 
       convLayer = Convolution myKernel zeroKernel :: Convolution 1 4 2 2 1 1
 
-      input = S3D' ( mkVector [HStatic.matrix
+      input = S3D' ( HStatic.matrix
                  [ 1.0, 2.0, 5.0
-                 , 3.0, 4.0, 6.0] :: HStatic.L 2 3] ) :: S' ('D3 2 3 1)
+                 , 3.0, 4.0, 6.0] :: HStatic.L 2 3 ) :: S' ('D3 2 3 1)
 
-      expect = [HStatic.matrix
-                 [ -3.0 , -4.0  ] :: HStatic.L 1 2
-               ,HStatic.matrix
-                 [ -1.0 ,  1.0  ] :: HStatic.L 1 2
-               ,HStatic.matrix
-                 [  5.0 ,  9.0  ] :: HStatic.L 1 2
-               ,HStatic.matrix
-                 [ -7.0 , -10.0 ] :: HStatic.L 1 2] :: [HStatic.L 1 2]
+      expect = HStatic.matrix
+                 [ -3.0 , -4.0
+                 , -1.0 ,  1.0
+                 ,  5.0 ,  9.0
+                 , -7.0 , -10.0 ] :: HStatic.L 4 2
       out  = runForwards convLayer input :: S' ('D3 1 2 4)
 
-      grad =  S3D' ( mkVector
-               [HStatic.matrix
-                 [ 1 , 0 ] :: HStatic.L 1 2
-               ,HStatic.matrix
-                 [ 0 , 0 ] :: HStatic.L 1 2
-               ,HStatic.matrix
-                 [ 0 , 0 ] :: HStatic.L 1 2
-               ,HStatic.matrix
-                 [ 0 , 1 ] :: HStatic.L 1 2] ) :: S' ('D3 1 2 4)
+      grad =  S3D' (HStatic.matrix
+                    [ 1 , 0
+                    , 0 , 0
+                    , 0 , 0
+                    , 0 , 1 ] :: HStatic.L 4 2 ) :: S' ('D3 1 2 4)
 
       expectBack = (HStatic.matrix
                    [  1.0,  0.0, 0.0
@@ -252,8 +226,8 @@ prop_single_conv_forwards = once $
 
   in case (out, inX, nc) of
     (S3D' out' , S3D' inX', Convolution' backGrad)
-      ->   ((HStatic.extract <$> expect)  === (HStatic.extract <$> vecToList out'))
-      .&&. ([HStatic.extract expectBack]  === (HStatic.extract <$> vecToList inX'))
+       ->  (HStatic.extract expect  === HStatic.extract  out')
+      .&&. (HStatic.extract expectBack  === HStatic.extract  inX')
       .&&. (HStatic.extract expectedGradient === HStatic.extract backGrad)
 
 return []
