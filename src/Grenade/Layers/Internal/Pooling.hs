@@ -34,8 +34,8 @@ foreign import ccall unsafe
       :: Ptr Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr Double -> IO ()
 
 poolBackward :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double -> Matrix Double
-poolBackward channels height width kernelRows kernelColumns strideRows strideColumns dataCol dataGrad =
-  let vecIm     = flatten dataCol
+poolBackward channels height width kernelRows kernelColumns strideRows strideColumns dataIm dataGrad =
+  let vecIm     = flatten dataIm
       vecGrad   = flatten dataGrad
   in unsafePerformIO $ do
     outPtr <- mallocForeignPtrArray0 (height * width * channels)
