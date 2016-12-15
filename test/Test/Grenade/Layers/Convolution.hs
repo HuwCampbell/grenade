@@ -20,8 +20,6 @@ import           Grenade.Core.Shape
 import           Grenade.Core.Network
 import           Grenade.Layers.Convolution
 
-import qualified Numeric.LinearAlgebra.Static as HStatic
-
 import           Disorder.Jack
 
 import           Test.Jack.Hmatrix
@@ -61,7 +59,6 @@ prop_conv_net =
     (case onet of
        (OpaqueConvolution (convLayer@(Convolution _ _) :: Convolution channels filters kernelRows kernelCols strideRows strideCols)) ->
           let ok stride kernel = [extent | extent <- [(kernel + 1) .. 30 ], (extent - kernel) `mod` stride == 0]
-              ch = fromIntegral $ natVal (Proxy :: Proxy channels)
               kr = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
               kc = fromIntegral $ natVal (Proxy :: Proxy kernelCols)
               sr = fromIntegral $ natVal (Proxy :: Proxy strideRows)
@@ -69,26 +66,26 @@ prop_conv_net =
 
           in  gamble (elements (ok sr kr)) $ \er ->
                   gamble (elements (ok sc kc)) $ \ec ->
-                      let i  = fromIntegral (er * ec * ch)
-                          rr = ((er - kr) `div` sr) + 1
+                      let rr = ((er - kr) `div` sr) + 1
                           rc = ((ec - kc) `div` sc) + 1
-                          er' = someNatVal er
-                          ec' = someNatVal ec
-                          rr' = someNatVal rr
-                          rc' = someNatVal rc
-                      in gamble (vectorOf i sizedRealFrac) $ \(input :: [Double]) ->
-                          case (er', ec', rr', rc') of
-                            (Just (SomeNat (pinr :: Proxy inRows)), Just (SomeNat (_  :: Proxy inCols)), Just (SomeNat (pour :: Proxy outRows)), Just (SomeNat (_ :: Proxy outCols))) ->
-                              let p1 = natDict pinr
-                                  p2 = natDict pour
-                              in  case (  p1 %* natDict (Proxy :: Proxy channels)
-                                        , p2 %* natDict (Proxy :: Proxy filters)
-                                        -- Fake it till you make it.
-                                        , (unsafeCoerce (Dict :: Dict ()) :: Dict (((outRows - 1) * strideRows) ~ (inRows - kernelRows)))
-                                        , (unsafeCoerce (Dict :: Dict ()) :: Dict (((outCols - 1) * strideCols) ~ (inCols - kernelCols)))) of
-                                (Dict, Dict, Dict, Dict) -> let x :: S' ('D3 outRows outCols filters) = runForwards convLayer ((S3D' (HStatic.matrix input)) :: S' ('D3 inRows inCols channels))
-                                                            in  x `seq` True
-                            _ -> False
+                          Just er' = someNatVal er
+                          Just ec' = someNatVal ec
+                          Just rr' = someNatVal rr
+                          Just rc' = someNatVal rc
+                      in (case (er', ec', rr', rc') of
+                            ( SomeNat (pinr :: Proxy inRows), SomeNat (_  :: Proxy inCols), SomeNat (pour :: Proxy outRows), SomeNat (_ :: Proxy outCols)) ->
+                              case ( natDict pinr %* natDict (Proxy :: Proxy channels)
+                                   , natDict pour %* natDict (Proxy :: Proxy filters)
+                                   -- Fake it till you make it.
+                                   , (unsafeCoerce (Dict :: Dict ()) :: Dict (((outRows - 1) * strideRows) ~ (inRows - kernelRows)))
+                                   , (unsafeCoerce (Dict :: Dict ()) :: Dict (((outCols - 1) * strideCols) ~ (inCols - kernelCols)))) of
+                                (Dict, Dict, Dict, Dict) ->
+                                    gamble (S3D' <$> uniformSample) $ \(input :: S' ('D3 inRows inCols channels)) ->
+                                        let output :: S' ('D3 outRows outCols filters) = runForwards convLayer input
+                                            backed :: (Gradient (Convolution channels filters kernelRows kernelCols strideRows strideCols), S' ('D3 inRows inCols channels))
+                                                                                       = runBackwards convLayer input output
+                                        in  backed `seq` True
+                         ) :: Property
     ) :: Property
 
 return []

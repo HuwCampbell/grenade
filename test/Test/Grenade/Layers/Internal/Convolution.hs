@@ -1,14 +1,12 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE GADTs             #-}
-{-# LANGUAGE ScopedTypeVariables             #-}
-{-# LANGUAGE ConstraintKinds         #-}
-{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ConstraintKinds     #-}
+{-# LANGUAGE TypeOperators       #-}
 
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Test.Grenade.Layers.Internal.Convolution where
-
--- import           Control.Monad.Random
 
 import           Grenade.Layers.Internal.Convolution
 

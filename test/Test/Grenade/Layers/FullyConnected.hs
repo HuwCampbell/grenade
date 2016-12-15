@@ -16,8 +16,6 @@ import           Grenade.Core.Shape
 import           Grenade.Core.Network
 import           Grenade.Layers.FullyConnected
 
-import qualified Numeric.LinearAlgebra.Static as HStatic
-
 import           Disorder.Jack
 
 import           Test.Jack.Hmatrix
@@ -32,7 +30,7 @@ instance Show OpaqueFullyConnected where
 genOpaqueFullyConnected :: Jack OpaqueFullyConnected
 genOpaqueFullyConnected = do
     input   :: Integer  <- choose (2, 100)
-    output  :: Integer  <- choose (2, 100)
+    output  :: Integer  <- choose (1, 100)
     let Just input'      = someNatVal input
     let Just output'     = someNatVal output
     case (input', output') of
@@ -46,11 +44,11 @@ genOpaqueFullyConnected = do
 prop_fully_connected_forwards :: Property
 prop_fully_connected_forwards =
     gamble genOpaqueFullyConnected $ \(OpaqueFullyConnected (fclayer :: FullyConnected i o)) ->
-        let i = fromIntegral $ natVal (Proxy :: Proxy i)
-        in gamble (vectorOf i sizedRealFrac) $ \input ->
-            let x :: S' ('D1 o) = runForwards fclayer (S1D' (HStatic.vector input :: HStatic.R i))
-            in  x `seq` True
-
+        gamble (S1D' <$> randomVector) $ \(input :: S' ('D1 i)) ->
+            let output :: S' ('D1 o) = runForwards fclayer input
+                backed :: (Gradient (FullyConnected i o), S' ('D1 i))
+                                     = runBackwards fclayer input output
+            in  backed `seq` True
 
 return []
 tests :: IO Bool

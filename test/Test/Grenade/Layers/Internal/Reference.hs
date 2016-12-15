@@ -1,14 +1,6 @@
 module Test.Grenade.Layers.Internal.Reference where
 
-
-import           Control.Monad.ST ( ST )
-
-import           Data.Foldable ( forM_ )
-import           Data.Function ( on )
-import           Data.List ( maximumBy )
-
 import           Numeric.LinearAlgebra
-import qualified Numeric.LinearAlgebra.Devel as U
 
 im2col :: Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
 im2col nrows ncols srows scols m =
@@ -47,7 +39,6 @@ col2imfit starts krows kcols drows dcols m =
       accums     = concatMap (\(conv',(stx',sty')) -> fmap (\((ix,iy), val) -> ((ix + stx', iy + sty'), val)) conv') pairs
   in  accum (konst 0 (drows, dcols)) (+) accums
 
-
 poolForward :: Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
 poolForward nrows ncols srows scols outputRows outputCols m =
   let starts = fittingStarts (rows m) nrows srows (cols m) ncols scols
@@ -60,7 +51,7 @@ poolForwardList nrows ncols srows scols inRows inCols outputRows outputCols ms =
 
 poolForwardFit :: [(Int,Int)] -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
 poolForwardFit starts nrows ncols _ outputCols m =
-  let els    = fmap (\start -> unsafeMaxElementSubmatrix start (nrows, ncols) m) starts
+  let els    = fmap (\start -> maxElement $ subMatrix start (nrows, ncols) m) starts
   in  matrix outputCols els
 
 poolBackward :: Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double -> Matrix Double
@@ -76,34 +67,14 @@ poolBackwardList krows kcols srows scols inRows inCols inputMatrices =
   in  uncurry (poolBackwardFit starts krows kcols) <$> inputMatrices
 
 poolBackwardFit :: [(Int,Int)] -> Int -> Int -> Matrix Double -> Matrix Double -> Matrix Double
-poolBackwardFit starts krows kcols inputMatrix gradientMatrix = U.runSTMatrix $ do
+poolBackwardFit starts krows kcols inputMatrix gradientMatrix =
   let inRows     = rows inputMatrix
       inCols     = cols inputMatrix
-      gradCol    = cols gradientMatrix
-      extent     = (krows, kcols)
-
-  retM <- U.newMatrix 0 inRows inCols
-
-  forM_ (zip [0..] starts) $ \(ix, start) -> do
-    let loc = unsafeMaxIndexSubMatrix start extent inputMatrix
-    uncurry (unsafeModifyMatrix retM) loc ((+) $ uncurry (U.atM' gradientMatrix) $ divMod ix gradCol)
-
-  return retM
-
-unsafeMaxElementSubmatrix :: (Int,Int) -> (Int,Int) -> Matrix Double -> Double
-unsafeMaxElementSubmatrix starts extent m = uncurry (U.atM' m) $ unsafeMaxIndexSubMatrix starts extent m
-
-unsafeMaxIndexSubMatrix :: (Int,Int) -> (Int,Int) -> Matrix Double -> (Int, Int)
-unsafeMaxIndexSubMatrix  (startRow, startCol) (extentRow, extentCold) m =
-  let mrows = [startRow .. startRow + extentRow  - 1]
-      mcols = [startCol .. startCol + extentCold - 1]
-      pairs = concatMap ( \r -> fmap (\c -> (r , c)) mcols ) mrows
-  in maximumBy (compare `on` uncurry (U.atM' m)) pairs
-
-
-unsafeModifyMatrix :: U.STMatrix s Double -> Int -> Int -> (Double -> Double) -> ST s ()
-unsafeModifyMatrix x r c f = U.unsafeReadMatrix x r c >>= U.unsafeWriteMatrix x r c . f
-
+      inds       = fmap (\start -> maxIndex $ subMatrix start (krows, kcols) inputMatrix) starts
+      grads      = toList $ flatten gradientMatrix
+      grads'     = zip3 starts grads inds
+      accums     = fmap (\((stx',sty'),grad,(inx, iny)) -> ((stx' + inx, sty' + iny), grad)) grads'
+  in  accum (konst 0 (inRows, inCols)) (+) accums
 
 -- | These functions are not even remotely safe, but it's only called from the statically typed
 --   commands, so we should be good ?!?!?
