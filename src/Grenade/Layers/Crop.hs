@@ -4,10 +4,6 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE PolyKinds             #-}
-
 module Grenade.Layers.Crop (
     Crop (..)
   ) where
@@ -50,19 +46,19 @@ instance ( KnownNat cropLeft
          , (inputRows - cropTop - cropBottom) ~ outputRows
          , (inputColumns - cropLeft - cropRight) ~ outputColumns
          ) => Layer (Crop cropLeft cropTop cropRight cropBottom) ('D2 inputRows inputColumns) ('D2 outputRows outputColumns) where
-  runForwards Crop (S2D' input) =
+  runForwards Crop (S2D input) =
     let cropl = fromIntegral $ natVal (Proxy :: Proxy cropLeft)
         cropt = fromIntegral $ natVal (Proxy :: Proxy cropTop)
         nrows = fromIntegral $ natVal (Proxy :: Proxy outputRows)
         ncols = fromIntegral $ natVal (Proxy :: Proxy outputColumns)
         m  = extract input
         r  = subMatrix (cropt, cropl) (nrows, ncols) m
-    in  S2D' . fromJust . create $ r
-  runBackwards _ _ (S2D' dEdy) =
+    in  S2D . fromJust . create $ r
+  runBackwards _ _ (S2D dEdy) =
     let cropl = fromIntegral $ natVal (Proxy :: Proxy cropLeft)
         cropt = fromIntegral $ natVal (Proxy :: Proxy cropTop)
         cropr = fromIntegral $ natVal (Proxy :: Proxy cropRight)
         cropb = fromIntegral $ natVal (Proxy :: Proxy cropBottom)
         eo    = extract dEdy
         vs    = diagBlock [konst 0 (cropt,cropl), eo, konst 0 (cropb,cropr)]
-    in  ((), S2D' . fromJust . create $ vs)
+    in  ((), S2D . fromJust . create $ vs)

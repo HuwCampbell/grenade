@@ -1,7 +1,5 @@
-{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -9,9 +7,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE PolyKinds             #-}
-{-# LANGUAGE PatternGuards         #-}
-
 module Grenade.Layers.Convolution (
     Convolution (..)
   , Convolution' (..)
@@ -31,6 +26,7 @@ import           Numeric.LinearAlgebra.Static hiding ((|||), build, toRows)
 import           Grenade.Core.Network
 import           Grenade.Core.Shape
 import           Grenade.Layers.Internal.Convolution
+import           Grenade.Layers.Internal.Update
 
 -- | A convolution layer for a neural network.
 --   This uses the im2col convolution trick popularised by Caffe, which essentially turns the
@@ -43,12 +39,12 @@ import           Grenade.Layers.Internal.Convolution
 --   `out = (in - kernel) / stride + 1` for both dimensions.
 --
 --   One probably shouldn't build their own layer, but rather use the randomConvolution function.
-data Convolution :: Nat -- ^ Number of channels, for the first layer this could be RGB for instance.
-                 -> Nat -- ^ Number of filters, this is the number of channels output by the layer.
-                 -> Nat -- ^ The number of rows in the kernel filter
-                 -> Nat -- ^ The number of column in the kernel filter
-                 -> Nat -- ^ The row stride of the convolution filter
-                 -> Nat -- ^ The columns stride of the convolution filter
+data Convolution :: Nat -- Number of channels, for the first layer this could be RGB for instance.
+                 -> Nat -- Number of filters, this is the number of channels output by the layer.
+                 -> Nat -- The number of rows in the kernel filter
+                 -> Nat -- The number of column in the kernel filter
+                 -> Nat -- The row stride of the convolution filter
+                 -> Nat -- The columns stride of the convolution filter
                  -> * where
   Convolution :: ( KnownNat channels
                  , KnownNat filters
@@ -58,16 +54,16 @@ data Convolution :: Nat -- ^ Number of channels, for the first layer this could 
                  , KnownNat strideColumns
                  , KnownNat kernelFlattened
                  , kernelFlattened ~ (kernelRows * kernelColumns * channels))
-              => !(L kernelFlattened filters) -- ^ The kernel filter weights
-              -> !(L kernelFlattened filters) -- ^ The last kernel update (or momentum)
+              => !(L kernelFlattened filters) -- The kernel filter weights
+              -> !(L kernelFlattened filters) -- The last kernel update (or momentum)
               -> Convolution channels filters kernelRows kernelColumns strideRows strideColumns
 
-data Convolution' :: Nat -- ^ Number of channels, for the first layer this could be RGB for instance.
-                  -> Nat -- ^ Number of filters, this is the number of channels output by the layer.
-                  -> Nat -- ^ The number of rows in the kernel filter
-                  -> Nat -- ^ The number of column in the kernel filter
-                  -> Nat -- ^ The row stride of the convolution filter
-                  -> Nat -- ^ The columns stride of the convolution filter
+data Convolution' :: Nat -- Number of channels, for the first layer this could be RGB for instance.
+                  -> Nat -- Number of filters, this is the number of channels output by the layer.
+                  -> Nat -- The number of rows in the kernel filter
+                  -> Nat -- The number of column in the kernel filter
+                  -> Nat -- The row stride of the convolution filter
+                  -> Nat -- The columns stride of the convolution filter
                   -> * where
   Convolution' :: ( KnownNat channels
                   , KnownNat filters
@@ -77,7 +73,7 @@ data Convolution' :: Nat -- ^ Number of channels, for the first layer this could
                   , KnownNat strideColumns
                   , KnownNat kernelFlattened
                   , kernelFlattened ~ (kernelRows * kernelColumns * channels))
-               => !(L kernelFlattened filters) -- ^ The kernel filter gradient
+               => !(L kernelFlattened filters) -- The kernel filter gradient
                -> Convolution' channels filters kernelRows kernelColumns strideRows strideColumns
 
 instance Show (Convolution c f k k' s s') where
@@ -109,7 +105,7 @@ randomConvolution :: ( MonadRandom m
                      , kernelFlattened ~ (kernelRows * kernelColumns * channels))
                   => m (Convolution channels filters kernelRows kernelColumns strideRows strideColumns)
 randomConvolution = do
-    s  :: Int <- getRandom
+    s     <- getRandom
     let wN = uniformSample s (-1) 1
         mm = konst 0
     return $ Convolution wN mm
@@ -124,9 +120,7 @@ instance ( KnownNat channels
          ) => UpdateLayer (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) where
   type Gradient (Convolution channels filters kernelRows kernelCols strideRows strideCols) = (Convolution' channels filters kernelRows kernelCols strideRows strideCols)
   runUpdate LearningParameters {..} (Convolution oldKernel oldMomentum) (Convolution' kernelGradient) =
-    let newMomentum    = konst learningMomentum * oldMomentum - konst learningRate * kernelGradient
-        regulariser    = konst (learningRegulariser * learningRate) * oldKernel
-        newKernel      = oldKernel + newMomentum - regulariser
+    let (newKernel, newMomentum) = decendMatrix learningRate learningMomentum learningRegulariser oldKernel kernelGradient oldMomentum
     in Convolution newKernel newMomentum
 
   createRandom = randomConvolution
@@ -146,7 +140,7 @@ instance ( KnownNat kernelRows
          , KnownNat (kernelRows * kernelCols * 1)
          , KnownNat (outputRows * filters)
          ) => Layer (Convolution 1 filters kernelRows kernelCols strideRows strideCols) ('D2 inputRows inputCols) ('D3 outputRows outputCols filters) where
-  runForwards (Convolution kernel _) (S2D' input) =
+  runForwards (Convolution kernel _) (S2D input) =
     let ex = extract input
         ek = extract kernel
         kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
@@ -159,9 +153,9 @@ instance ( KnownNat kernelRows
         mt = c LA.<> ek
         r  = col2vid 1 1 1 1 ox oy mt
         rs = fromJust . create $ r
-    in  S3D' rs
+    in  S3D rs
 
-  runBackwards (Convolution kernel _) (S2D' input) (S3D' dEdy) =
+  runBackwards (Convolution kernel _) (S2D input) (S3D dEdy) =
     let ex = extract input
         ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         iy = fromIntegral $ natVal (Proxy :: Proxy inputCols)
@@ -183,7 +177,7 @@ instance ( KnownNat kernelRows
         dW = vs LA.<> tr ek
 
         xW = col2im kx ky sx sy ix iy dW
-    in  (Convolution' kN, S2D' . fromJust . create $ xW)
+    in  (Convolution' kN, S2D . fromJust . create $ xW)
 
 
 -- | A three dimensional image (or 2d with many channels) can have
@@ -203,7 +197,7 @@ instance ( KnownNat kernelRows
          , KnownNat (kernelRows * kernelCols * channels)
          , KnownNat (outputRows * filters)
          ) => Layer (Convolution channels filters kernelRows kernelCols strideRows strideCols) ('D3 inputRows inputCols channels) ('D3 outputRows outputCols filters) where
-  runForwards (Convolution kernel _) (S3D' input) =
+  runForwards (Convolution kernel _) (S3D input) =
     let ex = extract input
         ek = extract kernel
         ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
@@ -219,8 +213,8 @@ instance ( KnownNat kernelRows
         mt = c LA.<> ek
         r  = col2vid 1 1 1 1 ox oy mt
         rs = fromJust . create $ r
-    in  S3D' rs
-  runBackwards (Convolution kernel _) (S3D' input) (S3D' dEdy) =
+    in  S3D rs
+  runBackwards (Convolution kernel _) (S3D input) (S3D dEdy) =
     let ex = extract input
         ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         iy = fromIntegral $ natVal (Proxy :: Proxy inputCols)
@@ -243,4 +237,4 @@ instance ( KnownNat kernelRows
         dW = vs LA.<> tr ek
 
         xW = col2vid kx ky sx sy ix iy dW
-    in  (Convolution' kN, S3D' . fromJust . create $ xW)
+    in  (Convolution' kN, S3D . fromJust . create $ xW)

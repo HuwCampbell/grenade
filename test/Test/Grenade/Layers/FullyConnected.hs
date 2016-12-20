@@ -44,10 +44,10 @@ genOpaqueFullyConnected = do
 prop_fully_connected_forwards :: Property
 prop_fully_connected_forwards =
     gamble genOpaqueFullyConnected $ \(OpaqueFullyConnected (fclayer :: FullyConnected i o)) ->
-        gamble (S1D' <$> randomVector) $ \(input :: S' ('D1 i)) ->
-            let output :: S' ('D1 o) = runForwards fclayer input
-                backed :: (Gradient (FullyConnected i o), S' ('D1 i))
-                                     = runBackwards fclayer input output
+        gamble (S1D <$> randomVector) $ \(input :: S ('D1 i)) ->
+            let output :: S ('D1 o) = runForwards fclayer input
+                backed :: (Gradient (FullyConnected i o), S ('D1 i))
+                                    = runBackwards fclayer input output
             in  backed `seq` True
 
 return []

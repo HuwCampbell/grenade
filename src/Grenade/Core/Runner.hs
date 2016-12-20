@@ -4,7 +4,16 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-|
+Module      : Grenade.Core.Shape
+Description : Core definition of the Shapes of data we understand
+Copyright   : (c) Huw Campbell, 2016-2017
+License     : BSD2
+Stability   : experimental
 
+This module defines simple back propagation and training functions
+for a network.
+-}
 module Grenade.Core.Runner (
     train
   , backPropagate
@@ -16,16 +25,22 @@ import           Data.Singletons.Prelude
 import           Grenade.Core.Network
 import           Grenade.Core.Shape
 
--- | Drive and network and collect its back propogated gradients.
-backPropagate :: forall input output shapes layers. (Head shapes ~ input, Last shapes ~ output)
-              => Network layers shapes -> S' input -> S' output -> Gradients layers
+-- | Perform reverse automatic differentiation on the network
+--   for the current input and expected output.
+--
+--   /Note:/ The loss function pushed backwards is appropriate
+--   for both regression and classification as a squared loss
+--   or log-loss respectively. Other loss functions are not yet
+--   implemented.
+backPropagate :: forall shapes layers.
+                 Network layers shapes -> S (Head shapes) -> S (Last shapes) -> Gradients layers
 backPropagate network input target =
     fst $ go input network
   where
-    go  :: forall j js sublayers. (Head js ~ j, Last js ~ output)
-        => S' j                 -- ^ input vector
+    go  :: forall js sublayers. (Last js ~ Last shapes)
+        => S (Head js)          -- ^ input vector
         -> Network sublayers js -- ^ network to train
-        -> (Gradients sublayers, S' j)
+        -> (Gradients sublayers, S (Head js))
     -- handle input from the beginning, feeding upwards.
     go !x (layer :~> n)
         = let y             = runForwards layer x
@@ -44,16 +59,7 @@ backPropagate network input target =
 
           in (OG layer', dWs)
 
--- | Update a network with new weights after training with an instance.
-train :: forall input output shapes layers. (Head shapes ~ input, Last shapes ~ output)
-      => LearningParameters            -- ^ learning rate
-      -> Network layers shapes         -- ^ network to train
-      -> S' input -> S' output         -- ^ target vector
-      -> Network layers shapes
-train rate network input output =
-    let grads = backPropagate network input output
-    in  applyUpdate rate network grads
-
+-- | Apply one step of stochastic gradient decent across the network.
 applyUpdate :: LearningParameters -> Network ls ss -> Gradients ls -> Network ls ss
 applyUpdate rate (O layer) (OG gradient)
   = O (runUpdate rate layer gradient)
@@ -62,9 +68,13 @@ applyUpdate rate (layer :~> rest) (gradient :/> grest)
 applyUpdate _ _ _
   = error "Impossible for the gradients of a network to have a different length to the network"
 
--- | Just forwards propagation with no training.
-runNet :: Network layers hs
-       -> S' (Head hs)         -- ^ input vector
-       -> S' (Last hs)         -- ^ target vector
+-- | Update a network with new weights after training with an instance.
+train :: LearningParameters -> Network layers shapes -> S (Head shapes) -> S (Last shapes) -> Network layers shapes
+train rate network input output =
+    let grads = backPropagate network input output
+    in  applyUpdate rate network grads
+
+-- | Run the network with input and return the given output.
+runNet :: Network layers shapes -> S (Head shapes) -> S (Last shapes)
 runNet (layer :~> n)  !x = let y = runForwards layer x in runNet n y
 runNet (O layer)      !x = runForwards layer x

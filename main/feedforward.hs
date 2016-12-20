@@ -4,10 +4,10 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE FlexibleContexts      #-}
-
 import           Control.Monad
 import           Control.Monad.Random
+import           Data.List ( foldl' )
+
 import           GHC.TypeLits
 
 import qualified Numeric.LinearAlgebra.Static as SA
@@ -34,18 +34,18 @@ netTest :: MonadRandom m => LearningParameters -> Int -> m String
 netTest rate n = do
     inps <- replicateM n $ do
       s  <- getRandom
-      return $ S1D' $ SA.randomVector s SA.Uniform * 2 - 1
-    let outs = flip map inps $ \(S1D' v) ->
+      return $ S1D $ SA.randomVector s SA.Uniform * 2 - 1
+    let outs = flip map inps $ \(S1D v) ->
                  if v `inCircle` (fromRational 0.33, 0.33)  || v `inCircle` (fromRational (-0.33), 0.33)
-                   then S1D' $ fromRational 1
-                   else S1D' $ fromRational 0
+                   then S1D $ fromRational 1
+                   else S1D $ fromRational 0
     net0 <- randomNet
 
-    let trained = foldl trainEach net0 (zip inps outs)
+    let trained = foldl' trainEach net0 (zip inps outs)
     let testIns = [ [ (x,y)  | x <- [0..50] ]
                              | y <- [0..20] ]
 
-    let outMat  = fmap (fmap (\(x,y) -> (render . normx) $ runNet trained (S1D' $ SA.vector [x / 25 - 1,y / 10 - 1]))) testIns
+    let outMat  = fmap (fmap (\(x,y) -> (render . normx) $ runNet trained (S1D $ SA.vector [x / 25 - 1,y / 10 - 1]))) testIns
     return $ unlines outMat
 
   where
@@ -59,8 +59,8 @@ netTest rate n = do
                | n' <= 0.8  = '='
                | otherwise = '#'
 
-    normx :: S' ('D1 1) -> Double
-    normx (S1D' r) = SA.mean r
+    normx :: S ('D1 1) -> Double
+    normx (S1D r) = SA.mean r
 
 data FeedForwardOpts = FeedForwardOpts Int LearningParameters
 

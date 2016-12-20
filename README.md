@@ -52,7 +52,7 @@ Usage
 To perform back propagation, one can call the eponymous function
 ```haskell
 backPropagate :: forall input target shapes layers. (Head shapes ~ input, Last shapes ~ target)
-              => Network layers shapes -> S' input -> S' target -> Gradients layers
+              => Network layers shapes -> S input -> S target -> Gradients layers
 ```
 which takes a network, appropriate input and target data, and returns the
 back propagated gradients for the network. The shapes of the gradients are

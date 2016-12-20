@@ -1,8 +1,8 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE DataKinds       #-}
-{-# LANGUAGE KindSignatures  #-}
-{-# LANGUAGE GADTs           #-}
-{-# LANGUAGE ScopedTypeVariables             #-}
+{-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE KindSignatures      #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Test.Grenade.Layers.Pooling where
 
