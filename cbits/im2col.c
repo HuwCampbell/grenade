@@ -1,11 +1,10 @@
 #include "im2col.h"
 
-void im2col_cpu(const double* data_im, int dataOffset, const int channels,
+void im2col_cpu(const double* data_im, const int channels,
     const int height, const int width, const int kernel_h, const int kernel_w,
     const int stride_h, const int stride_w,
     double* data_col) {
 
-  data_im += dataOffset;
   const int channel_size = height * width;
 
   for (int fitting_height = 0; fitting_height <= (height - kernel_h); fitting_height += stride_h) {
@@ -23,13 +22,12 @@ void im2col_cpu(const double* data_im, int dataOffset, const int channels,
   }
 }
 
-void col2im_cpu(const double* data_col, int dataOffset, const int channels,
+void col2im_cpu(const double* data_col, const int channels,
     const int height, const int width, const int kernel_h, const int kernel_w,
     const int stride_h, const int stride_w,
     double* data_im) {
 
   memset(data_im, 0, height * width * channels * sizeof(double));
-  data_col += dataOffset;
 
   const int channel_size = height * width;
 
@@ -50,12 +48,10 @@ void col2im_cpu(const double* data_col, int dataOffset, const int channels,
 
 inline double max ( double a, double b ) { return a > b ? a : b; }
 
-void pool_forwards_cpu(const double* data_im, int dataOffset, const int channels,
+void pool_forwards_cpu(const double* data_im, const int channels,
     const int height, const int width, const int kernel_h, const int kernel_w,
     const int stride_h, const int stride_w,
     double* data_pooled) {
-
-  data_im += dataOffset;
 
   const int channel_size = height * width;
 
@@ -89,14 +85,11 @@ void pool_forwards_cpu(const double* data_im, int dataOffset, const int channels
   }
 }
 
-void pool_backwards_cpu(const double* data_im, int data_im_offset,
-    const double* data_pooled, int data_pooled_offset,
+void pool_backwards_cpu(const double* data_im, const double* data_pooled,
     const int channels, const int height, const int width, const int kernel_h,
     const int kernel_w, const int stride_h, const int stride_w,
     double* data_backgrad ) {
 
-  data_im += data_im_offset;
-  data_pooled += data_pooled_offset;
   memset(data_backgrad, 0, height * width * channels * sizeof(double));
 
   const int channel_size = height * width;

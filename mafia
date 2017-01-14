@@ -1,5 +1,7 @@
 #!/bin/sh -eu
 
+: ${MAFIA_HOME:=$HOME/.mafia}
+
 fetch_latest () {
   if [ -z ${MAFIA_TEST_MODE+x} ]; then
     TZ=$(date +"%T")
@@ -55,7 +57,7 @@ exec_mafia () {
     # If we can't find the mafia version, then we need to upgrade the script.
     run_upgrade
   else
-    MAFIA_BIN=$HOME/.ambiata/mafia/bin
+    MAFIA_BIN=$MAFIA_HOME/bin
     MAFIA_FILE=mafia-$MAFIA_VERSION
     MAFIA_PATH=$MAFIA_BIN/$MAFIA_FILE
 
@@ -118,4 +120,4 @@ case "$MODE" in
 upgrade) shift; run_upgrade "$@" ;;
 *) exec_mafia "$@"
 esac
-# Version: a1b39ee8ac1969ed2e891b9062d079be75863e99
+# Version: 3044e63eb472fb9e16926d4ab2ca9dd9e255829c

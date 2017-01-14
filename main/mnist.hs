@@ -5,23 +5,24 @@
 {-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE FlexibleContexts      #-}
-
 import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Random
-import           Control.Monad.Trans.Class
 import           Control.Monad.Trans.Except
 
 import qualified Data.Attoparsec.Text as A
+import           Data.List ( foldl' )
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
+import qualified Data.Vector.Storable as V
 
-import           Numeric.LinearAlgebra (maxIndex)
+import           Numeric.LinearAlgebra ( maxIndex )
 import qualified Numeric.LinearAlgebra.Static as SA
 
 import           Options.Applicative
 
 import           Grenade
+import           Grenade.Utils.OneHot
 
 -- The definition of our convolutional neural network.
 -- In the type signature, we have a type level list of shapes which are passed between the layers.
@@ -49,9 +50,9 @@ convTest iterations trainFile validateFile rate = do
   trainEach rate' !network (i, o) = train rate' network i o
 
   runIteration trainRows validateRows net i = do
-    let trained' = foldl (trainEach ( rate { learningRate = learningRate rate * 0.9 ^ i} )) net trainRows
+    let trained' = foldl' (trainEach ( rate { learningRate = learningRate rate * 0.9 ^ i} )) net trainRows
     let res      = fmap (\(rowP,rowL) -> (rowL,) $ runNet trained' rowP) validateRows
-    let res'     = fmap (\(S1D' label, S1D' prediction) -> (maxIndex (SA.extract label), maxIndex (SA.extract prediction))) res
+    let res'     = fmap (\(S1D label, S1D prediction) -> (maxIndex (SA.extract label), maxIndex (SA.extract prediction))) res
     print trained'
     putStrLn $ "Iteration " ++ show i ++ ": " ++ show (length (filter ((==) <$> fst <*> snd) res')) ++ " of " ++ show (length res')
     return trained'
@@ -61,7 +62,7 @@ data MnistOpts = MnistOpts FilePath FilePath Int LearningParameters
 mnist' :: Parser MnistOpts
 mnist' = MnistOpts <$> argument str (metavar "TRAIN")
                    <*> argument str (metavar "VALIDATE")
-                   <*> option auto (long "iterations" <> short 'i' <> value 10)
+                   <*> option auto (long "iterations" <> short 'i' <> value 15)
                    <*> (LearningParameters
                        <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
                        <*> option auto (long "momentum" <> value 0.9)
@@ -78,14 +79,14 @@ main = do
       Right () -> pure ()
       Left err -> putStrLn err
 
-readMNIST :: FilePath -> ExceptT String IO [(S' ('D2 28 28), S' ('D1 10))]
+readMNIST :: FilePath -> ExceptT String IO [(S ('D2 28 28), S ('D1 10))]
 readMNIST mnist = ExceptT $ do
   mnistdata <- T.readFile mnist
   return $ traverse (A.parseOnly parseMNIST) (T.lines mnistdata)
 
-parseMNIST :: A.Parser (S' ('D2 28 28), S' ('D1 10))
+parseMNIST :: A.Parser (S ('D2 28 28), S ('D1 10))
 parseMNIST = do
-  lab     <- A.decimal
-  pixels  <- many (A.char ',' >> A.double)
-  let lab' = replicate lab 0 ++ [1] ++ replicate (9 - lab) 0
-  return (S2D' $ SA.fromList pixels, S1D' $ SA.fromList lab')
+  Just lab <- oneHot <$> A.decimal
+  pixels   <- many (A.char ',' >> A.double)
+  image    <- maybe (fail "Parsed row was of an incorrect size") pure (fromStorable . V.fromList $ pixels)
+  return (image, lab)

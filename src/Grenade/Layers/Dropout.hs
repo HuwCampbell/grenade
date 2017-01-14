@@ -1,12 +1,7 @@
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE LambdaCase            #-}
-
 module Grenade.Layers.Dropout (
     Dropout (..)
   , randomDropout
@@ -45,7 +40,7 @@ randomDropout rate = do
     return $ Dropout xs
 
 instance (KnownNat i) => Layer (Dropout i) ('D1 i) ('D1 i) where
-  runForwards (Dropout drops) (S1D' x) = S1D' $ x * drops
-  runForwards (Pass rate) (S1D' x)= S1D' $ dvmap (* (1 - rate)) x
-  runBackwards (Dropout drops) _ (S1D' x) = ((),  S1D' $ x * drops)
-  runBackwards (Pass rate) _ (S1D' x) = ((),  S1D' $  dvmap (* (1 - rate)) x)
+  runForwards (Dropout drops) (S1D x) = S1D $ x * drops
+  runForwards (Pass rate) (S1D x)= S1D $ dvmap (* (1 - rate)) x
+  runBackwards (Dropout drops) _ (S1D x) = ((),  S1D $ x * drops)
+  runBackwards (Pass rate) _ (S1D x) = ((),  S1D $  dvmap (* (1 - rate)) x)

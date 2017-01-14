@@ -1,75 +1,171 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE KindSignatures        #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE PolyKinds             #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE RankNTypes            #-}
 
--- Ghc 8.0 gives a warning on `(+)  _ _ = error ...` but ghc 7.10 fails to
+-- Ghc 8.0 gives a warning on `n2 _ _ = error ...` but ghc 7.10 fails to
 -- compile without this default pattern.
 {-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
 
+{-|
+Module      : Grenade.Core.Shape
+Description : Core definition of the Shapes of data we understand
+Copyright   : (c) Huw Campbell, 2016-2017
+License     : BSD2
+Stability   : experimental
+
+This module defines the core data types for the shapes of data that
+are understood by Grenade.
+-}
 module Grenade.Core.Shape (
     Shape (..)
-  , S' (..)
+  , S (..)
+  , randomOfShape
+  , fromStorable
   ) where
 
+import           Control.DeepSeq (NFData (..))
+import           Control.Monad.Random ( MonadRandom, getRandom )
+
+import           Data.Singletons
 import           Data.Singletons.TypeLits
+import           Data.Vector.Storable ( Vector )
+import qualified Data.Vector.Storable as V
+
 import           GHC.TypeLits
 
+import qualified Numeric.LinearAlgebra.Static as H
 import           Numeric.LinearAlgebra.Static
-
+import qualified Numeric.LinearAlgebra as NLA
 
 -- | The current shapes we accept.
 --   at the moment this is just one, two, and three dimensional
 --   Vectors/Matricies.
-data Shape =
-    D1 Nat
+data Shape
+  = D1 Nat
   | D2 Nat Nat
   | D3 Nat Nat Nat
-
-instance Num (S' x) where
-  (+) (S1D' x) (S1D' y) = S1D' (x + y)
-  (+) (S2D' x) (S2D' y) = S2D' (x + y)
-  (+) (S3D' x) (S3D' y) = S3D' (x + y)
-  (+)  _ _ = error "Impossible to have different constructors for the same shaped network"
-
-  (-) (S1D' x) (S1D' y) = S1D' (x - y)
-  (-) (S2D' x) (S2D' y) = S2D' (x - y)
-  (-) (S3D' x) (S3D' y) = S3D' (x - y)
-  (-)  _ _ = error "Impossible to have different constructors for the same shaped network"
-
-  (*) (S1D' x) (S1D' y) = S1D' (x * y)
-  (*) (S2D' x) (S2D' y) = S2D' (x * y)
-  (*) (S3D' x) (S3D' y) = S3D' (x * y)
-  (*)  _ _ = error "Impossible to have different constructors for the same shaped network"
-
-  abs (S1D' x) = S1D' (abs x)
-  abs (S2D' x) = S2D' (abs x)
-  abs (S3D' x) = S3D' (abs x)
-
-  signum (S1D' x) = S1D' (signum x)
-  signum (S2D' x) = S2D' (signum x)
-  signum (S3D' x) = S3D' (signum x)
-
-  fromInteger _ = error "Unimplemented: fromInteger on Shape"
 
 -- | Given a Shape n, these are the possible data structures with that shape.
 --   All shapes are held in contiguous memory.
 --   3D is held in a matrix (usually row oriented) which has height depth * rows.
-data S' (n :: Shape) where
-  S1D' :: ( KnownNat o )                      => R o             -> S' ('D1 o)
-  S2D' :: ( KnownNat rows, KnownNat columns ) => L rows columns  -> S' ('D2 rows columns)
-  S3D' :: ( KnownNat rows
-          , KnownNat columns
-          , KnownNat depth
-          , KnownNat (rows * depth)) => L (rows * depth) columns -> S' ('D3 rows columns depth)
+data S (n :: Shape) where
+  S1D :: ( KnownNat o )                      => R o             -> S ('D1 o)
+  S2D :: ( KnownNat rows, KnownNat columns ) => L rows columns  -> S ('D2 rows columns)
+  S3D :: ( KnownNat rows
+         , KnownNat columns
+         , KnownNat depth
+         , KnownNat (rows * depth)) => L (rows * depth) columns -> S ('D3 rows columns depth)
 
-instance Show (S' n) where
-  show (S1D' a) = "S1D' " ++ show a
-  show (S2D' a) = "S2D' " ++ show a
-  show (S3D' a) = "S3D' " ++ show a
+deriving instance Show (S n)
+
+instance SingI x => Num (S x) where
+  (+) = n2 (+)
+  (-) = n2 (-)
+  (*) = n2 (*)
+  abs = n1 abs
+  signum = n1 signum
+  fromInteger x = case (sing :: Sing x) of
+    D1Sing -> S1D (konst $ fromInteger x)
+    D2Sing -> S2D (konst $ fromInteger x)
+    D3Sing -> S3D (konst $ fromInteger x)
+
+instance SingI x => Fractional (S x) where
+  (/) = n2 (/)
+  recip = n1 recip
+  fromRational x = case (sing :: Sing x) of
+    D1Sing -> S1D (konst $ fromRational x)
+    D2Sing -> S2D (konst $ fromRational x)
+    D3Sing -> S3D (konst $ fromRational x)
+
+instance SingI x => Floating (S x) where
+  pi = case (sing :: Sing x) of
+    D1Sing -> S1D (konst pi)
+    D2Sing -> S2D (konst pi)
+    D3Sing -> S3D (konst pi)
+  exp = n1 exp
+  log = n1 log
+  sqrt = n1 sqrt
+  (**) = n2 (**)
+  logBase = n2 logBase
+  sin = n1 sin
+  cos = n1 cos
+  tan = n1 tan
+  asin = n1 asin
+  acos = n1 acos
+  atan = n1 atan
+  sinh = n1 sinh
+  cosh = n1 cosh
+  tanh = n1 tanh
+  asinh = n1 asinh
+  acosh = n1 acosh
+  atanh = n1 atanh
+
+-- Singletons
+-- These could probably be derived with template haskell, but this seems
+-- clear and makes adding the KnownNat constraints simple.
+data instance Sing (n :: Shape) where
+  D1Sing :: KnownNat a => Sing ('D1 a)
+  D2Sing :: (KnownNat a, KnownNat b) => Sing ('D2 a b)
+  D3Sing :: (KnownNat a, KnownNat b, KnownNat c, KnownNat (a * c)) => Sing ('D3 a b c)
+
+instance KnownNat a => SingI ('D1 a) where
+  sing = D1Sing
+instance (KnownNat a, KnownNat b) => SingI ('D2 a b) where
+  sing = D2Sing
+instance (KnownNat a, KnownNat b, KnownNat c, KnownNat (a * c)) => SingI ('D3 a b c) where
+  sing = D3Sing
+
+--
+-- I haven't made shapes strict, as sometimes they're not needed
+-- (the last input gradient back for instance)
+--
+instance NFData (S x) where
+  rnf (S1D x) = rnf x
+  rnf (S2D x) = rnf x
+  rnf (S3D x) = rnf x
+
+-- | Generate random data of the desired shape
+randomOfShape :: forall x m. ( MonadRandom m, SingI x ) => m (S x)
+randomOfShape = do
+  seed :: Int <- getRandom
+  return $ case (sing :: Sing x) of
+    D1Sing -> S1D (randomVector  seed Uniform * 2 - 1)
+    D2Sing -> S2D (uniformSample seed (-1) 1)
+    D3Sing -> S3D (uniformSample seed (-1) 1)
+
+-- | Generate a shape from a Storable Vector.
+--
+--   Returns Nothing if the vector is of the wrong size.
+fromStorable :: forall x. SingI x => Vector Double -> Maybe (S x)
+fromStorable xs = case sing :: Sing x of
+    D1Sing -> S1D <$> H.create xs
+    D2Sing -> S2D <$> mkL xs
+    D3Sing -> S3D <$> mkL xs
+  where
+    mkL :: forall rows columns. (KnownNat rows, KnownNat columns)
+        => Vector Double -> Maybe (L rows columns)
+    mkL v =
+      let rows    = fromIntegral $ natVal (Proxy :: Proxy rows)
+          columns = fromIntegral $ natVal (Proxy :: Proxy columns)
+      in  if rows * columns == V.length v
+             then H.create $ NLA.reshape columns v
+             else Nothing
+
+-- Helper function for creating the number instances
+n1 :: ( forall a. Floating a => a -> a ) -> S x -> S x
+n1 f (S1D x) = S1D (f x)
+n1 f (S2D x) = S2D (f x)
+n1 f (S3D x) = S3D (f x)
+
+-- Helper function for creating the number instances
+n2 :: ( forall a. Floating a => a -> a -> a ) -> S x -> S x -> S x
+n2 f (S1D x) (S1D y) = S1D (f x y)
+n2 f (S2D x) (S2D y) = S2D (f x y)
+n2 f (S3D x) (S3D y) = S3D (f x y)
+n2 _ _ _ = error "Impossible to have different constructors for the same shaped network"

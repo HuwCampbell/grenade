@@ -1,10 +1,7 @@
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances     #-}
-
 module Grenade.Layers.Logit (
     Logit (..)
   ) where
@@ -27,17 +24,16 @@ instance UpdateLayer Logit where
   createRandom = return Logit
 
 instance (KnownNat i) => Layer Logit ('D1 i) ('D1 i) where
-  runForwards _ (S1D' y) = S1D' (logistic y)
-  runBackwards _ (S1D' y) (S1D' dEdy) = ((), S1D' (logistic' y * dEdy))
+  runForwards _ (S1D y) = S1D (logistic y)
+  runBackwards _ (S1D y) (S1D dEdy) = ((), S1D (logistic' y * dEdy))
 
 instance (KnownNat i, KnownNat j) => Layer Logit ('D2 i j) ('D2 i j) where
-  runForwards _ (S2D' y) = S2D' (logistic y)
-  runBackwards _ (S2D' y) (S2D' dEdy) = ((), S2D' (logistic' y * dEdy))
+  runForwards _ (S2D y) = S2D (logistic y)
+  runBackwards _ (S2D y) (S2D dEdy) = ((), S2D (logistic' y * dEdy))
 
 instance (KnownNat i, KnownNat j, KnownNat k) => Layer Logit ('D3 i j k) ('D3 i j k) where
-  runForwards _ (S3D' y) =  S3D' (logistic y)
-  runBackwards _ (S3D' y) (S3D' dEdy) = ((), S3D' (logistic' y * dEdy))
-
+  runForwards _ (S3D y) =  S3D (logistic y)
+  runBackwards _ (S3D y) (S3D dEdy) = ((), S3D (logistic' y * dEdy))
 
 logistic :: Floating a => a -> a
 logistic x = 1 / (1 + exp (-x))

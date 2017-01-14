@@ -19,6 +19,8 @@ library
                        base                            >= 4.8         && < 5
                      , bytestring                      == 0.10.*
                      , async
+                     , containers
+                     , deepseq
                      , either                          == 4.4.*
                      , exceptions                      == 0.8.*
                      , hmatrix
@@ -26,9 +28,11 @@ library
                      , mtl                             >= 2.2.1      && < 2.3
                      , parallel                        == 3.2.*
                      , primitive
+                     , reflection
                      , text                            == 1.2.*
                      , transformers
                      , singletons
+                     , vector
 
   ghc-options:
                        -Wall
@@ -55,9 +59,23 @@ library
 
                        Grenade.Layers.Internal.Convolution
                        Grenade.Layers.Internal.Pooling
+                       Grenade.Layers.Internal.Update
+
+                       Grenade.Recurrent
+
+                       Grenade.Recurrent.Core.Network
+                       Grenade.Recurrent.Core.Runner
+
+                       Grenade.Recurrent.Layers.BasicRecurrent
+                       Grenade.Recurrent.Layers.LSTM
+                       Grenade.Recurrent.Layers.Trivial
+
+                       Grenade.Utils.OneHot
 
   includes:           cbits/im2col.h
+                      cbits/gradient_decent.h
   c-sources:          cbits/im2col.c
+                      cbits/gradient_decent.c
 
   cc-options:         -std=c99 -O3 -msse4.2 -Wall -Werror -DCABAL=1
 
@@ -90,6 +108,40 @@ executable             mnist
                      , transformers
                      , singletons
                      , MonadRandom
+                     , vector
+
+executable             recurrent
+    ghc-options:       -Wall -threaded -O2
+    main-is:           main/recurrent.hs
+    build-depends:     base
+                     , grenade
+                     , attoparsec
+                     , either
+                     , optparse-applicative            == 0.12.*
+                     , text                            == 1.2.*
+                     , mtl                             >= 2.2.1      && < 2.3
+                     , hmatrix                         >= 0.18       && < 0.19
+                     , transformers
+                     , singletons
+                     , MonadRandom
+
+
+executable             shakespeare
+    ghc-options:       -Wall -threaded -O2
+    main-is:           main/shakespeare.hs
+    build-depends:     base
+                     , grenade
+                     , attoparsec
+                     , either
+                     , optparse-applicative            == 0.12.*
+                     , text                            == 1.2.*
+                     , mtl                             >= 2.2.1      && < 2.3
+                     , hmatrix                         >= 0.18       && < 0.19
+                     , transformers
+                     , singletons
+                     , vector
+                     , MonadRandom
+                     , containers
 
 
 test-suite test
@@ -117,12 +169,31 @@ test-suite test
                      , quickcheck-instances            == 0.3.*
                      , MonadRandom
                      , random
+                     , ad
+                     , reflection
 
 
 benchmark bench
   type:                exitcode-stdio-1.0
 
   main-is:             bench.hs
+
+  ghc-options:         -Wall -threaded -O2
+
+  hs-source-dirs:
+                       bench
+
+  build-depends:
+                       base                            >= 3          && < 5
+                     , bytestring                      == 0.10.*
+                     , criterion                       == 1.1.*
+                     , grenade
+                     , hmatrix
+
+benchmark bench-lstm
+  type:                exitcode-stdio-1.0
+
+  main-is:             bench-lstm.hs
 
   ghc-options:         -Wall -threaded -O2
 

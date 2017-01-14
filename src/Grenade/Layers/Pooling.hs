@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
@@ -6,10 +5,7 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE PolyKinds             #-}
-
 module Grenade.Layers.Pooling (
     Pooling (..)
   ) where
@@ -55,7 +51,7 @@ instance ( KnownNat kernelRows
          , ((outputRows - 1) * strideRows) ~ (inputRows - kernelRows)
          , ((outputColumns - 1) * strideColumns) ~ (inputColumns - kernelColumns)
          ) => Layer (Pooling kernelRows kernelColumns strideRows strideColumns) ('D2 inputRows inputColumns) ('D2 outputRows outputColumns) where
-  runForwards Pooling (S2D' input) =
+  runForwards Pooling (S2D input) =
     let height = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         width  = fromIntegral $ natVal (Proxy :: Proxy inputColumns)
         kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
@@ -65,8 +61,8 @@ instance ( KnownNat kernelRows
         ex = extract input
         r  = poolForward 1 height width kx ky sx sy ex
         rs = fromJust . create $ r
-    in  S2D' $ rs
-  runBackwards Pooling (S2D' input) (S2D' dEdy) =
+    in  S2D $ rs
+  runBackwards Pooling (S2D input) (S2D dEdy) =
     let height = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         width  = fromIntegral $ natVal (Proxy :: Proxy inputColumns)
         kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
@@ -76,7 +72,7 @@ instance ( KnownNat kernelRows
         ex = extract input
         eo = extract dEdy
         vs = poolBackward 1 height width kx ky sx sy ex eo
-    in  ((), S2D' . fromJust . create $ vs)
+    in  ((), S2D . fromJust . create $ vs)
 
 
 -- | A three dimensional image can be pooled on each layer.
@@ -93,7 +89,7 @@ instance ( KnownNat kernelRows
          , ((outputRows - 1) * strideRows) ~ (inputRows - kernelRows)
          , ((outputColumns - 1) * strideColumns) ~ (inputColumns - kernelColumns)
          ) => Layer (Pooling kernelRows kernelColumns strideRows strideColumns) ('D3 inputRows inputColumns channels) ('D3 outputRows outputColumns channels) where
-  runForwards Pooling (S3D' input) =
+  runForwards Pooling (S3D input) =
     let ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         iy = fromIntegral $ natVal (Proxy :: Proxy inputColumns)
         kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
@@ -104,8 +100,8 @@ instance ( KnownNat kernelRows
         ex = extract input
         r  = poolForward ch ix iy kx ky sx sy ex
         rs = fromJust . create $ r
-    in  S3D' rs
-  runBackwards Pooling (S3D' input) (S3D' dEdy) =
+    in  S3D rs
+  runBackwards Pooling (S3D input) (S3D dEdy) =
     let ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         iy = fromIntegral $ natVal (Proxy :: Proxy inputColumns)
         kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
@@ -116,4 +112,4 @@ instance ( KnownNat kernelRows
         ex = extract input
         eo = extract dEdy
         vs = poolBackward ch ix iy kx ky sx sy ex eo
-    in  ((), S3D' . fromJust . create $ vs)
+    in  ((), S3D . fromJust . create $ vs)

@@ -4,7 +4,6 @@
 
 module Test.Jack.Hmatrix where
 
-import           Data.Proxy
 import           Disorder.Jack
 
 import           GHC.TypeLits
@@ -12,9 +11,7 @@ import           GHC.TypeLits
 import qualified Numeric.LinearAlgebra.Static as HStatic
 
 randomVector :: forall n. KnownNat n => Jack (HStatic.R n)
-randomVector = HStatic.fromList <$> vectorOf (fromInteger (natVal (Proxy :: Proxy n))) sizedRealFrac
+randomVector = (\s -> HStatic.randomVector s HStatic.Uniform * 2 - 1) <$> sizedNat
 
 uniformSample :: forall m n. (KnownNat m, KnownNat n) => Jack (HStatic.L m n)
-uniformSample = HStatic.fromList
-             <$> vectorOf (fromInteger (natVal (Proxy :: Proxy m)) * fromInteger (natVal (Proxy :: Proxy n)))
-                  sizedRealFrac
+uniformSample = (\s -> HStatic.uniformSample s (-1) 1 ) <$> sizedNat

@@ -1,11 +1,10 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE GADTs             #-}
-{-# LANGUAGE ScopedTypeVariables             #-}
-{-# LANGUAGE KindSignatures             #-}
-{-# LANGUAGE ConstraintKinds         #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE KindSignatures        #-}
+{-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE TypeOperators         #-}
-
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Test.Grenade.Layers.Convolution where
 
@@ -30,6 +29,17 @@ data OpaqueConvolution :: * where
 instance Show OpaqueConvolution where
     show (OpaqueConvolution n) = show n
 
+genConvolution :: ( KnownNat channels
+                  , KnownNat filters
+                  , KnownNat kernelRows
+                  , KnownNat kernelColumns
+                  , KnownNat strideRows
+                  , KnownNat strideColumns
+                  , KnownNat kernelFlattened
+                  , kernelFlattened ~ (kernelRows * kernelColumns * channels)
+                  ) => Jack (Convolution channels filters kernelRows kernelColumns strideRows strideColumns)
+genConvolution = Convolution <$> uniformSample <*> uniformSample
+
 genOpaqueOpaqueConvolution :: Jack OpaqueConvolution
 genOpaqueOpaqueConvolution = do
     Just channels <- someNatVal <$> choose (1, 10)
@@ -46,7 +56,7 @@ genOpaqueOpaqueConvolution = do
               p2 = natDict pkc
               p3 = natDict pch
           in  case p1 %* p2 %* p3 of
-            Dict -> OpaqueConvolution <$> (Convolution <$> uniformSample <*> uniformSample :: Jack (Convolution ch fl kr kc sr sc))
+            Dict -> OpaqueConvolution <$> (genConvolution :: Jack (Convolution ch fl kr kc sr sc))
 
 prop_conv_net_witness =
   gamble genOpaqueOpaqueConvolution $ \onet ->
@@ -80,9 +90,9 @@ prop_conv_net =
                                    , (unsafeCoerce (Dict :: Dict ()) :: Dict (((outRows - 1) * strideRows) ~ (inRows - kernelRows)))
                                    , (unsafeCoerce (Dict :: Dict ()) :: Dict (((outCols - 1) * strideCols) ~ (inCols - kernelCols)))) of
                                 (Dict, Dict, Dict, Dict) ->
-                                    gamble (S3D' <$> uniformSample) $ \(input :: S' ('D3 inRows inCols channels)) ->
-                                        let output :: S' ('D3 outRows outCols filters) = runForwards convLayer input
-                                            backed :: (Gradient (Convolution channels filters kernelRows kernelCols strideRows strideCols), S' ('D3 inRows inCols channels))
+                                    gamble (S3D <$> uniformSample) $ \(input :: S ('D3 inRows inCols channels)) ->
+                                        let output :: S ('D3 outRows outCols filters) = runForwards convLayer input
+                                            backed :: (Gradient (Convolution channels filters kernelRows kernelCols strideRows strideCols), S ('D3 inRows inCols channels))
                                                                                        = runBackwards convLayer input output
                                         in  backed `seq` True
                          ) :: Property

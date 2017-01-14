@@ -1,16 +1,11 @@
-{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
-
-
 module Grenade.Layers.Fuse (
     Fuse (..)
   ) where
@@ -42,11 +37,11 @@ instance (Layer x i h, Layer y h o) => UpdateLayer (Fuse x y i h o) where
 
 instance (Layer x i h, Layer y h o) => Layer (Fuse x y i h o) i o where
   runForwards (x :$$ y) input =
-    let yInput  :: S' h = runForwards x input
+    let yInput  :: S h = runForwards x input
     in runForwards y yInput
 
   runBackwards (x :$$ y) input backGradient =
-    let yInput  :: S' h = runForwards x input
+    let yInput  :: S h = runForwards x input
         (y', yGrad)     = runBackwards y yInput backGradient
         (x', xGrad)     = runBackwards x input yGrad
     in ((x', y'), xGrad)
