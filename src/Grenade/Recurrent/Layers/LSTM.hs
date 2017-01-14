@@ -8,6 +8,9 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE ViewPatterns          #-}
+
+-- GHC 7.10 doesn't see recurrent run functions as total.
+{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 module Grenade.Recurrent.Layers.LSTM (
     LSTM (..)
   , LSTMWeights (..)

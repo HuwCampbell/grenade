@@ -32,6 +32,7 @@ module Grenade.Core.Shape (
 import           Control.DeepSeq (NFData (..))
 import           Control.Monad.Random ( MonadRandom, getRandom )
 
+import           Data.Proxy
 import           Data.Singletons
 import           Data.Singletons.TypeLits
 import           Data.Vector.Storable ( Vector )

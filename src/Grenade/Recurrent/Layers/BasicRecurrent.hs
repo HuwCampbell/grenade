@@ -6,10 +6,15 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE UndecidableInstances  #-}
+
+-- GHC 7.10 doesn't see recurrent run functions as total.
+{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 module Grenade.Recurrent.Layers.BasicRecurrent (
     BasicRecurrent (..)
   , randomBasicRecurrent
   ) where
+
+
 
 import           Control.Monad.Random ( MonadRandom, getRandom )
 
