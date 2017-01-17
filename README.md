@@ -10,8 +10,8 @@ Five is right out.
 
 💣 Machine learning which might blow up in your face 💣
 
-Grenade is a dependently typed, practical, and fast neural network library for
-concise and precise specifications of complex networks in Haskell.
+Grenade is a dependently typed, practical, and fast recurrent neural network library
+for concise and precise specifications of complex networks in Haskell.
 
 As an example, a network which can achieve ~1.5% error on MNIST can be
 specified and initialised with random weights in a few lines of code with
