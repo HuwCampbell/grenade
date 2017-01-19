@@ -35,24 +35,30 @@ type Shakespeare = RecurrentNetwork '[ R (LSTM 40 80), R (LSTM 80 40), F (FullyC
                                     '[ 'D1 40, 'D1 80, 'D1 40, 'D1 40, 'D1 40 ]
 ```
 
+Design
+------
 
-The network can be thought of as a heterogeneous list of layers, where its type
-includes not only the layers of the network, but also the shapes of data that
-are passed between the layers.
+Networks in Grenade can be thought of as a heterogeneous lists of layers, where
+their type includes not only the layers of the network, but also the shapes of
+data that are passed between the layers.
 
+The definition of a network is surprisingly simple:
 ```haskell
 data Network :: [*] -> [Shape] -> * where
-    O     :: Layer x i o => !x -> Network '[x] '[i, o]
-    (:~>) :: Layer x i h => !x -> !(Network xs (h ': hs)) -> Network (x ': xs) (i ': h ': hs)
+    O     :: (SingI i, SingI o, Layer x i o) => !x -> Network '[x] '[i, o]
+    (:~>) :: (SingI i, SingI h, Layer x i h) => !x -> !(Network xs (h ': hs)) -> Network (x ': xs) (i ': h ': hs)
 ```
 
 The `Layer x i o` constraint ensures that the layer `x` can sensibly perform a
 transformation between the input and output shapes `i` and `o`.
 
-In the above example, the input layer can be seen to be a two dimensional (`D2`),
-image with 28 by 28 pixels. When the first *Convolution* layer runs, it outputs
-a three dimensional (`D3`) 24x24x10 image. The last item in the list is one
-dimensional (`D1`) with 10 values, representing the categories of the MNIST
+The lifted data kind `Shape` defines our 1, 2, and 3 dimension types, used to
+declare what shape of data is passed between the layers.
+
+In the MNIST example above, the input layer can be seen to be a two dimensional
+(`D2`), image with 28 by 28 pixels. When the first *Convolution* layer runs, it
+outputs a three dimensional (`D3`) 24x24x10 image. The last item in the list is
+one dimensional (`D1`) with 10 values, representing the categories of the MNIST
 data.
 
 Usage
