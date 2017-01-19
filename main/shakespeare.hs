@@ -92,13 +92,13 @@ runShakespeare ShakespeareOpts {..} = do
       Nothing -> randomNet
 
   (trained, bestInput) <- lift $ foldM (\(!net, !io) size -> do
-    xs <- take (iterations `div` 15) <$> getRandomRs (0, length shakespeare - size - 1)
+    xs <- take (iterations `div` 10) <$> getRandomRs (0, length shakespeare - size - 1)
     let (!trained, !bestInput) = foldl' (\(!n, !i) offset -> trainSlice rate n i shakespeare offset size) (net, io) xs
-    results <- take 1000 <$> generateParagraph trained bestInput oneHotMap oneHotDictionary ( S1D $ konst 0)
+    results <- take 1000 <$> generateParagraph trained bestInput temperature oneHotMap oneHotDictionary ( S1D $ konst 0)
     putStrLn ("TRAINING STEP WITH SIZE: " ++ show size)
     putStrLn (unAnnotateCapitals results)
     return (trained, bestInput)
-    ) (net0, i0) [50,50,50,50,50,50,50,50,50,50,50,50,50,50,50 :: Int]
+    ) (net0, i0) $ replicate 10 sequenceSize
 
   case savePath of
     Just saveFile -> lift . B.writeFile saveFile $ runPut (put (trained, bestInput))
@@ -107,16 +107,17 @@ runShakespeare ShakespeareOpts {..} = do
 generateParagraph :: forall layers shapes n a. (Last shapes ~ 'D1 n, Head shapes ~ 'D1 n, KnownNat n, Ord a)
   => RecurrentNetwork layers shapes
   -> RecurrentInputs layers
+  -> Double
   -> M.Map a Int
   -> Vector a
   -> S ('D1 n)
   -> IO [a]
-generateParagraph n s hotmap hotdict =
+generateParagraph n s temperature hotmap hotdict =
   go s
     where
   go x y =
     do let (ns, o) = runRecurrent n x y
-       un         <- sample 0.4 hotdict o
+       un         <- sample temperature hotdict o
        Just re    <- return $ makeHot hotmap un
        rest       <- unsafeInterleaveIO $ go ns re
        return (un : rest)
@@ -125,6 +126,8 @@ data ShakespeareOpts = ShakespeareOpts {
     trainingFile :: FilePath
   , iterations   :: Int
   , rate         :: LearningParameters
+  , sequenceSize :: Int
+  , temperature  :: Double
   , loadPath     :: Maybe FilePath
   , savePath     :: Maybe FilePath
   }
@@ -137,6 +140,8 @@ shakespeare' = ShakespeareOpts <$> argument str (metavar "TRAIN")
                                     <*> option auto (long "momentum" <> value 0.95)
                                     <*> option auto (long "l2" <> value 0.000001)
                                     )
+                               <*> option auto (long "sequence-length" <> short 's' <> value 50)
+                               <*> option auto (long "temperature" <> short 't' <> value 0.4)
                                <*> optional (strOption (long "load"))
                                <*> optional (strOption (long "save"))
 
