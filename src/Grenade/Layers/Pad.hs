@@ -10,6 +10,7 @@ module Grenade.Layers.Pad (
 
 import           Data.Maybe
 import           Data.Proxy
+import           Data.Serialize
 import           Data.Singletons.TypeLits
 import           GHC.TypeLits
 
@@ -33,6 +34,10 @@ instance UpdateLayer (Pad l t r b) where
   type Gradient (Pad l t r b) = ()
   runUpdate _ x _ = x
   createRandom = return Pad
+
+instance Serialize (Pad l t r b) where
+  put _ = return ()
+  get = return Pad
 
 -- | A two dimentional image can be padped.
 instance ( KnownNat padLeft

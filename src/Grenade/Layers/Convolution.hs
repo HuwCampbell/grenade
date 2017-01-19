@@ -16,7 +16,9 @@ module Grenade.Layers.Convolution (
 import           Control.Monad.Random hiding ( fromList )
 import           Data.Maybe
 import           Data.Proxy
+import           Data.Serialize
 import           Data.Singletons.TypeLits
+
 import           GHC.TypeLits
 
 import           Numeric.LinearAlgebra hiding ( uniformSample, konst )
@@ -124,6 +126,21 @@ instance ( KnownNat channels
     in Convolution newKernel newMomentum
 
   createRandom = randomConvolution
+
+instance ( KnownNat channels
+         , KnownNat filters
+         , KnownNat kernelRows
+         , KnownNat kernelColumns
+         , KnownNat strideRows
+         , KnownNat strideColumns
+         , KnownNat (kernelRows * kernelColumns * channels)
+         ) => Serialize (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) where
+  put (Convolution w _) = putListOf put . toList . flatten . extract $ w
+  get = do
+      let f  = fromIntegral $ natVal (Proxy :: Proxy filters)
+      wN    <- maybe (fail "Vector of incorrect size") return . create . reshape f . LA.fromList =<< getListOf get
+      let mm = konst 0
+      return $ Convolution wN mm
 
 -- | A two dimentional image may have a convolution filter applied to it
 instance ( KnownNat kernelRows

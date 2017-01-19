@@ -19,6 +19,12 @@ import           Grenade.Core.Shape
 import           Grenade.Recurrent.Core.Network
 
 -- | Drive and network and collect its back propogated gradients.
+--
+-- TODO: split this nicely into backpropagate and update.
+--
+-- QUESTION: Should we return a list of gradients or the sum of
+--           the gradients? It's different taking into account
+--           momentum and L2.
 trainRecurrent :: forall shapes layers. SingI (Last shapes)
                => LearningParameters
                -> RecurrentNetwork layers shapes
@@ -94,7 +100,7 @@ trainRecurrent rate network recinputs examples =
       = () :~~+> updateRecInputs l xs ys
 
     updateRecInputs l@LearningParameters {..} (x :~@+> xs) (y :~@+> ys)
-      = (x - realToFrac learningRate * y) :~@+> updateRecInputs l xs ys
+      = (realToFrac (learningRate * learningRegulariser) * x - realToFrac learningRate * y) :~@+> updateRecInputs l xs ys
 
     updateRecInputs _ (ORS ()) (ORS ())
       = ORS ()

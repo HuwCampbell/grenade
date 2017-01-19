@@ -22,6 +22,7 @@ import           Grenade.Layers.Convolution
 import           Disorder.Jack
 
 import           Test.Jack.Hmatrix
+import           Test.Jack.TypeLits
 
 data OpaqueConvolution :: * where
      OpaqueConvolution :: Convolution channels filters kernelRows kernelColumns strideRows strideColumns -> OpaqueConvolution
@@ -42,12 +43,12 @@ genConvolution = Convolution <$> uniformSample <*> uniformSample
 
 genOpaqueOpaqueConvolution :: Jack OpaqueConvolution
 genOpaqueOpaqueConvolution = do
-    Just channels <- someNatVal <$> choose (1, 10)
-    Just filters  <- someNatVal <$> choose (1, 10)
-    Just kernel_h <- someNatVal <$> choose (2, 20)
-    Just kernel_w <- someNatVal <$> choose (2, 20)
-    Just stride_h <- someNatVal <$> choose (1, 10)
-    Just stride_w <- someNatVal <$> choose (1, 10)
+    channels <- genNat
+    filters  <- genNat
+    kernel_h <- genNat
+    kernel_w <- genNat
+    stride_h <- genNat
+    stride_w <- genNat
     case (channels, filters, kernel_h, kernel_w, stride_h, stride_w) of
        ( SomeNat (pch :: Proxy ch), SomeNat  (_   :: Proxy fl),
          SomeNat (pkr :: Proxy kr), SomeNat  (pkc :: Proxy kc),

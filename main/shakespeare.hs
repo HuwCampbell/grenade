@@ -11,7 +11,7 @@ import           Control.Monad.Random
 import           Control.Monad.Trans.Except
 
 import           Data.Char ( isUpper, toUpper, toLower )
-import           Data.List ( unfoldr, foldl' )
+import           Data.List ( foldl' )
 import           Data.Maybe ( fromMaybe )
 
 import qualified Data.Vector as V
@@ -20,6 +20,8 @@ import           Data.Vector ( Vector )
 import qualified Data.Map as M
 import           Data.Proxy ( Proxy (..) )
 
+import qualified Data.ByteString as B
+import           Data.Serialize
 
 import           Data.Singletons.Prelude
 import           GHC.TypeLits
@@ -32,29 +34,31 @@ import           Grenade
 import           Grenade.Recurrent
 import           Grenade.Utils.OneHot
 
+import           System.IO.Unsafe ( unsafeInterleaveIO )
+
 -- The defininition for our natural language recurrent network.
 -- This network is able to learn and generate simple words in
 -- about an hour.
 --
--- This is a first class recurrent net, although it's similar to
--- an unrolled graph.
+-- This is a first class recurrent net.
 --
 -- The F and R types are tagging types to ensure that the runner and
 -- creation function know how to treat the layers.
 --
 -- As an example, here's a short sequence generated.
 --
--- > the see and and the sir, and and the make and the make and go the make and go the make and the
---
+-- > KING RICHARD III:
+-- > And as the heaven her his words, we the son, I show sand stape but the lament to shall were the sons with a strend
+
 type F = FeedForward
 type R = Recurrent
 
 -- The definition of our network
-type Shakespeare = RecurrentNetwork '[ R (LSTM 40 40), F (FullyConnected 40 40), F Logit]
-                                    '[ 'D1 40, 'D1 40, 'D1 40, 'D1 40 ]
+type Shakespeare = RecurrentNetwork '[ R (LSTM 40 80), R (LSTM 80 40), F (FullyConnected 40 40), F Logit]
+                                    '[ 'D1 40, 'D1 80, 'D1 40, 'D1 40, 'D1 40 ]
 
 -- The definition of the "sideways" input, which the network if fed recurrently.
-type Shakespearian = RecurrentInputs  '[ R (LSTM 40 40), F (FullyConnected 40 40), F Logit]
+type Shakespearian = RecurrentInputs  '[ R (LSTM 40 80), R (LSTM 80 40), F (FullyConnected 40 40), F Logit]
 
 randomNet :: MonadRandom m => m (Shakespeare, Shakespearian)
 randomNet = randomRecurrent
@@ -82,36 +86,50 @@ trainSlice !rate !net !recIns input offset size =
 runShakespeare :: ShakespeareOpts -> ExceptT String IO ()
 runShakespeare ShakespeareOpts {..} = do
   (shakespeare, oneHotMap, oneHotDictionary) <- loadShakespeare trainingFile
-  (net0, i0) <- lift randomNet
-  lift $ foldM_ (\(!net, !io) size -> do
-    xs <- take (iterations `div` 15) <$> getRandomRs (0, length shakespeare - size - 1)
+  (net0, i0) <- lift $
+    case loadPath of
+      Just loadFile -> netLoad loadFile
+      Nothing -> randomNet
+
+  (trained, bestInput) <- lift $ foldM (\(!net, !io) size -> do
+    xs <- take (iterations `div` 10) <$> getRandomRs (0, length shakespeare - size - 1)
     let (!trained, !bestInput) = foldl' (\(!n, !i) offset -> trainSlice rate n i shakespeare offset size) (net, io) xs
-    let results = take 100 $ generateParagraph trained bestInput oneHotMap oneHotDictionary ( S1D $ konst 0)
+    results <- take 1000 <$> generateParagraph trained bestInput temperature oneHotMap oneHotDictionary ( S1D $ konst 0)
     putStrLn ("TRAINING STEP WITH SIZE: " ++ show size)
     putStrLn (unAnnotateCapitals results)
     return (trained, bestInput)
-    ) (net0, i0) [10,10,15,15,20,20,25,25,30,30,35,35,40,40,50 :: Int]
+    ) (net0, i0) $ replicate 10 sequenceSize
+
+  case savePath of
+    Just saveFile -> lift . B.writeFile saveFile $ runPut (put (trained, bestInput))
+    Nothing -> return ()
 
 generateParagraph :: forall layers shapes n a. (Last shapes ~ 'D1 n, Head shapes ~ 'D1 n, KnownNat n, Ord a)
   => RecurrentNetwork layers shapes
   -> RecurrentInputs layers
+  -> Double
   -> M.Map a Int
   -> Vector a
   -> S ('D1 n)
-  -> [a]
-generateParagraph n s hotmap hotdict i =
-  unfoldr go (s, i)
+  -> IO [a]
+generateParagraph n s temperature hotmap hotdict =
+  go s
     where
-  go (x, y) =
+  go x y =
     do let (ns, o) = runRecurrent n x y
-       un         <- unHot hotdict o
-       re         <- makeHot hotmap un
-       Just (un, (ns, re))
+       un         <- sample temperature hotdict o
+       Just re    <- return $ makeHot hotmap un
+       rest       <- unsafeInterleaveIO $ go ns re
+       return (un : rest)
 
 data ShakespeareOpts = ShakespeareOpts {
     trainingFile :: FilePath
   , iterations   :: Int
   , rate         :: LearningParameters
+  , sequenceSize :: Int
+  , temperature  :: Double
+  , loadPath     :: Maybe FilePath
+  , savePath     :: Maybe FilePath
   }
 
 shakespeare' :: Parser ShakespeareOpts
@@ -122,6 +140,10 @@ shakespeare' = ShakespeareOpts <$> argument str (metavar "TRAIN")
                                     <*> option auto (long "momentum" <> value 0.95)
                                     <*> option auto (long "l2" <> value 0.000001)
                                     )
+                               <*> option auto (long "sequence-length" <> short 's' <> value 50)
+                               <*> option auto (long "temperature" <> short 't' <> value 0.4)
+                               <*> optional (strOption (long "load"))
+                               <*> optional (strOption (long "save"))
 
 main :: IO ()
 main = do
@@ -131,6 +153,11 @@ main = do
       Right () -> pure ()
       Left err -> putStrLn err
 
+
+netLoad :: FilePath -> IO (Shakespeare, Shakespearian)
+netLoad modelPath = do
+  modelData <- B.readFile modelPath
+  either fail return $ runGet get modelData
 
 -- Replace capitals with an annotation and the lower case letter
 -- http://fastml.com/one-weird-trick-for-training-char-rnns/

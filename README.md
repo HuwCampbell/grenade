@@ -23,9 +23,18 @@ randomMnist :: MonadRandom m => m MNIST
 randomMnist = randomNetwork
 ```
 
-And that's it. Because the types are rich, there's no specific term level code
-required; although it is of course possible and easy to construct one explicitly
-oneself.
+And that's it. Because the types are so rich, there's no specific term level code
+required to construct this network; although it is of course possible and
+easy to construct and deconstruct the networks and layers explicitly oneself.
+
+If recurrent neural networks are more your style, you can try defining something
+["unreasonably effective"](http://karpathy.github.io/2015/05/21/rnn-effectiveness/)
+with
+```haskell
+type Shakespeare = RecurrentNetwork '[ R (LSTM 40 80), R (LSTM 80 40), F (FullyConnected 40 40), F Logit]
+                                    '[ 'D1 40, 'D1 80, 'D1 40, 'D1 40, 'D1 40 ]
+```
+
 
 The network can be thought of as a heterogeneous list of layers, where its type
 includes not only the layers of the network, but also the shapes of data that
@@ -88,7 +97,6 @@ and the tests run using:
 ```
 
 Grenade is currently known to build with ghc 7.10 and 8.0.
-
 
 Thanks
 ------

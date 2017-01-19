@@ -3,6 +3,7 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 module Grenade.Layers.FullyConnected (
     FullyConnected (..)
   , randomFullyConnected
@@ -10,8 +11,11 @@ module Grenade.Layers.FullyConnected (
 
 import           Control.Monad.Random hiding (fromList)
 
+import           Data.Proxy
+import           Data.Serialize
 import           Data.Singletons.TypeLits
 
+import qualified Numeric.LinearAlgebra as LA
 import           Numeric.LinearAlgebra.Static
 
 import           Grenade.Core.Network
@@ -54,6 +58,19 @@ instance (KnownNat i, KnownNat o) => Layer (FullyConnected i o) ('D1 i) ('D1 o) 
               -- calcluate derivatives for next step
               dWs  = tr wN #> dEdy
           in  (FullyConnected' wB' mm', S1D dWs)
+
+instance (KnownNat i, KnownNat o) => Serialize (FullyConnected i o) where
+  put (FullyConnected b _ w _) = do
+    putListOf put . LA.toList . extract $ b
+    putListOf put . LA.toList . LA.flatten . extract $ w
+
+  get = do
+      let f  = fromIntegral $ natVal (Proxy :: Proxy i)
+      b     <- maybe (fail "Vector of incorrect size") return . create . LA.fromList =<< getListOf get
+      k     <- maybe (fail "Vector of incorrect size") return . create . LA.reshape f . LA.fromList =<< getListOf get
+      let bm = konst 0
+      let mm = konst 0
+      return $ FullyConnected b bm k mm
 
 randomFullyConnected :: (MonadRandom m, KnownNat i, KnownNat o)
                      => m (FullyConnected i o)

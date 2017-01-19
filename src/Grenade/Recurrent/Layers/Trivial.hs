@@ -7,11 +7,17 @@ module Grenade.Recurrent.Layers.Trivial (
     Trivial (..)
   ) where
 
+import           Data.Serialize
+
 import           Grenade.Core.Network
 
 -- | A trivial layer.
 data Trivial = Trivial
   deriving Show
+
+instance Serialize Trivial where
+  put _ = return ()
+  get = return Trivial
 
 instance UpdateLayer Trivial where
   type Gradient Trivial = ()

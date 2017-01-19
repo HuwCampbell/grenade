@@ -11,7 +11,10 @@ module Grenade.Utils.OneHot (
   , hotMap
   , makeHot
   , unHot
+  , sample
   ) where
+
+import qualified Control.Monad.Random as MR
 
 import           Data.List ( group, sort )
 
@@ -23,6 +26,7 @@ import           Data.Singletons.TypeLits
 
 import           Data.Vector ( Vector )
 import qualified Data.Vector as V
+import qualified Data.Vector.Storable as VS
 
 import           Numeric.LinearAlgebra ( maxIndex )
 import           Numeric.LinearAlgebra.Devel
@@ -76,9 +80,14 @@ makeHot m x = do
         return vec
       else Nothing
 
-unHot :: forall a n. (KnownNat n)
-      => Vector a -> (S ('D1 n)) -> Maybe a
+unHot :: forall a n. KnownNat n
+      => Vector a -> S ('D1 n) -> Maybe a
 unHot v (S1D xs)
   = (V.!?) v
   $ maxIndex (extract xs)
 
+sample :: forall a n m. (KnownNat n, MR.MonadRandom m)
+       => Double -> Vector a -> S ('D1 n) -> m a
+sample temperature v (S1D xs) = do
+  ix <- MR.fromList . zip [0..] . fmap (toRational . exp . (/ temperature) . log) . VS.toList . extract $ xs
+  return $ v V.! ix

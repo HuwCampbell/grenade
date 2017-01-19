@@ -7,6 +7,8 @@ module Grenade.Layers.Logit (
   ) where
 
 
+import           Data.Serialize
+
 import           Data.Singletons.TypeLits
 import           Grenade.Core.Network
 import           Grenade.Core.Shape
@@ -34,6 +36,10 @@ instance (KnownNat i, KnownNat j) => Layer Logit ('D2 i j) ('D2 i j) where
 instance (KnownNat i, KnownNat j, KnownNat k) => Layer Logit ('D3 i j k) ('D3 i j k) where
   runForwards _ (S3D y) =  S3D (logistic y)
   runBackwards _ (S3D y) (S3D dEdy) = ((), S3D (logistic' y * dEdy))
+
+instance Serialize Logit where
+  put _ = return ()
+  get = return Logit
 
 logistic :: Floating a => a -> a
 logistic x = 1 / (1 + exp (-x))

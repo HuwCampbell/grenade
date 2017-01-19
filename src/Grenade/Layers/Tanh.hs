@@ -6,6 +6,8 @@ module Grenade.Layers.Tanh (
     Tanh (..)
   ) where
 
+import           Data.Serialize
+
 import           GHC.TypeLits
 import           Grenade.Core.Network
 import           Grenade.Core.Shape
@@ -19,6 +21,10 @@ instance UpdateLayer Tanh where
   type Gradient Tanh = ()
   runUpdate _ _ _ = Tanh
   createRandom = return Tanh
+
+instance Serialize Tanh where
+  put _ = return ()
+  get = return Tanh
 
 instance KnownNat i => Layer Tanh ('D1 i) ('D1 i) where
   runForwards _ (S1D y) = S1D (tanh y)
