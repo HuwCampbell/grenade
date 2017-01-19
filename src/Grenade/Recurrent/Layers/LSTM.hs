@@ -8,6 +8,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE ViewPatterns          #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 
 -- GHC 7.10 doesn't see recurrent run functions as total.
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
@@ -19,9 +20,13 @@ module Grenade.Recurrent.Layers.LSTM (
 
 import           Control.Monad.Random ( MonadRandom, getRandom )
 
+
 -- import           Data.List ( foldl1' )
+import           Data.Proxy
+import           Data.Serialize
 import           Data.Singletons.TypeLits
 
+import qualified Numeric.LinearAlgebra as LA
 import           Numeric.LinearAlgebra.Static
 
 import           Grenade.Core.Network
@@ -118,7 +123,6 @@ instance (KnownNat i, KnownNat o) => UpdateLayer (LSTM i o) where
 
   --   v :: forall x ix. (x -> (R ix)) -> x -> x -> R ix
   --   v e (e -> a) (e -> b) = a + b
-
   createRandom = randomLSTM
 
 instance (KnownNat i, KnownNat o) => RecurrentUpdateLayer (LSTM i o) where
@@ -245,3 +249,46 @@ sigmoid' x = logix * (1 - logix)
 
 tanh' :: (Floating a) => a -> a
 tanh' t = 1 - s ^ (2 :: Int)  where s = tanh t
+
+instance (KnownNat i, KnownNat o) => Serialize (LSTM i o) where
+  put (LSTM LSTMWeights {..} _) = do
+    u lstmWf
+    u lstmUf
+    v lstmBf
+    u lstmWi
+    u lstmUi
+    v lstmBi
+    u lstmWo
+    u lstmUo
+    v lstmBo
+    u lstmWc
+    v lstmBc
+      where
+    u :: forall a b. (KnownNat a, KnownNat b) => Putter  (L b a)
+    u = putListOf put . LA.toList . LA.flatten . extract
+    v :: forall a. (KnownNat a) => Putter (R a)
+    v = putListOf put . LA.toList . extract
+
+  get = do
+    lstmWf <- u
+    lstmUf <- u
+    lstmBf <- v
+    lstmWi <- u
+    lstmUi <- u
+    lstmBi <- v
+    lstmWo <- u
+    lstmUo <- u
+    lstmBo <- v
+    lstmWc <- u
+    lstmBc <- v
+    return $ LSTM (LSTMWeights {..}) (LSTMWeights w0 u0 v0 w0 u0 v0 w0 u0 v0 w0 v0)
+      where
+    u :: forall a b. (KnownNat a, KnownNat b) => Get  (L b a)
+    u = let f = fromIntegral $ natVal (Proxy :: Proxy a)
+        in  maybe (fail "Vector of incorrect size") return . create . LA.reshape f . LA.fromList =<< getListOf get
+    v :: forall a. (KnownNat a) => Get (R a)
+    v = maybe (fail "Vector of incorrect size") return . create . LA.fromList =<< getListOf get
+
+    w0 = konst 0
+    u0 = konst 0
+    v0 = konst 0

@@ -23,9 +23,18 @@ randomMnist :: MonadRandom m => m MNIST
 randomMnist = randomNetwork
 ```
 
-And that's it. Because the types are rich, there's no specific term level code
-required; although it is of course possible and easy to construct one explicitly
-oneself.
+And that's it. Because the types are so rich, there's no specific term level code
+required to construct this network; although it is of course possible and
+easy to construct and deconstruct the networks and layers explicitly oneself.
+
+If recurrent neural networks are more your style, you can try defining something
+["unreasonably effective"](http://karpathy.github.io/2015/05/21/rnn-effectiveness/)
+with
+```haskell
+type Shakespeare = RecurrentNetwork '[ R (LSTM 40 80), R (LSTM 80 40), F (FullyConnected 40 40), F Logit]
+                                    '[ 'D1 40, 'D1 80, 'D1 40, 'D1 40, 'D1 40 ]
+```
+
 
 The network can be thought of as a heterogeneous list of layers, where its type
 includes not only the layers of the network, but also the shapes of data that
@@ -107,13 +116,8 @@ Being purely functional, it should also be easy to run batches in parallel, whic
 would be appropriate for larger networks, my current examples however are single
 threaded.
 
-<<<<<<< 20e7e483d75613f16580baa71b44fa9864c940fd
 Training 15 generations over Kaggle's 41000 sample MNIST training set on a single
 core took around 12 minutes, achieving 1.5% error rate on a 1000 sample holdout set.
-=======
-Training 15 generations over Kaggle's 42000 sample MNIST training set took under
-an hour on my laptop, achieving 0.5% error rate on a 1000 sample holdout set.
->>>>>>> Add very basic model saving and loading
 
 Contributing
 ------------

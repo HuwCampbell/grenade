@@ -90,7 +90,7 @@ prop_lstm_reference_backwards_cell =
                 refCell         = Reference.Vector . H.toList . S.extract $ cell
                 refInput        = Reference.Vector . H.toList . S.extract $ input
                 refGradients    = Reference.runLSTMbackOnCell refInput refNet refCell
-            in toList refGradients ~~~ (H.toList . S.extract $ actualGradients)
+            in toList refGradients ~~~ H.toList (S.extract actualGradients)
 
 
 (~~~) as bs = all (< 1e-8) (zipWith (-) as bs)

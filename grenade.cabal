@@ -135,6 +135,8 @@ executable             shakespeare
     build-depends:     base
                      , grenade
                      , attoparsec
+                     , bytestring
+                     , cereal
                      , either
                      , optparse-applicative            == 0.12.*
                      , text                            == 1.2.*

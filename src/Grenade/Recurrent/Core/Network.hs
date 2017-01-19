@@ -19,9 +19,14 @@ module Grenade.Recurrent.Core.Network (
 
 import           Control.Monad.Random ( MonadRandom )
 import           Data.Singletons ( SingI )
+import           Data.Serialize
+import qualified Data.Vector.Storable as V
 
 import           Grenade.Core.Shape
 import           Grenade.Core.Network
+
+import qualified Numeric.LinearAlgebra as LA
+import qualified Numeric.LinearAlgebra.Static as LAS
 
 
 -- | Witness type to say indicate we're building up with a normal feed
@@ -96,3 +101,38 @@ instance (SingI i, RecurrentLayer x i o, CreatableRecurrent xs (o ': r ': rs)) =
     (rest, resti) <- randomRecurrent
     return (thisLayer :~@> rest, thisShape :~@+> resti)
 
+-- | Add very simple serialisation to the recurrent network
+instance (SingI i, SingI o, Layer x i o, Serialize x) => Serialize (RecurrentNetwork '[FeedForward x] '[i, o]) where
+  put (OR x) = put x
+  put _ = error "impossible"
+  get = OR <$> get
+
+instance (SingI i, Layer x i o, Serialize x, Serialize (RecurrentNetwork xs (o ': r ': rs))) => Serialize (RecurrentNetwork (FeedForward x ': xs) (i ': o ': r ': rs)) where
+  put (x :~~> r) = put x >> put r
+  get = (:~~>) <$> get <*> get
+
+instance (SingI i, RecurrentLayer x i o, Serialize x, Serialize (RecurrentNetwork xs (o ': r ': rs))) => Serialize (RecurrentNetwork (Recurrent x ': xs) (i ': o ': r ': rs)) where
+  put (x :~@> r) = put x >> put r
+  get = (:~@>) <$> get <*> get
+
+instance (UpdateLayer x) => (Serialize (RecurrentInputs '[FeedForward x])) where
+  put _ = return ()
+  get = return (ORS ())
+
+instance (UpdateLayer x, Serialize (RecurrentInputs (y ': ys))) => (Serialize (RecurrentInputs (FeedForward x ': y ': ys))) where
+  put ( () :~~+> rest) = put rest
+  get = ( () :~~+> ) <$> get
+
+instance (SingI (RecurrentShape x), RecurrentUpdateLayer x, Serialize (RecurrentInputs (y ': ys))) => (Serialize (RecurrentInputs (Recurrent x ': y ': ys))) where
+  put ( i :~@+> rest ) = do
+    _ <- (case i of
+           (S1D x) -> putListOf put . LA.toList . LAS.extract $ x
+           (S2D x) -> putListOf put . LA.toList . LA.flatten . LAS.extract $ x
+           (S3D x) -> putListOf put . LA.toList . LA.flatten . LAS.extract $ x
+         ) :: PutM ()
+    put rest
+
+  get = do
+    Just i <- fromStorable . V.fromList <$> getListOf get
+    rest   <- get
+    return ( i :~@+> rest)

@@ -65,30 +65,36 @@ data S (n :: Shape) where
 
 deriving instance Show (S n)
 
+-- Singletons
+-- These could probably be derived with template haskell, but this seems
+-- clear and makes adding the KnownNat constraints simple.
+data instance Sing (n :: Shape) where
+  D1Sing :: KnownNat a => Sing ('D1 a)
+  D2Sing :: (KnownNat a, KnownNat b) => Sing ('D2 a b)
+  D3Sing :: (KnownNat a, KnownNat b, KnownNat c, KnownNat (a * c)) => Sing ('D3 a b c)
+
+instance KnownNat a => SingI ('D1 a) where
+  sing = D1Sing
+instance (KnownNat a, KnownNat b) => SingI ('D2 a b) where
+  sing = D2Sing
+instance (KnownNat a, KnownNat b, KnownNat c, KnownNat (a * c)) => SingI ('D3 a b c) where
+  sing = D3Sing
+
 instance SingI x => Num (S x) where
   (+) = n2 (+)
   (-) = n2 (-)
   (*) = n2 (*)
   abs = n1 abs
   signum = n1 signum
-  fromInteger x = case (sing :: Sing x) of
-    D1Sing -> S1D (konst $ fromInteger x)
-    D2Sing -> S2D (konst $ fromInteger x)
-    D3Sing -> S3D (konst $ fromInteger x)
+  fromInteger x = nk (fromInteger x)
 
 instance SingI x => Fractional (S x) where
   (/) = n2 (/)
   recip = n1 recip
-  fromRational x = case (sing :: Sing x) of
-    D1Sing -> S1D (konst $ fromRational x)
-    D2Sing -> S2D (konst $ fromRational x)
-    D3Sing -> S3D (konst $ fromRational x)
+  fromRational x = nk (fromRational x)
 
 instance SingI x => Floating (S x) where
-  pi = case (sing :: Sing x) of
-    D1Sing -> S1D (konst pi)
-    D2Sing -> S2D (konst pi)
-    D3Sing -> S3D (konst pi)
+  pi = nk pi
   exp = n1 exp
   log = n1 log
   sqrt = n1 sqrt
@@ -106,21 +112,6 @@ instance SingI x => Floating (S x) where
   asinh = n1 asinh
   acosh = n1 acosh
   atanh = n1 atanh
-
--- Singletons
--- These could probably be derived with template haskell, but this seems
--- clear and makes adding the KnownNat constraints simple.
-data instance Sing (n :: Shape) where
-  D1Sing :: KnownNat a => Sing ('D1 a)
-  D2Sing :: (KnownNat a, KnownNat b) => Sing ('D2 a b)
-  D3Sing :: (KnownNat a, KnownNat b, KnownNat c, KnownNat (a * c)) => Sing ('D3 a b c)
-
-instance KnownNat a => SingI ('D1 a) where
-  sing = D1Sing
-instance (KnownNat a, KnownNat b) => SingI ('D2 a b) where
-  sing = D2Sing
-instance (KnownNat a, KnownNat b, KnownNat c, KnownNat (a * c)) => SingI ('D3 a b c) where
-  sing = D3Sing
 
 --
 -- I haven't made shapes strict, as sometimes they're not needed
@@ -170,3 +161,10 @@ n2 f (S1D x) (S1D y) = S1D (f x y)
 n2 f (S2D x) (S2D y) = S2D (f x y)
 n2 f (S3D x) (S3D y) = S3D (f x y)
 n2 _ _ _ = error "Impossible to have different constructors for the same shaped network"
+
+-- Helper function for creating the number instances
+nk :: forall x. SingI x => Double -> S x
+nk x = case (sing :: Sing x) of
+  D1Sing -> S1D (konst x)
+  D2Sing -> S2D (konst x)
+  D3Sing -> S3D (konst x)
