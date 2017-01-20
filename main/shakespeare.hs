@@ -57,7 +57,7 @@ type R = Recurrent
 type Shakespeare = RecurrentNetwork '[ R (LSTM 40 80), R (LSTM 80 40), F (FullyConnected 40 40), F Logit]
                                     '[ 'D1 40, 'D1 80, 'D1 40, 'D1 40, 'D1 40 ]
 
--- The definition of the "sideways" input, which the network if fed recurrently.
+-- The definition of the "sideways" input, which the network is fed recurrently.
 type Shakespearian = RecurrentInputs  '[ R (LSTM 40 80), R (LSTM 80 40), F (FullyConnected 40 40), F Logit]
 
 randomNet :: MonadRandom m => m (Shakespeare, Shakespearian)
