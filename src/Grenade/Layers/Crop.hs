@@ -46,6 +46,7 @@ instance ( KnownNat cropLeft
          , (inputRows - cropTop - cropBottom) ~ outputRows
          , (inputColumns - cropLeft - cropRight) ~ outputColumns
          ) => Layer (Crop cropLeft cropTop cropRight cropBottom) ('D2 inputRows inputColumns) ('D2 outputRows outputColumns) where
+  type Tape (Crop cropLeft cropTop cropRight cropBottom) ('D2 inputRows inputColumns) ('D2 outputRows outputColumns) = ()
   runForwards Crop (S2D input) =
     let cropl = fromIntegral $ natVal (Proxy :: Proxy cropLeft)
         cropt = fromIntegral $ natVal (Proxy :: Proxy cropTop)
@@ -53,7 +54,7 @@ instance ( KnownNat cropLeft
         ncols = fromIntegral $ natVal (Proxy :: Proxy outputColumns)
         m  = extract input
         r  = subMatrix (cropt, cropl) (nrows, ncols) m
-    in  S2D . fromJust . create $ r
+    in  ((), S2D . fromJust . create $ r)
   runBackwards _ _ (S2D dEdy) =
     let cropl = fromIntegral $ natVal (Proxy :: Proxy cropLeft)
         cropt = fromIntegral $ natVal (Proxy :: Proxy cropTop)

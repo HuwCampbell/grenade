@@ -51,6 +51,7 @@ instance ( KnownNat padLeft
          , (inputRows + padTop + padBottom) ~ outputRows
          , (inputColumns + padLeft + padRight) ~ outputColumns
          ) => Layer (Pad padLeft padTop padRight padBottom) ('D2 inputRows inputColumns) ('D2 outputRows outputColumns) where
+  type Tape (Pad padLeft padTop padRight padBottom) ('D2 inputRows inputColumns) ('D2 outputRows outputColumns)  = ()
   runForwards Pad (S2D input) =
     let padl  = fromIntegral $ natVal (Proxy :: Proxy padLeft)
         padt  = fromIntegral $ natVal (Proxy :: Proxy padTop)
@@ -58,7 +59,7 @@ instance ( KnownNat padLeft
         padb  = fromIntegral $ natVal (Proxy :: Proxy padBottom)
         m     = extract input
         r     = diagBlock [konst 0 (padt,padl), m, konst 0 (padb,padr)]
-    in  S2D . fromJust . create $ r
+    in  ((), S2D . fromJust . create $ r)
   runBackwards Pad _ (S2D dEdy) =
     let padl  = fromIntegral $ natVal (Proxy :: Proxy padLeft)
         padt  = fromIntegral $ natVal (Proxy :: Proxy padTop)

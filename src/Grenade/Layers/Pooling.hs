@@ -56,6 +56,7 @@ instance ( KnownNat kernelRows
          , ((outputRows - 1) * strideRows) ~ (inputRows - kernelRows)
          , ((outputColumns - 1) * strideColumns) ~ (inputColumns - kernelColumns)
          ) => Layer (Pooling kernelRows kernelColumns strideRows strideColumns) ('D2 inputRows inputColumns) ('D2 outputRows outputColumns) where
+  type Tape (Pooling kernelRows kernelColumns strideRows strideColumns) ('D2 inputRows inputColumns) ('D2 outputRows outputColumns) = S ('D2 inputRows inputColumns)
   runForwards Pooling (S2D input) =
     let height = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         width  = fromIntegral $ natVal (Proxy :: Proxy inputColumns)
@@ -66,7 +67,7 @@ instance ( KnownNat kernelRows
         ex = extract input
         r  = poolForward 1 height width kx ky sx sy ex
         rs = fromJust . create $ r
-    in  S2D $ rs
+    in  (S2D input, S2D rs)
   runBackwards Pooling (S2D input) (S2D dEdy) =
     let height = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         width  = fromIntegral $ natVal (Proxy :: Proxy inputColumns)
@@ -94,6 +95,7 @@ instance ( KnownNat kernelRows
          , ((outputRows - 1) * strideRows) ~ (inputRows - kernelRows)
          , ((outputColumns - 1) * strideColumns) ~ (inputColumns - kernelColumns)
          ) => Layer (Pooling kernelRows kernelColumns strideRows strideColumns) ('D3 inputRows inputColumns channels) ('D3 outputRows outputColumns channels) where
+  type Tape (Pooling kernelRows kernelColumns strideRows strideColumns) ('D3 inputRows inputColumns channels) ('D3 outputRows outputColumns channels) = S ('D3 inputRows inputColumns channels)
   runForwards Pooling (S3D input) =
     let ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         iy = fromIntegral $ natVal (Proxy :: Proxy inputColumns)
@@ -105,7 +107,7 @@ instance ( KnownNat kernelRows
         ex = extract input
         r  = poolForward ch ix iy kx ky sx sy ex
         rs = fromJust . create $ r
-    in  S3D rs
+    in  (S3D input, S3D rs)
   runBackwards Pooling (S3D input) (S3D dEdy) =
     let ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
         iy = fromIntegral $ natVal (Proxy :: Proxy inputColumns)

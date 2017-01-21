@@ -48,11 +48,13 @@ trainRecurrent rate network recinputs examples =
     -- Note we're doing training here, we could just return a list of gradients
     -- (and probably will in future).
     go !xs (layer :~~> n) (() :~~+> nIn)
-        = let ys                 = runForwards layer <$> xs
+        = let tys                = runForwards layer <$> xs
+              tapes              = fst <$> tys
+              ys                 = snd <$> tys
               -- recursively run the rest of the network, and get the gradients from above.
               (newFN, ig, grads) = go ys n nIn
               -- calculate the gradient for this layer to pass down,
-              back               = uncurry (runBackwards layer) <$> zip (reverse xs) grads
+              back               = uncurry (runBackwards layer) <$> zip (reverse tapes) grads
               -- the new trained layer.
               newlayer           = runUpdates rate layer (fst <$> back)
 
@@ -75,11 +77,13 @@ trainRecurrent rate network recinputs examples =
     -- Handle the output layer, bouncing the derivatives back down.
     -- We may not have a target for each example, so when we don't use 0 gradient.
     go !xs (OR layer) (ORS ())
-        = let ys              = runForwards layer <$> xs
+        = let tys                = runForwards layer <$> xs
+              tapes              = fst <$> tys
+              ys                 = snd <$> tys
               -- recursively run the rest of the network, and get the gradients from above.
-              back            = uncurry (runBackwards layer) <$> zip xs (zipWith makeError ys targets)
+              back               = uncurry (runBackwards layer) <$> zip tapes (zipWith makeError ys targets)
               -- the new trained layer.
-              newlayer        = runUpdates rate layer (reverse $ fst <$> back)
+              newlayer           = runUpdates rate layer (reverse $ fst <$> back)
           in (OR newlayer, ORS (), reverse (snd <$> back))
 
     go _ _ _ =
@@ -136,7 +140,7 @@ runRecurrent :: RecurrentNetwork layers shapes
              -> RecurrentInputs layers -> S (Head shapes)
              -> (RecurrentInputs layers, S (Last shapes))
 runRecurrent (layer :~~> n) (()    :~~+> nr) !x
-  = let ys = runForwards layer x
+  = let (_, ys)  = runForwards layer x
         (nr', o) = runRecurrent n nr ys
     in  (() :~~+> nr', o)
 runRecurrent (layer :~@> n) (recin :~@+> nr) !x
@@ -144,7 +148,7 @@ runRecurrent (layer :~@> n) (recin :~@+> nr) !x
         (nr', o)    = runRecurrent n nr y
     in  (recin' :~@+> nr', o)
 runRecurrent (OR layer) (ORS  ()) !x
-  = (ORS (), runForwards layer x)
+  = (ORS (), snd $ runForwards layer x)
 
 runRecurrent _ _ _
   = error "Impossible for the gradients of a network to have a different length or shape to the network"

@@ -32,15 +32,18 @@ instance UpdateLayer FlattenLayer where
   createRandom = return FlattenLayer
 
 instance (KnownNat a, KnownNat x, KnownNat y, a ~ (x * z)) => Layer FlattenLayer ('D2 x y) ('D1 a) where
-  runForwards _ (S2D y)   = fromJust' . fromStorable . flatten . extract $ y
+  type Tape FlattenLayer ('D2 x y) ('D1 a) = ()
+  runForwards _ (S2D y)   =  ((), fromJust' . fromStorable . flatten . extract $ y)
   runBackwards _ _ (S1D y) = ((), fromJust' . fromStorable . extract $ y)
 
 instance (KnownNat a, KnownNat x, KnownNat y, KnownNat (x * z), KnownNat z, a ~ (x * y * z)) => Layer FlattenLayer ('D3 x y z) ('D1 a) where
-  runForwards _ (S3D y)     = fromJust' . fromStorable . flatten . extract $ y
+  type Tape FlattenLayer ('D3 x y z) ('D1 a) = ()
+  runForwards _ (S3D y)     = ((), fromJust' . fromStorable . flatten . extract $ y)
   runBackwards _ _ (S1D y) = ((), fromJust' . fromStorable . extract $ y)
 
 instance (KnownNat y, KnownNat x, KnownNat z, z ~ 1) => Layer FlattenLayer ('D3 x y z) ('D2 x y) where
-  runForwards _ (S3D y)    = S2D y
+  type Tape FlattenLayer ('D3 x y z) ('D2 x y) = ()
+  runForwards _ (S3D y)    = ((), S2D y)
   runBackwards _ _ (S2D y) = ((), S3D y)
 
 instance Serialize FlattenLayer where

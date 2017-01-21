@@ -60,14 +60,18 @@ class Show x => UpdateLayer x where
 -- | Class for a layer. All layers implement this, however, they don't
 --   need to implement it for all shapes, only ones which are appropriate.
 class UpdateLayer x => Layer x (i :: Shape) (o :: Shape) where
+  -- | The Wengert tape for this layer. Includes all that is required
+  --   to generate the back propagated gradients efficiently. As a
+  --   default, `S i` is fine.
+  type Tape x i o :: *
   -- | Used in training and scoring. Take the input from the previous
   --   layer, and give the output from this layer.
-  runForwards    :: x -> S i -> S o
+  runForwards    :: x -> S i -> (Tape x i o, S o)
   -- | Back propagate a step. Takes the current layer, the input that the
   --   layer gave from the input and the back propagated derivatives from
   --   the layer above.
   --   Returns the gradient layer and the derivatives to push back further.
-  runBackwards   :: x -> S i -> S o -> (Gradient x, S i)
+  runBackwards   :: x -> Tape x i o -> S o -> (Gradient x, S i)
 
 -- | Type of a network.
 --

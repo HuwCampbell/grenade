@@ -43,19 +43,19 @@ backPropagate network input target =
         -> (Gradients sublayers, S (Head js))
     -- handle input from the beginning, feeding upwards.
     go !x (layer :~> n)
-        = let y             = runForwards layer x
+        = let (tape, y)     = runForwards layer x
               -- recursively run the rest of the network, and get the gradients from above.
               (n', dWs')    = go y n
               -- calculate the gradient for this layer to pass down,
-              (layer', dWs) = runBackwards layer x dWs'
+              (layer', dWs) = runBackwards layer tape dWs'
 
           in (layer' :/> n', dWs)
 
     -- handle the output layer, bouncing the derivatives back down.
     go !x (O layer)
-        = let y                 = runForwards layer x
+        = let (tape, y)         = runForwards layer x
             -- the gradient (how much y affects the error)
-              (layer', dWs)     = runBackwards layer x (y - target)
+              (layer', dWs)     = runBackwards layer tape (y - target)
 
           in (OG layer', dWs)
 
@@ -76,5 +76,5 @@ train rate network input output =
 
 -- | Run the network with input and return the given output.
 runNet :: Network layers shapes -> S (Head shapes) -> S (Last shapes)
-runNet (layer :~> n)  !x = let y = runForwards layer x in runNet n y
-runNet (O layer)      !x = runForwards layer x
+runNet (layer :~> n)  !x = let (_, y) = runForwards layer x in runNet n y
+runNet (O layer)      !x = snd (runForwards layer x)

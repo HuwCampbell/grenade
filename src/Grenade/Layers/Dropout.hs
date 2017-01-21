@@ -23,7 +23,6 @@ import           Numeric.LinearAlgebra.Static
 -- reasonable).
 data Dropout o =
   Dropout (R o)
-  | Pass Double
   deriving Show
 
 instance (KnownNat i) => UpdateLayer (Dropout i) where
@@ -40,7 +39,6 @@ randomDropout rate = do
     return $ Dropout xs
 
 instance (KnownNat i) => Layer (Dropout i) ('D1 i) ('D1 i) where
-  runForwards (Dropout drops) (S1D x) = S1D $ x * drops
-  runForwards (Pass rate) (S1D x)= S1D $ dvmap (* (1 - rate)) x
+  type Tape (Dropout i) ('D1 i) ('D1 i) = ()
+  runForwards (Dropout drops) (S1D x) = ((), S1D $ x * drops)
   runBackwards (Dropout drops) _ (S1D x) = ((),  S1D $ x * drops)
-  runBackwards (Pass rate) _ (S1D x) = ((),  S1D $  dvmap (* (1 - rate)) x)

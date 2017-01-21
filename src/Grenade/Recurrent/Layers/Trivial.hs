@@ -25,5 +25,6 @@ instance UpdateLayer Trivial where
   createRandom = return Trivial
 
 instance (a ~ b) => Layer Trivial a b where
-  runForwards _ = id
+  type Tape Trivial a b = ()
+  runForwards _ x = ((), x)
   runBackwards _ _ y = ((), y)
