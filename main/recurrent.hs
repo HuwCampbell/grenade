@@ -22,13 +22,12 @@ import           Grenade.Recurrent
 --
 -- The F and R types are Tagging types to ensure that the runner and
 -- creation function know how to treat the layers.
-type F = FeedForward
 type R = Recurrent
 
-type RecNet = RecurrentNetwork '[ R (LSTM 1 4), R (LSTM 4 1), F Trivial]
-                               '[ 'D1 1, 'D1 4, 'D1 1, 'D1 1 ]
+type RecNet = RecurrentNetwork '[ R (LSTM 1 4), R (LSTM 4 1)]
+                               '[ 'D1 1, 'D1 4, 'D1 1 ]
 
-type RecInput = RecurrentInputs '[ R (LSTM 1 4), R (LSTM 4 1), F Trivial]
+type RecInput = RecurrentInputs '[ R (LSTM 1 4), R (LSTM 4 1)]
 
 randomNet :: MonadRandom m => m (RecNet, RecInput)
 randomNet = randomRecurrent
@@ -51,7 +50,7 @@ netTest net0 i0 rate iterations =
 data FeedForwardOpts = FeedForwardOpts Int LearningParameters
 
 feedForward' :: Parser FeedForwardOpts
-feedForward' = FeedForwardOpts <$> option auto (long "examples" <> short 'e' <> value 20000)
+feedForward' = FeedForwardOpts <$> option auto (long "examples" <> short 'e' <> value 40000)
                                <*> (LearningParameters
                                     <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
                                     <*> option auto (long "momentum" <> value 0.9)

@@ -27,7 +27,7 @@ instance Serialize Tanh where
   put _ = return ()
   get = return Tanh
 
-instance (a ~ b, SingI a, SingI b) => Layer Tanh a b where
+instance (a ~ b, SingI a) => Layer Tanh a b where
   type Tape Tanh a b = S a
   runForwards _ a = (a, tanh a)
   runBackwards _ a g = ((), tanh' a * g)

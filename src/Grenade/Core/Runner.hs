@@ -51,22 +51,16 @@ backPropagate network input target =
 
           in (layer' :/> n', dWs)
 
-    -- handle the output layer, bouncing the derivatives back down.
-    go !x (O layer)
-        = let (tape, y)         = runForwards layer x
-            -- the gradient (how much y affects the error)
-              (layer', dWs)     = runBackwards layer tape (y - target)
-
-          in (OG layer', dWs)
+    -- Bouncing the derivatives back down.
+    go !x NNil
+        = (GNil, x - target)
 
 -- | Apply one step of stochastic gradient decent across the network.
 applyUpdate :: LearningParameters -> Network ls ss -> Gradients ls -> Network ls ss
-applyUpdate rate (O layer) (OG gradient)
-  = O (runUpdate rate layer gradient)
+applyUpdate _ NNil GNil
+  = NNil
 applyUpdate rate (layer :~> rest) (gradient :/> grest)
   = runUpdate rate layer gradient :~> applyUpdate rate rest grest
-applyUpdate _ _ _
-  = error "Impossible for the gradients of a network to have a different length to the network"
 
 -- | Update a network with new weights after training with an instance.
 train :: LearningParameters -> Network layers shapes -> S (Head shapes) -> S (Last shapes) -> Network layers shapes
@@ -77,4 +71,4 @@ train rate network input output =
 -- | Run the network with input and return the given output.
 runNet :: Network layers shapes -> S (Head shapes) -> S (Last shapes)
 runNet (layer :~> n)  !x = let (_, y) = runForwards layer x in runNet n y
-runNet (O layer)      !x = snd (runForwards layer x)
+runNet NNil           !x = x

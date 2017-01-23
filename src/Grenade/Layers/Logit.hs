@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Grenade.Layers.Logit (
     Logit (..)
@@ -8,8 +9,8 @@ module Grenade.Layers.Logit (
 
 
 import           Data.Serialize
+import           Data.Singletons
 
-import           Data.Singletons.TypeLits
 import           Grenade.Core.Network
 import           Grenade.Core.Shape
 
@@ -25,20 +26,10 @@ instance UpdateLayer Logit where
   runUpdate _ _ _ = Logit
   createRandom = return Logit
 
-instance (KnownNat i) => Layer Logit ('D1 i) ('D1 i) where
-  type Tape Logit ('D1 i) ('D1 i) = S ('D1 i)
-  runForwards _ (S1D y) = (S1D y, S1D (logistic y))
-  runBackwards _ (S1D y) (S1D dEdy) = ((), S1D (logistic' y * dEdy))
-
-instance (KnownNat i, KnownNat j) => Layer Logit ('D2 i j) ('D2 i j) where
-  type Tape Logit ('D2 i j) ('D2 i j) = S ('D2 i j)
-  runForwards _ (S2D y) = (S2D y, S2D (logistic y))
-  runBackwards _ (S2D y) (S2D dEdy) = ((), S2D (logistic' y * dEdy))
-
-instance (KnownNat i, KnownNat j, KnownNat k) => Layer Logit ('D3 i j k) ('D3 i j k) where
-  type Tape Logit ('D3 i j k) ('D3 i j k) = S ('D3 i j k)
-  runForwards _ (S3D y) = (S3D y, S3D (logistic y))
-  runBackwards _ (S3D y) (S3D dEdy) = ((), S3D (logistic' y * dEdy))
+instance (a ~ b, SingI a) => Layer Logit a b where
+  type Tape Logit a b = S a
+  runForwards _ a = (a, logistic a)
+  runBackwards _ a g = ((), logistic' a * g)
 
 instance Serialize Logit where
   put _ = return ()

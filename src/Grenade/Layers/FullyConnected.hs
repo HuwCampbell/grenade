@@ -6,6 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 module Grenade.Layers.FullyConnected (
     FullyConnected (..)
+  , FullyConnected' (..)
   , randomFullyConnected
   ) where
 
@@ -25,7 +26,7 @@ import           Grenade.Layers.Internal.Update
 
 -- | A basic fully connected (or inner product) neural network layer.
 data FullyConnected i o = FullyConnected
-                        !(FullyConnected' i o)   -- Weuron weights
+                        !(FullyConnected' i o)   -- Neuron weights
                         !(FullyConnected' i o)   -- Neuron momentum
 
 data FullyConnected' i o = FullyConnected'

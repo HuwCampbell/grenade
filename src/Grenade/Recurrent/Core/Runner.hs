@@ -76,23 +76,12 @@ trainRecurrent rate network recinputs examples =
 
     -- Handle the output layer, bouncing the derivatives back down.
     -- We may not have a target for each example, so when we don't use 0 gradient.
-    go !xs (OR layer) (ORS ())
-        = let tys                = runForwards layer <$> xs
-              tapes              = fst <$> tys
-              ys                 = snd <$> tys
-              -- recursively run the rest of the network, and get the gradients from above.
-              back               = uncurry (runBackwards layer) <$> zip tapes (zipWith makeError ys targets)
-              -- the new trained layer.
-              newlayer           = runUpdates rate layer (reverse $ fst <$> back)
-          in (OR newlayer, ORS (), reverse (snd <$> back))
-
-    go _ _ _ =
-      error "Impossible for network and recurrent inputs to have different shapes"
-
-
-    makeError :: S (Last shapes) -> Maybe (S (Last shapes)) -> S (Last shapes)
-    makeError _ Nothing = 0
-    makeError y (Just t) = y - t
+    go !xs RNil RINil
+        = (RNil, RINil, reverse (zipWith makeError xs targets))
+      where
+        makeError :: S (Last shapes) -> Maybe (S (Last shapes)) -> S (Last shapes)
+        makeError _ Nothing = 0
+        makeError y (Just t) = y - t
 
     updateRecInputs :: forall sublayers.
            LearningParameters
@@ -106,10 +95,8 @@ trainRecurrent rate network recinputs examples =
     updateRecInputs l@LearningParameters {..} (x :~@+> xs) (y :~@+> ys)
       = (realToFrac (learningRate * learningRegulariser) * x - realToFrac learningRate * y) :~@+> updateRecInputs l xs ys
 
-    updateRecInputs _ (ORS ()) (ORS ())
-      = ORS ()
-    updateRecInputs _ _ _
-      = error "Impossible for updateRecInputs to have different shapes"
+    updateRecInputs _ RINil RINil
+      = RINil
 
 scanlFrom :: forall x i o. RecurrentLayer x i o
           => x                                  -- ^ the layer
@@ -147,8 +134,5 @@ runRecurrent (layer :~@> n) (recin :~@+> nr) !x
   = let (recin', y) = runRecurrentForwards layer recin x
         (nr', o)    = runRecurrent n nr y
     in  (recin' :~@+> nr', o)
-runRecurrent (OR layer) (ORS  ()) !x
-  = (ORS (), snd $ runForwards layer x)
-
-runRecurrent _ _ _
-  = error "Impossible for the gradients of a network to have a different length or shape to the network"
+runRecurrent RNil RINil !x
+  = (RINil, x)

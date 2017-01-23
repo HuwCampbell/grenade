@@ -82,18 +82,18 @@ class UpdateLayer x => Layer x (i :: Shape) (o :: Shape) where
 --   Can be considered to be a heterogeneous list of layers which are able to
 --   transform the data shapes of the network.
 data Network :: [*] -> [Shape] -> * where
-    O     :: (SingI i, SingI o, Layer x i o) => !x -> Network '[x] '[i, o]
+    NNil  :: SingI i => Network '[] '[i]
     (:~>) :: (SingI i, SingI h, Layer x i h) => !x -> !(Network xs (h ': hs)) -> Network (x ': xs) (i ': h ': hs)
 infixr 5 :~>
 
 instance Show (Network l h) where
-  show (O a) = "O " ++ show a
+  show NNil = "NNil"
   show (i :~> o) = show i ++ "\n:~>\n" ++ show o
 
 -- | Gradients of a network.
 --   Parameterised on the layers of a Network.
 data Gradients :: [*] -> * where
-   OG    :: UpdateLayer x => Gradient x -> Gradients '[x]
+   GNil  :: Gradients '[]
    (:/>) :: UpdateLayer x => Gradient x -> Gradients xs -> Gradients (x ': xs)
 
 -- | A network can easily be created by hand with (:~>), but an easy way to initialise a random
@@ -102,19 +102,18 @@ class CreatableNetwork (xs :: [*]) (ss :: [Shape]) where
   -- | Create a network of the types requested
   randomNetwork :: MonadRandom m => m (Network xs ss)
 
-instance (SingI i, SingI o, Layer x i o) => CreatableNetwork (x ': '[]) (i ': o ': '[]) where
-  randomNetwork = O <$> createRandom
+instance SingI i => CreatableNetwork '[] '[i] where
+  randomNetwork = return NNil
 
-instance (SingI i, SingI o, Layer x i o, CreatableNetwork xs (o ': r ': rs)) => CreatableNetwork (x ': xs) (i ': o ': r ': rs) where
+instance (SingI i, SingI o, Layer x i o, CreatableNetwork xs (o ': rs)) => CreatableNetwork (x ': xs) (i ': o ': rs) where
   randomNetwork = (:~>) <$> createRandom <*> randomNetwork
 
 
 -- | Add very simple serialisation to the network
-instance (SingI i, SingI o, Layer x i o, Serialize x) => Serialize (Network '[x] '[i, o]) where
-  put (O x) = put x
-  put _ = error "impossible"
-  get = O <$> get
+instance SingI i => Serialize (Network '[] '[i]) where
+  put NNil = pure ()
+  get = return NNil
 
-instance (SingI i, SingI o, Layer x i o, Serialize x, Serialize (Network xs (o ': r ': rs))) => Serialize (Network (x ': xs) (i ': o ': r ': rs)) where
+instance (SingI i, SingI o, Layer x i o, Serialize x, Serialize (Network xs (o ': rs))) => Serialize (Network (x ': xs) (i ': o ': rs)) where
   put (x :~> r) = put x >> put r
   get = (:~>) <$> get <*> get

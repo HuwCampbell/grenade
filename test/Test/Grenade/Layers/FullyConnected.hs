@@ -39,15 +39,15 @@ genOpaqueFullyConnected = do
             bM    <- randomVector
             wN    <- uniformSample
             kM    <- uniformSample
-            return . OpaqueFullyConnected $ (FullyConnected wB bM wN kM :: FullyConnected i' o')
+            return . OpaqueFullyConnected $ (FullyConnected (FullyConnected' wB wN) (FullyConnected' bM kM) :: FullyConnected i' o')
 
 prop_fully_connected_forwards :: Property
 prop_fully_connected_forwards =
     gamble genOpaqueFullyConnected $ \(OpaqueFullyConnected (fclayer :: FullyConnected i o)) ->
         gamble (S1D <$> randomVector) $ \(input :: S ('D1 i)) ->
-            let output :: S ('D1 o) = runForwards fclayer input
+            let (tape, output :: S ('D1 o)) = runForwards fclayer input
                 backed :: (Gradient (FullyConnected i o), S ('D1 i))
-                                    = runBackwards fclayer input output
+                                            = runBackwards fclayer tape output
             in  backed `seq` True
 
 return []
