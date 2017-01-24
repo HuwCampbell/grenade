@@ -14,6 +14,9 @@ Stability   : experimental
 This module defines simple back propagation and training functions
 for a network.
 -}
+
+-- GHC 7.10 doesn't think that go is complete
+{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 module Grenade.Core.Runner (
     train
   , backPropagate
@@ -48,7 +51,6 @@ backPropagate network input target =
               (n', dWs')    = go y n
               -- calculate the gradient for this layer to pass down,
               (layer', dWs) = runBackwards layer tape dWs'
-
           in (layer' :/> n', dWs)
 
     -- Bouncing the derivatives back down.

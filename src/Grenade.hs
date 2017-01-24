@@ -13,6 +13,7 @@ import           Grenade.Layers.Flatten as X
 import           Grenade.Layers.Fuse as X
 import           Grenade.Layers.FullyConnected as X
 import           Grenade.Layers.Logit as X
-import           Grenade.Layers.Convolution   as X
-import           Grenade.Layers.Relu   as X
-import           Grenade.Layers.Tanh   as X
+import           Grenade.Layers.Convolution as X
+import           Grenade.Layers.Relu as X
+import           Grenade.Layers.Tanh as X
+import           Grenade.Layers.Softmax as X

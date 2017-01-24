@@ -42,7 +42,7 @@ data LearningParameters = LearningParameters {
 
 -- | Class for updating a layer. All layers implement this, and it is
 --   shape independent.
-class Show x => UpdateLayer x where
+class UpdateLayer x where
   {-# MINIMAL runUpdate, createRandom #-}
   -- | The type for the gradient for this layer.
   --   Unit if there isn't a gradient to pass back.
@@ -86,9 +86,11 @@ data Network :: [*] -> [Shape] -> * where
     (:~>) :: (SingI i, SingI h, Layer x i h) => !x -> !(Network xs (h ': hs)) -> Network (x ': xs) (i ': h ': hs)
 infixr 5 :~>
 
-instance Show (Network l h) where
+instance Show (Network '[] '[i]) where
   show NNil = "NNil"
-  show (i :~> o) = show i ++ "\n:~>\n" ++ show o
+instance (Show x, Show (Network xs rs)) => Show (Network (x ': xs) (i ': rs)) where
+  show (x :~> xs) = show x ++ "\n~>\n" ++ show xs
+
 
 -- | Gradients of a network.
 --   Parameterised on the layers of a Network.

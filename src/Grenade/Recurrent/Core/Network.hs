@@ -59,11 +59,12 @@ data RecurrentNetwork :: [*] -> [Shape] -> * where
 infixr 5 :~~>
 infixr 5 :~@>
 
-instance Show (RecurrentNetwork l h) where
-  show RNil       = "RNil"
-  show (i :~~> o) = show i ++ "\n:~~>\n" ++ show o
-  show (i :~@> o) = show i ++ "\n:~@>\n" ++ show o
-
+instance Show (RecurrentNetwork '[] '[i]) where
+  show RNil = "NNil"
+instance (Show x, Show (RecurrentNetwork xs rs)) => Show (RecurrentNetwork (FeedForward x ': xs) (i ': rs)) where
+  show (x :~~> xs) = show x ++ "\n~~>\n" ++ show xs
+instance (Show x, Show (RecurrentNetwork xs rs)) => Show (RecurrentNetwork (Recurrent x ': xs) (i ': rs)) where
+  show (x :~@> xs) = show x ++ "\n~~>\n" ++ show xs
 
 -- | Recurrent inputs (sideways shapes on an imaginary unrolled graph)
 --   Parameterised on the layers of a Network.

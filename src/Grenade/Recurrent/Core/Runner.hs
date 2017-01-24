@@ -7,6 +7,9 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE RecordWildCards       #-}
+
+-- GHC 7.10 doesn't think that go is complete
+{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 module Grenade.Recurrent.Core.Runner (
     trainRecurrent
   , runRecurrent

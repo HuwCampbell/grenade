@@ -31,7 +31,7 @@ instance UpdateLayer FlattenLayer where
   runUpdate _ _ _ = FlattenLayer
   createRandom = return FlattenLayer
 
-instance (KnownNat a, KnownNat x, KnownNat y, a ~ (x * z)) => Layer FlattenLayer ('D2 x y) ('D1 a) where
+instance (KnownNat a, KnownNat x, KnownNat y, a ~ (x * y)) => Layer FlattenLayer ('D2 x y) ('D1 a) where
   type Tape FlattenLayer ('D2 x y) ('D1 a) = ()
   runForwards _ (S2D y)   =  ((), fromJust' . fromStorable . flatten . extract $ y)
   runBackwards _ _ (S1D y) = ((), fromJust' . fromStorable . extract $ y)
