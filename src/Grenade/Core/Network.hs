@@ -91,7 +91,6 @@ instance Show (Network '[] '[i]) where
 instance (Show x, Show (Network xs rs)) => Show (Network (x ': xs) (i ': rs)) where
   show (x :~> xs) = show x ++ "\n~>\n" ++ show xs
 
-
 -- | Gradients of a network.
 --   Parameterised on the layers of a Network.
 data Gradients :: [*] -> * where

@@ -25,6 +25,7 @@ are understood by Grenade.
 module Grenade.Core.Shape (
     Shape (..)
   , S (..)
+  , Sing (..)
   , randomOfShape
   , fromStorable
   ) where

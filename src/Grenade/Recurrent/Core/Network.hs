@@ -43,14 +43,16 @@ class UpdateLayer x => RecurrentUpdateLayer x where
   type RecurrentShape x   :: Shape
 
 class (RecurrentUpdateLayer x, SingI (RecurrentShape x)) => RecurrentLayer x (i :: Shape) (o :: Shape) where
+  -- | Wengert Tape
+  type RecTape x i o :: *
   -- | Used in training and scoring. Take the input from the previous
   --   layer, and give the output from this layer.
-  runRecurrentForwards    :: x -> S (RecurrentShape x) -> S i -> (S (RecurrentShape x), S o)
+  runRecurrentForwards    :: x -> S (RecurrentShape x) -> S i -> (RecTape x i o, S (RecurrentShape x), S o)
   -- | Back propagate a step. Takes the current layer, the input that the
   --   layer gave from the input and the back propagated derivatives from
   --   the layer above.
   --   Returns the gradient layer and the derivatives to push back further.
-  runRecurrentBackwards   :: x -> S (RecurrentShape x) -> S i -> S (RecurrentShape x) -> S o -> (Gradient x, S (RecurrentShape x), S i)
+  runRecurrentBackwards   :: x -> RecTape x i o -> S (RecurrentShape x) -> S o -> (Gradient x, S (RecurrentShape x), S i)
 
 data RecurrentNetwork :: [*] -> [Shape] -> * where
   RNil   :: SingI i => RecurrentNetwork '[] '[i]

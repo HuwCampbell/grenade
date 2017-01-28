@@ -54,6 +54,7 @@ library
                        Grenade.Layers.Fuse
                        Grenade.Layers.Logit
                        Grenade.Layers.Relu
+                       Grenade.Layers.Elu
                        Grenade.Layers.Tanh
                        Grenade.Layers.Pad
                        Grenade.Layers.Pooling

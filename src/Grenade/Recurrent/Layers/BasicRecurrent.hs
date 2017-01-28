@@ -72,13 +72,15 @@ instance (KnownNat i, KnownNat o, KnownNat (i + o), i <= (i + o), o ~ ((i + o) -
   type RecurrentShape (BasicRecurrent i o) = 'D1 o
 
 instance (KnownNat i, KnownNat o, KnownNat (i + o), i <= (i + o), o ~ ((i + o) - i)) => RecurrentLayer (BasicRecurrent i o) ('D1 i) ('D1 o) where
+
+  type RecTape (BasicRecurrent i o) ('D1 i) ('D1 o) = (S ('D1 o), S ('D1 i))
   -- Do a matrix vector multiplication and return the result.
   runRecurrentForwards (BasicRecurrent wB _ wN _) (S1D lastOutput) (S1D thisInput) =
     let thisOutput = S1D $ wB + wN #> (thisInput # lastOutput)
-    in (thisOutput, thisOutput)
+    in ((S1D lastOutput, S1D thisInput), thisOutput, thisOutput)
 
   -- Run a backpropogation step for a full connected layer.
-  runRecurrentBackwards (BasicRecurrent _ _ wN _) (S1D lastOutput) (S1D thisInput) (S1D dRec) (S1D dEdy) =
+  runRecurrentBackwards (BasicRecurrent _ _ wN _) (S1D lastOutput, S1D thisInput) (S1D dRec) (S1D dEdy) =
     let biasGradient        = (dRec + dEdy)
         layerGrad           = (dRec + dEdy) `outer` (thisInput # lastOutput)
         -- calcluate derivatives for next step

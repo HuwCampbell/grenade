@@ -66,11 +66,13 @@ trainRecurrent rate network recinputs examples =
     -- This is a recurrent layer, so we need to do a scan, first input to last, providing
     -- the recurrent shape output to the next layer.
     go !xs (layer :~@> n) (g :~@+> nIn)
-        = let ys                 = scanlFrom layer g xs
+        = let tys                = scanlFrom layer g xs
+              tapes              = fst <$> tys
+              ys                 = snd <$> tys
 
-              (newFN, ig, grads) = go (snd <$> ys) n nIn
+              (newFN, ig, grads) = go ys n nIn
 
-              backExamples       = zip3 (fst <$> reverse ys) (reverse xs) grads
+              backExamples       = zip (reverse tapes) grads
 
               (rg, back)         = myscanbackward layer backExamples
               -- the new trained layer.
@@ -105,22 +107,22 @@ scanlFrom :: forall x i o. RecurrentLayer x i o
           => x                                  -- ^ the layer
           -> S (RecurrentShape x)               -- ^ place to start
           -> [S i]                              -- ^ list of inputs to scan through
-          -> [(S (RecurrentShape x), S o)]      -- ^ list of scan inputs and outputs
+          -> [(RecTape x i o, S o)]      -- ^ list of scan inputs and outputs
 scanlFrom !layer !recShape (x:xs) =
-  let (lerec, lepush) = runRecurrentForwards layer recShape x
-  in  (recShape, lepush) : scanlFrom layer lerec xs
+  let (tape, lerec, lepush) = runRecurrentForwards layer recShape x
+  in  (tape, lepush) : scanlFrom layer lerec xs
 scanlFrom _ _ []      = []
 
 myscanbackward :: forall x i o. RecurrentLayer x i o
                 => x                                           -- ^ the layer
-                -> [(S (RecurrentShape x), S i, S o)]          -- ^ the list of inputs and output to scan over
+                -> [(RecTape x i o, S o)]          -- ^ the list of inputs and output to scan over
                 -> (S (RecurrentShape x), [(Gradient x, S i)]) -- ^ list of gradients to fold and inputs to backprop
 myscanbackward layer =
   goX 0
     where
-  goX :: S (RecurrentShape x) -> [(S (RecurrentShape x), S i, S o)] -> (S (RecurrentShape x), [(Gradient x, S i)])
-  goX !lastback ((recShape, lastin, backgrad):xs) =
-    let (layergrad, recgrad, ingrad) = runRecurrentBackwards layer recShape lastin lastback backgrad
+  goX :: S (RecurrentShape x) -> [(RecTape x i o, S o)] -> (S (RecurrentShape x), [(Gradient x, S i)])
+  goX !lastback ((recTape, backgrad):xs) =
+    let (layergrad, recgrad, ingrad) = runRecurrentBackwards layer recTape lastback backgrad
         (pushedback, ll)             = goX recgrad xs
     in  (pushedback, (layergrad, ingrad) : ll)
   goX !lastback []      = (lastback, [])
@@ -134,8 +136,8 @@ runRecurrent (layer :~~> n) (()    :~~+> nr) !x
         (nr', o) = runRecurrent n nr ys
     in  (() :~~+> nr', o)
 runRecurrent (layer :~@> n) (recin :~@+> nr) !x
-  = let (recin', y) = runRecurrentForwards layer recin x
-        (nr', o)    = runRecurrent n nr y
+  = let (_, recin', y) = runRecurrentForwards layer recin x
+        (nr', o)       = runRecurrent n nr y
     in  (recin' :~@+> nr', o)
 runRecurrent RNil RINil !x
   = (RINil, x)
