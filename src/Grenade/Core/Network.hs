@@ -22,6 +22,7 @@ module Grenade.Core.Network (
   , UpdateLayer (..)
   , LearningParameters (..)
   , Gradients (..)
+  , Tapes (..)
   , CreatableNetwork (..)
   ) where
 
@@ -96,6 +97,12 @@ instance (Show x, Show (Network xs rs)) => Show (Network (x ': xs) (i ': rs)) wh
 data Gradients :: [*] -> * where
    GNil  :: Gradients '[]
    (:/>) :: UpdateLayer x => Gradient x -> Gradients xs -> Gradients (x ': xs)
+
+-- | Gradients of a network.
+--   Parameterised on the layers of a Network.
+data Tapes :: [*] -> [Shape] -> * where
+   TNil  :: SingI i => Tapes '[] '[i]
+   (:\>) :: (SingI i, SingI h, Layer x i h) => !(Tape x i h) -> !(Tapes xs (h ': hs)) -> Tapes (x ': xs) (i ': h ': hs)
 
 -- | A network can easily be created by hand with (:~>), but an easy way to initialise a random
 --   network is with the randomNetwork.

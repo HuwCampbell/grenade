@@ -66,9 +66,11 @@ data S (n :: Shape) where
 
 deriving instance Show (S n)
 
--- Singletons
+-- Singleton instances.
+--
 -- These could probably be derived with template haskell, but this seems
 -- clear and makes adding the KnownNat constraints simple.
+-- We can also keep our code TH free, which is great.
 data instance Sing (n :: Shape) where
   D1Sing :: KnownNat a => Sing ('D1 a)
   D2Sing :: (KnownNat a, KnownNat b) => Sing ('D2 a b)
