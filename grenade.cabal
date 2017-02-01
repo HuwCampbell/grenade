@@ -43,6 +43,9 @@ library
 
   exposed-modules:
                        Grenade
+                       Grenade.Core
+                       Grenade.Core.Layer
+                       Grenade.Core.LearningParameters
                        Grenade.Core.Network
                        Grenade.Core.Runner
                        Grenade.Core.Shape
@@ -51,7 +54,6 @@ library
                        Grenade.Layers.Dropout
                        Grenade.Layers.FullyConnected
                        Grenade.Layers.Flatten
-                       Grenade.Layers.Fuse
                        Grenade.Layers.Logit
                        Grenade.Layers.Relu
                        Grenade.Layers.Elu
@@ -70,7 +72,6 @@ library
 
                        Grenade.Recurrent.Layers.BasicRecurrent
                        Grenade.Recurrent.Layers.LSTM
-                       Grenade.Recurrent.Layers.Trivial
 
                        Grenade.Utils.OneHot
 

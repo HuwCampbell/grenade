@@ -16,8 +16,7 @@ module Grenade.Recurrent.Core.Runner (
   ) where
 
 import           Data.Singletons.Prelude
-import           Grenade.Core.Network
-import           Grenade.Core.Shape
+import           Grenade.Core
 
 import           Grenade.Recurrent.Core.Network
 

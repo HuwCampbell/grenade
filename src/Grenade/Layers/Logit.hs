@@ -11,8 +11,7 @@ module Grenade.Layers.Logit (
 import           Data.Serialize
 import           Data.Singletons
 
-import           Grenade.Core.Network
-import           Grenade.Core.Shape
+import           Grenade.Core
 
 -- | A Logit layer.
 --   A layer which can act between any shape of the same dimension, perfoming an sigmoid function.

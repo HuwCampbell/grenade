@@ -24,8 +24,7 @@ import           Numeric.LinearAlgebra.Static
 
 import           GHC.TypeLits
 
-import           Grenade.Core.Network
-import           Grenade.Core.Shape
+import           Grenade.Core
 import           Grenade.Recurrent.Core.Network
 
 data BasicRecurrent :: Nat -- Input layer size

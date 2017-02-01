@@ -15,8 +15,7 @@ import           GHC.TypeLits
 import           Numeric.LinearAlgebra.Static
 import           Numeric.LinearAlgebra.Data as LA ( flatten )
 
-import           Grenade.Core.Shape
-import           Grenade.Core.Network
+import           Grenade.Core
 
 -- | Flatten Layer
 --

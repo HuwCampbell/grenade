@@ -19,8 +19,7 @@ import           Data.Singletons.TypeLits
 import qualified Numeric.LinearAlgebra as LA
 import           Numeric.LinearAlgebra.Static
 
-import           Grenade.Core.Network
-import           Grenade.Core.Shape
+import           Grenade.Core
 
 import           Grenade.Layers.Internal.Update
 

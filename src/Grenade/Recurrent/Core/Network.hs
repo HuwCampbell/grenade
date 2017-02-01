@@ -22,8 +22,7 @@ import           Data.Singletons ( SingI )
 import           Data.Serialize
 import qualified Data.Vector.Storable as V
 
-import           Grenade.Core.Shape
-import           Grenade.Core.Network
+import           Grenade.Core
 
 import qualified Numeric.LinearAlgebra as LA
 import qualified Numeric.LinearAlgebra.Static as LAS

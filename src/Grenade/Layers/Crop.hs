@@ -13,8 +13,7 @@ import           Data.Proxy
 import           Data.Singletons.TypeLits
 import           GHC.TypeLits
 
-import           Grenade.Core.Network
-import           Grenade.Core.Shape
+import           Grenade.Core
 
 import           Numeric.LinearAlgebra (konst, subMatrix, diagBlock)
 import           Numeric.LinearAlgebra.Static (extract, create)

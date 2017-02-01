@@ -16,8 +16,7 @@ import           Data.Serialize
 import           Data.Singletons.TypeLits
 import           GHC.TypeLits
 
-import           Grenade.Core.Network
-import           Grenade.Core.Shape
+import           Grenade.Core
 import           Grenade.Layers.Internal.Pooling
 
 import           Numeric.LinearAlgebra.Static as LAS hiding ((|||), build, toRows)

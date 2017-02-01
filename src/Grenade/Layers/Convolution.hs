@@ -25,8 +25,7 @@ import           Numeric.LinearAlgebra hiding ( uniformSample, konst )
 import qualified Numeric.LinearAlgebra as LA
 import           Numeric.LinearAlgebra.Static hiding ((|||), build, toRows)
 
-import           Grenade.Core.Network
-import           Grenade.Core.Shape
+import           Grenade.Core
 import           Grenade.Layers.Internal.Convolution
 import           Grenade.Layers.Internal.Update
 

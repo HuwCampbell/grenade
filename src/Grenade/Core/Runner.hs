@@ -25,6 +25,9 @@ module Grenade.Core.Runner (
   ) where
 
 import           Data.Singletons.Prelude
+
+import           Grenade.Core.Layer
+import           Grenade.Core.LearningParameters
 import           Grenade.Core.Network
 import           Grenade.Core.Shape
 
@@ -56,13 +59,6 @@ backPropagate network input target =
     -- Bouncing the derivatives back down.
     go !x NNil
         = (GNil, x - target)
-
--- | Apply one step of stochastic gradient decent across the network.
-applyUpdate :: LearningParameters -> Network ls ss -> Gradients ls -> Network ls ss
-applyUpdate _ NNil GNil
-  = NNil
-applyUpdate rate (layer :~> rest) (gradient :/> grest)
-  = runUpdate rate layer gradient :~> applyUpdate rate rest grest
 
 -- | Update a network with new weights after training with an instance.
 train :: LearningParameters -> Network layers shapes -> S (Head shapes) -> S (Last shapes) -> Network layers shapes

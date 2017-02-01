@@ -20,7 +20,6 @@ module Grenade.Recurrent.Layers.LSTM (
 
 import           Control.Monad.Random ( MonadRandom, getRandom )
 
-
 -- import           Data.List ( foldl1' )
 import           Data.Proxy
 import           Data.Serialize
@@ -29,8 +28,7 @@ import           Data.Singletons.TypeLits
 import qualified Numeric.LinearAlgebra as LA
 import           Numeric.LinearAlgebra.Static
 
-import           Grenade.Core.Network
-import           Grenade.Core.Shape
+import           Grenade.Core
 
 import           Grenade.Layers.Internal.Update
 

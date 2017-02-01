@@ -12,8 +12,7 @@ import           Data.Singletons ()
 
 import           GHC.TypeLits
 
-import           Grenade.Core.Shape
-import           Grenade.Core.Network
+import           Grenade.Core
 import           Grenade.Layers.FullyConnected
 
 import           Disorder.Jack

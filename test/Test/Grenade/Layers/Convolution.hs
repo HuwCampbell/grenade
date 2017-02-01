@@ -15,8 +15,7 @@ import           Data.Singletons ()
 import           GHC.TypeLits
 import           GHC.TypeLits.Witnesses
 
-import           Grenade.Core.Shape
-import           Grenade.Core.Network
+import           Grenade.Core
 import           Grenade.Layers.Convolution
 
 import           Disorder.Jack

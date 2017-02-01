@@ -9,8 +9,7 @@ module Grenade.Layers.Relu (
 import           Data.Serialize
 
 import           GHC.TypeLits
-import           Grenade.Core.Network
-import           Grenade.Core.Shape
+import           Grenade.Core
 
 import qualified Numeric.LinearAlgebra.Static as LAS
 

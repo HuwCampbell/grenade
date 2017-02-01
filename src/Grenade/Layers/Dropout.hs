@@ -10,8 +10,7 @@ module Grenade.Layers.Dropout (
 import           Control.Monad.Random hiding (fromList)
 
 import           GHC.TypeLits
-import           Grenade.Core.Shape
-import           Grenade.Core.Network
+import           Grenade.Core
 
 -- Dropout layer help to reduce overfitting.
 -- Idea here is that the vector is a shape of 1s and 0s, which we multiply the input by.
