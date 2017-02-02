@@ -4,6 +4,7 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts      #-}
 module Grenade.Layers.Pad (
     Pad (..)
   ) where
@@ -15,6 +16,7 @@ import           Data.Singletons.TypeLits
 import           GHC.TypeLits
 
 import           Grenade.Core
+import           Grenade.Layers.Internal.Pad
 
 import           Numeric.LinearAlgebra (konst, subMatrix, diagBlock)
 import           Numeric.LinearAlgebra.Static (extract, create)
@@ -67,3 +69,36 @@ instance ( KnownNat padLeft
         m     = extract dEdy
         vs    = subMatrix (padt, padl) (nrows, ncols) m
     in  ((), S2D . fromJust . create $ vs)
+
+
+-- | A two dimentional image can be padped.
+instance ( KnownNat padLeft
+         , KnownNat padTop
+         , KnownNat padRight
+         , KnownNat padBottom
+         , KnownNat inputRows
+         , KnownNat inputColumns
+         , KnownNat outputRows
+         , KnownNat outputColumns
+         , KnownNat channels
+         , KnownNat (inputRows * channels)
+         , KnownNat (outputRows * channels)
+         , (inputRows + padTop + padBottom) ~ outputRows
+         , (inputColumns + padLeft + padRight) ~ outputColumns
+         ) => Layer (Pad padLeft padTop padRight padBottom) ('D3 inputRows inputColumns channels) ('D3 outputRows outputColumns channels) where
+  type Tape (Pad padLeft padTop padRight padBottom) ('D3 inputRows inputColumns channels) ('D3 outputRows outputColumns channels)  = ()
+  runForwards Pad input =
+    let padl   = Proxy :: Proxy padLeft
+        padt   = Proxy :: Proxy padTop
+        padr   = Proxy :: Proxy padRight
+        padb   = Proxy :: Proxy padBottom
+        padded = pad padl padt padr padb input
+    in  ((), padded)
+
+  runBackwards Pad () gradient =
+    let padl    = Proxy :: Proxy padLeft
+        padt    = Proxy :: Proxy padTop
+        padr    = Proxy :: Proxy padRight
+        padb    = Proxy :: Proxy padBottom
+        cropped = crop padl padt padr padb gradient
+    in  ((), cropped)

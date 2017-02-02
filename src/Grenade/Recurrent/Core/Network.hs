@@ -54,9 +54,18 @@ class (RecurrentUpdateLayer x, SingI (RecurrentShape x)) => RecurrentLayer x (i 
   runRecurrentBackwards   :: x -> RecTape x i o -> S (RecurrentShape x) -> S o -> (Gradient x, S (RecurrentShape x), S i)
 
 data RecurrentNetwork :: [*] -> [Shape] -> * where
-  RNil   :: SingI i => RecurrentNetwork '[] '[i]
-  (:~~>) :: (SingI i, Layer x i h)          => !x -> !(RecurrentNetwork xs (h ': hs)) -> RecurrentNetwork (FeedForward x ': xs) (i ': h ': hs)
-  (:~@>) :: (SingI i, RecurrentLayer x i h) => !x -> !(RecurrentNetwork xs (h ': hs)) -> RecurrentNetwork (Recurrent x ': xs) (i ': h ': hs)
+  RNil   :: SingI i
+         => RecurrentNetwork '[] '[i]
+
+  (:~~>) :: (SingI i, Layer x i h)
+         => !x
+         -> !(RecurrentNetwork xs (h ': hs))
+         -> RecurrentNetwork (FeedForward x ': xs) (i ': h ': hs)
+
+  (:~@>) :: (SingI i, RecurrentLayer x i h)
+         => !x
+         -> !(RecurrentNetwork xs (h ': hs))
+         -> RecurrentNetwork (Recurrent x ': xs) (i ': h ': hs)
 infixr 5 :~~>
 infixr 5 :~@>
 

@@ -3,6 +3,7 @@
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 module Grenade.Layers.Crop (
     Crop (..)
@@ -14,6 +15,7 @@ import           Data.Singletons.TypeLits
 import           GHC.TypeLits
 
 import           Grenade.Core
+import           Grenade.Layers.Internal.Pad
 
 import           Numeric.LinearAlgebra (konst, subMatrix, diagBlock)
 import           Numeric.LinearAlgebra.Static (extract, create)
@@ -62,3 +64,36 @@ instance ( KnownNat cropLeft
         eo    = extract dEdy
         vs    = diagBlock [konst 0 (cropt,cropl), eo, konst 0 (cropb,cropr)]
     in  ((), S2D . fromJust . create $ vs)
+
+
+-- | A two dimentional image can be cropped.
+instance ( KnownNat cropLeft
+         , KnownNat cropTop
+         , KnownNat cropRight
+         , KnownNat cropBottom
+         , KnownNat inputRows
+         , KnownNat inputColumns
+         , KnownNat outputRows
+         , KnownNat outputColumns
+         , KnownNat channels
+         , KnownNat (inputRows * channels)
+         , KnownNat (outputRows * channels)
+         , (outputRows + cropTop + cropBottom) ~ inputRows
+         , (outputColumns + cropLeft + cropRight) ~ inputColumns
+         ) => Layer (Crop cropLeft cropTop cropRight cropBottom) ('D3 inputRows inputColumns channels) ('D3 outputRows outputColumns channels) where
+  type Tape (Crop cropLeft cropTop cropRight cropBottom) ('D3 inputRows inputColumns channels) ('D3 outputRows outputColumns channels)  = ()
+  runForwards Crop input =
+    let cropl   = Proxy :: Proxy cropLeft
+        cropt   = Proxy :: Proxy cropTop
+        cropr   = Proxy :: Proxy cropRight
+        cropb   = Proxy :: Proxy cropBottom
+        cropped = crop cropl cropt cropr cropb input
+    in  ((), cropped)
+
+  runBackwards Crop () gradient =
+    let cropl    = Proxy :: Proxy cropLeft
+        cropt    = Proxy :: Proxy cropTop
+        cropr    = Proxy :: Proxy cropRight
+        cropb    = Proxy :: Proxy cropBottom
+        padded   = pad cropl cropt cropr cropb gradient
+    in  ((), padded)

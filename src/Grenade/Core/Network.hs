@@ -46,8 +46,13 @@ import           Grenade.Core.Shape
 --   Can be considered to be a heterogeneous list of layers which are able to
 --   transform the data shapes of the network.
 data Network :: [*] -> [Shape] -> * where
-    NNil  :: SingI i => Network '[] '[i]
-    (:~>) :: (SingI i, SingI h, Layer x i h) => !x -> !(Network xs (h ': hs)) -> Network (x ': xs) (i ': h ': hs)
+    NNil  :: SingI i
+          => Network '[] '[i]
+
+    (:~>) :: (SingI i, SingI h, Layer x i h)
+          => !x
+          -> !(Network xs (h ': hs))
+          -> Network (x ': xs) (i ': h ': hs)
 infixr 5 :~>
 
 instance Show (Network '[] '[i]) where
@@ -66,13 +71,13 @@ applyUpdate rate (layer :~> rest) (gradient :/> grest)
 
 
 -- | Gradients of a network.
---   Parameterised on the layers of a Network.
+--   Parameterised on the layers of the network.
 data Gradients :: [*] -> * where
    GNil  :: Gradients '[]
    (:/>) :: UpdateLayer x => Gradient x -> Gradients xs -> Gradients (x ': xs)
 
--- | Gradients of a network.
---   Parameterised on the layers of a Network.
+-- | Wegnert Tapes of a network.
+--   Parameterised on the layers and shapes of the network.
 data Tapes :: [*] -> [Shape] -> * where
    TNil  :: SingI i => Tapes '[] '[i]
    (:\>) :: (SingI i, SingI h, Layer x i h) => !(Tape x i h) -> !(Tapes xs (h ': hs)) -> Tapes (x ': xs) (i ': h ': hs)

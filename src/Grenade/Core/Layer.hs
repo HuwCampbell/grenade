@@ -21,7 +21,6 @@ module Grenade.Core.Layer (
 import           Control.Monad.Random (MonadRandom)
 
 import           Data.List ( foldl' )
-import           Data.Singletons
 
 import           Grenade.Core.Shape
 import           Grenade.Core.LearningParameters
@@ -29,7 +28,6 @@ import           Grenade.Core.LearningParameters
 -- | Class for updating a layer. All layers implement this, and it is
 --   shape independent.
 class UpdateLayer x where
-  {-# MINIMAL runUpdate, createRandom #-}
   -- | The type for the gradient for this layer.
   --   Unit if there isn't a gradient to pass back.
   type Gradient x :: *
@@ -42,6 +40,8 @@ class UpdateLayer x where
   -- | Update a layer with many Gradients
   runUpdates      :: LearningParameters -> x -> [Gradient x] -> x
   runUpdates rate = foldl' (runUpdate rate)
+
+  {-# MINIMAL runUpdate, createRandom #-}
 
 -- | Class for a layer. All layers implement this, however, they don't
 --   need to implement it for all shapes, only ones which are appropriate.
@@ -58,25 +58,3 @@ class UpdateLayer x => Layer x (i :: Shape) (o :: Shape) where
   --   the layer above.
   --   Returns the gradient layer and the derivatives to push back further.
   runBackwards   :: x -> Tape x i o -> S o -> (Gradient x, S i)
-
-
--- | Run two layers in parallel, combining their outputs.
---   This just kind of "smooshes" the weights together.
-instance (UpdateLayer x, UpdateLayer y) => UpdateLayer (x, y) where
-  type Gradient (x, y) = (Gradient x, Gradient y)
-  runUpdate lr (x, y) (x', y') = (runUpdate lr x x', runUpdate lr y y')
-  createRandom = (,) <$> createRandom <*> createRandom
-
--- | Combine the outputs and the inputs, summing the output shape
-instance (SingI i, SingI o, Layer x i o, Layer y i o) => Layer (x, y) i o where
-  type Tape (x, y) i o = (Tape x i o, Tape y i o)
-
-  runForwards (x, y) input =
-    let (xT, xOut) = runForwards x input
-        (yT, yOut) = runForwards y input
-    in  ((xT, yT), xOut + yOut)
-
-  runBackwards (x, y) (xTape, yTape) o =
-    let (x', xB) = runBackwards x xTape o
-        (y', yB) = runBackwards y yTape o
-    in  ((x', y'), xB + yB)
