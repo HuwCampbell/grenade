@@ -27,6 +27,7 @@ module Grenade.Core.Shape (
     Shape (..)
   , S (..)
   , Sing (..)
+
   , randomOfShape
   , fromStorable
   ) where
@@ -59,7 +60,8 @@ data Shape
   | D3 Nat Nat Nat
   -- ^ Three dimensional matrix. Row, Column, Channels.
 
--- | Given a Shape n, these are the possible data structures with that shape.
+-- | Concrete data structures for a Shape.
+--
 --   All shapes are held in contiguous memory.
 --   3D is held in a matrix (usually row oriented) which has height depth * rows.
 data S (n :: Shape) where

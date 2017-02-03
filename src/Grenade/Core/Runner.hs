@@ -1,9 +1,5 @@
-{-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-|
 Module      : Grenade.Core.Shape
 Description : Core definition of the Shapes of data we understand
@@ -14,19 +10,14 @@ Stability   : experimental
 This module defines simple back propagation and training functions
 for a network.
 -}
-
--- GHC 7.10 doesn't think that go is complete
-{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
 module Grenade.Core.Runner (
     train
   , backPropagate
   , runNet
-  , applyUpdate
   ) where
 
 import           Data.Singletons.Prelude
 
-import           Grenade.Core.Layer
 import           Grenade.Core.LearningParameters
 import           Grenade.Core.Network
 import           Grenade.Core.Shape
@@ -36,37 +27,32 @@ import           Grenade.Core.Shape
 --
 --   /Note:/ The loss function pushed backwards is appropriate
 --   for both regression and classification as a squared loss
---   or log-loss respectively. Other loss functions are not yet
---   implemented.
-backPropagate :: forall shapes layers.
-                 Network layers shapes -> S (Head shapes) -> S (Last shapes) -> Gradients layers
+--   or log-loss respectively.
+--
+--   For other loss functions, use runNetwork and runGradient
+--   with the back propagated gradient of your loss.
+--
+backPropagate :: SingI (Last shapes)
+              => Network layers shapes
+              -> S (Head shapes)
+              -> S (Last shapes)
+              -> Gradients layers
 backPropagate network input target =
-    fst $ go input network
-  where
-    go  :: forall js sublayers. (Last js ~ Last shapes)
-        => S (Head js)          -- ^ input vector
-        -> Network sublayers js -- ^ network to train
-        -> (Gradients sublayers, S (Head js))
-    -- handle input from the beginning, feeding upwards.
-    go !x (layer :~> n)
-        = let (tape, y)     = runForwards layer x
-              -- recursively run the rest of the network, and get the gradients from above.
-              (n', dWs')    = go y n
-              -- calculate the gradient for this layer to pass down,
-              (layer', dWs) = runBackwards layer tape dWs'
-          in (layer' :/> n', dWs)
-
-    -- Bouncing the derivatives back down.
-    go !x NNil
-        = (GNil, x - target)
+    let (tapes, output) = runNetwork network input
+        (grads, _)      = runGradient network tapes (output - target)
+    in  grads
 
 -- | Update a network with new weights after training with an instance.
-train :: LearningParameters -> Network layers shapes -> S (Head shapes) -> S (Last shapes) -> Network layers shapes
+train :: SingI (Last shapes)
+      => LearningParameters
+      -> Network layers shapes
+      -> S (Head shapes)
+      -> S (Last shapes)
+      -> Network layers shapes
 train rate network input output =
     let grads = backPropagate network input output
     in  applyUpdate rate network grads
 
 -- | Run the network with input and return the given output.
 runNet :: Network layers shapes -> S (Head shapes) -> S (Last shapes)
-runNet (layer :~> n)  !x = let (_, y) = runForwards layer x in runNet n y
-runNet NNil           !x = x
+runNet net = snd . runNetwork net
