@@ -103,6 +103,7 @@ executable             feedforward
                      , hmatrix
                      , transformers
                      , singletons
+                     , semigroups
                      , MonadRandom
 
 executable             mnist
@@ -117,6 +118,7 @@ executable             mnist
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.19
                      , transformers
+                     , semigroups
                      , singletons
                      , MonadRandom
                      , vector
@@ -133,6 +135,7 @@ executable             recurrent
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.19
                      , transformers
+                     , semigroups
                      , singletons
                      , MonadRandom
 
@@ -151,6 +154,7 @@ executable             shakespeare
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.19
                      , transformers
+                     , semigroups
                      , singletons
                      , vector
                      , MonadRandom
