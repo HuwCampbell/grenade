@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE GADTs                 #-}
@@ -18,6 +19,11 @@ This module defines the core data type for the simplest
 Neural network we support.
 
 -}
+
+#if __GLASGOW_HASKELL__ < 800
+{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
+#endif
+
 module Grenade.Core.Network (
     Network (..)
   , Gradients (..)

@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -8,7 +9,12 @@
 import           Control.Monad ( foldM )
 import           Control.Monad.Random ( MonadRandom, getRandomR )
 
+#if __GLASGOW_HASKELL__ < 800
+import           Data.List ( unfoldr )
+#else
 import           Data.List ( cycle, unfoldr )
+#endif
+
 import qualified Numeric.LinearAlgebra.Static as SA
 
 import           Options.Applicative
@@ -16,6 +22,7 @@ import           Options.Applicative
 import           Grenade
 import           Grenade.Recurrent
 
+{-# OPTIONS_GHC -fno-redundant-imports #-}
 -- The defininition for our simple recurrent network.
 -- This file just trains a network to generate a repeating sequence
 -- of 0 0 1.

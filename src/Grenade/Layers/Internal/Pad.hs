@@ -1,15 +1,15 @@
+{-# LANGUAGE CPP                      #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE PolyKinds      #-}
-{-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
+{-# LANGUAGE DataKinds                #-}
+{-# LANGUAGE ScopedTypeVariables      #-}
+{-# LANGUAGE GADTs                    #-}
+{-# LANGUAGE TypeOperators            #-}
+{-# LANGUAGE MultiParamTypeClasses    #-}
+{-# LANGUAGE FlexibleContexts         #-}
 
+#if __GLASGOW_HASKELL__ == 800
+{-# OPTIONS_GHC -fno-warn-redundant-constraints #-}
+#endif
 module Grenade.Layers.Internal.Pad (
     pad
   , crop
@@ -85,7 +85,6 @@ crop :: forall padLeft padTop padRight padBottom rows rows' cols cols' channels.
        , KnownNat padRight
        , KnownNat padBottom
        , KnownNat rows
-       , KnownNat rows'
        , KnownNat cols
        , KnownNat cols'
        , KnownNat channels

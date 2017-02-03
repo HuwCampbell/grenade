@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE KindSignatures        #-}
@@ -8,10 +9,10 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE RankNTypes            #-}
 
--- Ghc 8.0 gives a warning on `n2 _ _ = error ...` but ghc 7.10 fails to
--- compile without this default pattern.
-{-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
-
+-- Ghc 7.10 fails to recognise n2 is complete.
+#if __GLASGOW_HASKELL__ < 800
+{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
+#endif
 {-|
 Module      : Grenade.Core.Shape
 Description : Core definition of the Shapes of data we understand
@@ -179,7 +180,6 @@ n2 :: ( forall a. Floating a => a -> a -> a ) -> S x -> S x -> S x
 n2 f (S1D x) (S1D y) = S1D (f x y)
 n2 f (S2D x) (S2D y) = S2D (f x y)
 n2 f (S3D x) (S3D y) = S3D (f x y)
-n2 _ _ _ = error "Impossible to have different constructors for the same shaped network"
 
 -- Helper function for creating the number instances
 nk :: forall x. SingI x => Double -> S x

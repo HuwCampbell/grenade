@@ -3,13 +3,16 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE RecordWildCards       #-}
 
--- GHC 7.10 doesn't think that go is complete
+#if __GLASGOW_HASKELL__ < 800
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
+#endif
+
 module Grenade.Recurrent.Core.Runner (
     trainRecurrent
   , runRecurrent

@@ -1,10 +1,14 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-
+{-# LANGUAGE PolyKinds             #-}
 module Test.Jack.TypeLits where
 
 import           Data.Constraint
+#if __GLASGOW_HASKELL__ < 800
+import           Data.Proxy
+#endif
 import           Data.Singletons
 import           Disorder.Jack
 
