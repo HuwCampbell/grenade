@@ -125,7 +125,8 @@ runNetwork =
 --   Gives the gradients for the layer, and the gradient across the
 --   input (which may not be required).
 --
-runGradient :: forall layers shapes. Network layers shapes
+runGradient :: forall layers shapes.
+               Network layers shapes
             -> Tapes layers shapes
             -> S (Last shapes)
             -> (Gradients layers, S (Head shapes))
@@ -157,10 +158,13 @@ applyUpdate _ NNil GNil
   = NNil
 
 
--- | A network can easily be created by hand with (:~>), but an easy way to initialise a random
---   network is with the randomNetwork.
+-- | A network can easily be created by hand with (:~>), but an easy way to
+--   initialise a random network is with the randomNetwork.
 class CreatableNetwork (xs :: [*]) (ss :: [Shape]) where
-  -- | Create a network of the types requested
+  -- | Create a network with randomly initialised weights.
+  --
+  --   Calls to this function will not compile if the type of the neural
+  --   network is not sound.
   randomNetwork :: MonadRandom m => m (Network xs ss)
 
 instance SingI i => CreatableNetwork '[] '[i] where
