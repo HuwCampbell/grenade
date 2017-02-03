@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE KindSignatures        #-}
@@ -8,10 +9,10 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE RankNTypes            #-}
 
--- Ghc 8.0 gives a warning on `n2 _ _ = error ...` but ghc 7.10 fails to
--- compile without this default pattern.
-{-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
-
+-- Ghc 7.10 fails to recognise n2 is complete.
+#if __GLASGOW_HASKELL__ < 800
+{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
+#endif
 {-|
 Module      : Grenade.Core.Shape
 Description : Core definition of the Shapes of data we understand
@@ -25,6 +26,8 @@ are understood by Grenade.
 module Grenade.Core.Shape (
     Shape (..)
   , S (..)
+  , Sing (..)
+
   , randomOfShape
   , fromStorable
   ) where
@@ -47,27 +50,46 @@ import qualified Numeric.LinearAlgebra as NLA
 -- | The current shapes we accept.
 --   at the moment this is just one, two, and three dimensional
 --   Vectors/Matricies.
+--
+--   These are only used with DataKinds, as Kind `Shape`, with Types 'D1, 'D2, 'D3.
 data Shape
   = D1 Nat
+  -- ^ One dimensional vector
   | D2 Nat Nat
+  -- ^ Two dimensional matrix. Row, Column.
   | D3 Nat Nat Nat
+  -- ^ Three dimensional matrix. Row, Column, Channels.
 
--- | Given a Shape n, these are the possible data structures with that shape.
+-- | Concrete data structures for a Shape.
+--
 --   All shapes are held in contiguous memory.
 --   3D is held in a matrix (usually row oriented) which has height depth * rows.
 data S (n :: Shape) where
-  S1D :: ( KnownNat o )                      => R o             -> S ('D1 o)
-  S2D :: ( KnownNat rows, KnownNat columns ) => L rows columns  -> S ('D2 rows columns)
+  -- | One dimensional data
+  S1D :: ( KnownNat len )
+      => R len
+      -> S ('D1 len)
+
+  -- | Two dimensional data
+  S2D :: ( KnownNat rows, KnownNat columns )
+      => L rows columns
+      -> S ('D2 rows columns)
+
+  -- | Three dimensional data
   S3D :: ( KnownNat rows
          , KnownNat columns
          , KnownNat depth
-         , KnownNat (rows * depth)) => L (rows * depth) columns -> S ('D3 rows columns depth)
+         , KnownNat (rows * depth))
+      => L (rows * depth) columns
+      -> S ('D3 rows columns depth)
 
 deriving instance Show (S n)
 
--- Singletons
+-- Singleton instances.
+--
 -- These could probably be derived with template haskell, but this seems
 -- clear and makes adding the KnownNat constraints simple.
+-- We can also keep our code TH free, which is great.
 data instance Sing (n :: Shape) where
   D1Sing :: KnownNat a => Sing ('D1 a)
   D2Sing :: (KnownNat a, KnownNat b) => Sing ('D2 a b)
@@ -160,7 +182,6 @@ n2 :: ( forall a. Floating a => a -> a -> a ) -> S x -> S x -> S x
 n2 f (S1D x) (S1D y) = S1D (f x y)
 n2 f (S2D x) (S2D y) = S2D (f x y)
 n2 f (S3D x) (S3D y) = S3D (f x y)
-n2 _ _ _ = error "Impossible to have different constructors for the same shaped network"
 
 -- Helper function for creating the number instances
 nk :: forall x. SingI x => Double -> S x

@@ -20,7 +20,6 @@ module Grenade.Recurrent.Layers.LSTM (
 
 import           Control.Monad.Random ( MonadRandom, getRandom )
 
-
 -- import           Data.List ( foldl1' )
 import           Data.Proxy
 import           Data.Serialize
@@ -29,8 +28,7 @@ import           Data.Singletons.TypeLits
 import qualified Numeric.LinearAlgebra as LA
 import           Numeric.LinearAlgebra.Static
 
-import           Grenade.Core.Network
-import           Grenade.Core.Shape
+import           Grenade.Core
 
 import           Grenade.Layers.Internal.Update
 
@@ -131,6 +129,8 @@ instance (KnownNat i, KnownNat o) => RecurrentUpdateLayer (LSTM i o) where
   type RecurrentShape (LSTM i o) = 'D1 o
 
 instance (KnownNat i, KnownNat o) => RecurrentLayer (LSTM i o) ('D1 i) ('D1 o) where
+
+  type RecTape (LSTM i o) ('D1 i) ('D1 o) = (S ('D1 o), S ('D1 i))
   -- Forward propagation for the LSTM layer.
   -- The size of the cell state is also the size of the output.
   runRecurrentForwards (LSTM (LSTMWeights {..}) _) (S1D cell) (S1D input) =
@@ -146,7 +146,7 @@ instance (KnownNat i, KnownNat o) => RecurrentLayer (LSTM i o) ('D1 i) ('D1 o) w
         c_t = f_t * cell + i_t * c_x
         -- Output (it's sometimes recommended to use tanh c_t)
         h_t = o_t * c_t
-    in (S1D c_t, S1D h_t)
+    in ((S1D cell, S1D input), S1D c_t, S1D h_t)
 
   -- Run a backpropogation step for an LSTM layer.
   -- We're doing all the derivatives by hand here, so one should
@@ -154,7 +154,7 @@ instance (KnownNat i, KnownNat o) => RecurrentLayer (LSTM i o) ('D1 i) ('D1 o) w
   --
   -- There's a test version using the AD library without hmatrix in the test
   -- suite. These should match always.
-  runRecurrentBackwards (LSTM (LSTMWeights {..}) _) (S1D cell) (S1D input) (S1D cellGrad) (S1D h_t') =
+  runRecurrentBackwards (LSTM (LSTMWeights {..}) _) (S1D cell, S1D input) (S1D cellGrad) (S1D h_t') =
     -- We're not keeping the Wengert tape during the forward pass,
     -- so we're duplicating some work here.
     --

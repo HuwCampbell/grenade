@@ -15,8 +15,7 @@ import           Data.Singletons ()
 import           GHC.TypeLits
 import           GHC.TypeLits.Witnesses
 
-import           Grenade.Core.Shape
-import           Grenade.Core.Network
+import           Grenade.Core
 import           Grenade.Layers.Convolution
 
 import           Disorder.Jack
@@ -92,9 +91,9 @@ prop_conv_net =
                                    , (unsafeCoerce (Dict :: Dict ()) :: Dict (((outCols - 1) * strideCols) ~ (inCols - kernelCols)))) of
                                 (Dict, Dict, Dict, Dict) ->
                                     gamble (S3D <$> uniformSample) $ \(input :: S ('D3 inRows inCols channels)) ->
-                                        let output :: S ('D3 outRows outCols filters) = runForwards convLayer input
+                                        let (tape, output :: S ('D3 outRows outCols filters)) = runForwards convLayer input
                                             backed :: (Gradient (Convolution channels filters kernelRows kernelCols strideRows strideCols), S ('D3 inRows inCols channels))
-                                                                                       = runBackwards convLayer input output
+                                                                                              = runBackwards convLayer tape output
                                         in  backed `seq` True
                          ) :: Property
     ) :: Property

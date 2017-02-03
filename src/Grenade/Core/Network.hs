@@ -1,5 +1,8 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -12,62 +15,35 @@ Copyright   : (c) Huw Campbell, 2016-2017
 License     : BSD2
 Stability   : experimental
 
-This module defines the core data type for the simplest
-Neural network we support.
-
+This module defines the core data types and functions
+for non-recurrent neural networks.
 -}
+
+#if __GLASGOW_HASKELL__ < 800
+{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
+#endif
+
 module Grenade.Core.Network (
-    Layer (..)
-  , Network (..)
-  , UpdateLayer (..)
-  , LearningParameters (..)
+    Network (..)
   , Gradients (..)
-  , CreatableNetwork (..)
+  , Tapes (..)
+
+  , runNetwork
+  , runGradient
+  , applyUpdate
+
+  , randomNetwork
   ) where
 
-import           Control.Monad.Random (MonadRandom)
-import           Data.List ( foldl' )
-import           Data.Singletons
+import           Control.Monad.Random ( MonadRandom )
 
+import           Data.Singletons
+import           Data.Singletons.Prelude
 import           Data.Serialize
 
+import           Grenade.Core.Layer
+import           Grenade.Core.LearningParameters
 import           Grenade.Core.Shape
-
--- | Learning parameters for stochastic gradient descent.
-data LearningParameters = LearningParameters {
-    learningRate :: Double
-  , learningMomentum :: Double
-  , learningRegulariser :: Double
-  } deriving (Eq, Show)
-
--- | Class for updating a layer. All layers implement this, and it is
---   shape independent.
-class Show x => UpdateLayer x where
-  {-# MINIMAL runUpdate, createRandom #-}
-  -- | The type for the gradient for this layer.
-  --   Unit if there isn't a gradient to pass back.
-  type Gradient x :: *
-  -- | Update a layer with its gradient and learning parameters
-  runUpdate       :: LearningParameters -> x -> Gradient x -> x
-
-  -- | Create a random layer, many layers will use pure
-  createRandom    :: MonadRandom m => m x
-
-  -- | Update a layer with many Gradients
-  runUpdates      :: LearningParameters -> x -> [Gradient x] -> x
-  runUpdates rate = foldl' (runUpdate rate)
-
--- | Class for a layer. All layers implement this, however, they don't
---   need to implement it for all shapes, only ones which are appropriate.
-class UpdateLayer x => Layer x (i :: Shape) (o :: Shape) where
-  -- | Used in training and scoring. Take the input from the previous
-  --   layer, and give the output from this layer.
-  runForwards    :: x -> S i -> S o
-  -- | Back propagate a step. Takes the current layer, the input that the
-  --   layer gave from the input and the back propagated derivatives from
-  --   the layer above.
-  --   Returns the gradient layer and the derivatives to push back further.
-  runBackwards   :: x -> S i -> S o -> (Gradient x, S i)
 
 -- | Type of a network.
 --
@@ -78,39 +54,144 @@ class UpdateLayer x => Layer x (i :: Shape) (o :: Shape) where
 --   Can be considered to be a heterogeneous list of layers which are able to
 --   transform the data shapes of the network.
 data Network :: [*] -> [Shape] -> * where
-    O     :: (SingI i, SingI o, Layer x i o) => !x -> Network '[x] '[i, o]
-    (:~>) :: (SingI i, SingI h, Layer x i h) => !x -> !(Network xs (h ': hs)) -> Network (x ': xs) (i ': h ': hs)
+    NNil  :: SingI i
+          => Network '[] '[i]
+
+    (:~>) :: (SingI i, SingI h, Layer x i h)
+          => !x
+          -> !(Network xs (h ': hs))
+          -> Network (x ': xs) (i ': h ': hs)
 infixr 5 :~>
 
-instance Show (Network l h) where
-  show (O a) = "O " ++ show a
-  show (i :~> o) = show i ++ "\n:~>\n" ++ show o
+instance Show (Network '[] '[i]) where
+  show NNil = "NNil"
+instance (Show x, Show (Network xs rs)) => Show (Network (x ': xs) (i ': rs)) where
+  show (x :~> xs) = show x ++ "\n~>\n" ++ show xs
 
--- | Gradients of a network.
---   Parameterised on the layers of a Network.
+-- | Gradient of a network.
+--
+--   Parameterised on the layers of the network.
 data Gradients :: [*] -> * where
-   OG    :: UpdateLayer x => Gradient x -> Gradients '[x]
-   (:/>) :: UpdateLayer x => Gradient x -> Gradients xs -> Gradients (x ': xs)
+   GNil  :: Gradients '[]
 
--- | A network can easily be created by hand with (:~>), but an easy way to initialise a random
---   network is with the randomNetwork.
+   (:/>) :: UpdateLayer x
+         => Gradient x
+         -> Gradients xs
+         -> Gradients (x ': xs)
+
+-- | Wegnert Tape of a network.
+--
+--   Parameterised on the layers and shapes of the network.
+data Tapes :: [*] -> [Shape] -> * where
+   TNil  :: SingI i
+         => Tapes '[] '[i]
+
+   (:\>) :: (SingI i, SingI h, Layer x i h)
+         => !(Tape x i h)
+         -> !(Tapes xs (h ': hs))
+         -> Tapes (x ': xs) (i ': h ': hs)
+
+
+-- | Running a network forwards with some input data.
+--
+--   This gives the output, and the Wengert tape required for back
+--   propagation.
+--
+runNetwork :: forall layers shapes.
+              Network layers shapes
+           -> S (Head shapes)
+           -> (Tapes layers shapes, S (Last shapes))
+runNetwork =
+  go
+    where
+  go  :: forall js ss. (Last js ~ Last shapes)
+      => Network ss js
+      -> S (Head js)
+      -> (Tapes ss js, S (Last js))
+  go (layer :~> n) !x =
+    let (tape, forward) = runForwards layer x
+        (tapes, answer) = go n forward
+    in  (tape :\> tapes, answer)
+
+  go NNil !x
+      = (TNil, x)
+
+
+-- | Running a loss gradient back through the network.
+--
+--   This requires a Wengert tape, generated with the appropriate input
+--   for the loss.
+--
+--   Gives the gradients for the layer, and the gradient across the
+--   input (which may not be required).
+--
+runGradient :: forall layers shapes.
+               Network layers shapes
+            -> Tapes layers shapes
+            -> S (Last shapes)
+            -> (Gradients layers, S (Head shapes))
+runGradient net tapes o =
+  go net tapes
+    where
+  go  :: forall js ss. (Last js ~ Last shapes)
+      => Network ss js
+      -> Tapes ss js
+      -> (Gradients ss, S (Head js))
+  go (layer :~> n) (tape :\> nt) =
+    let (gradients, feed)  = go n nt
+        (layer', backGrad) = runBackwards layer tape feed
+    in  (layer' :/> gradients, backGrad)
+
+  go NNil TNil
+      = (GNil, o)
+
+
+-- | Apply one step of stochastic gradient decent across the network.
+applyUpdate :: LearningParameters
+            -> Network layers shapes
+            -> Gradients layers
+            -> Network layers shapes
+applyUpdate rate (layer :~> rest) (gradient :/> grest)
+  = runUpdate rate layer gradient :~> applyUpdate rate rest grest
+
+applyUpdate _ NNil GNil
+  = NNil
+
+
+-- | A network can easily be created by hand with (:~>), but an easy way to
+--   initialise a random network is with the randomNetwork.
 class CreatableNetwork (xs :: [*]) (ss :: [Shape]) where
-  -- | Create a network of the types requested
+  -- | Create a network with randomly initialised weights.
+  --
+  --   Calls to this function will not compile if the type of the neural
+  --   network is not sound.
   randomNetwork :: MonadRandom m => m (Network xs ss)
 
-instance (SingI i, SingI o, Layer x i o) => CreatableNetwork (x ': '[]) (i ': o ': '[]) where
-  randomNetwork = O <$> createRandom
+instance SingI i => CreatableNetwork '[] '[i] where
+  randomNetwork = return NNil
 
-instance (SingI i, SingI o, Layer x i o, CreatableNetwork xs (o ': r ': rs)) => CreatableNetwork (x ': xs) (i ': o ': r ': rs) where
+instance (SingI i, SingI o, Layer x i o, CreatableNetwork xs (o ': rs)) => CreatableNetwork (x ': xs) (i ': o ': rs) where
   randomNetwork = (:~>) <$> createRandom <*> randomNetwork
 
-
 -- | Add very simple serialisation to the network
-instance (SingI i, SingI o, Layer x i o, Serialize x) => Serialize (Network '[x] '[i, o]) where
-  put (O x) = put x
-  put _ = error "impossible"
-  get = O <$> get
+instance SingI i => Serialize (Network '[] '[i]) where
+  put NNil = pure ()
+  get = return NNil
 
-instance (SingI i, SingI o, Layer x i o, Serialize x, Serialize (Network xs (o ': r ': rs))) => Serialize (Network (x ': xs) (i ': o ': r ': rs)) where
+instance (SingI i, SingI o, Layer x i o, Serialize x, Serialize (Network xs (o ': rs))) => Serialize (Network (x ': xs) (i ': o ': rs)) where
   put (x :~> r) = put x >> put r
   get = (:~>) <$> get <*> get
+
+
+-- | Ultimate composition.
+--
+--   This allows a complete network to be treated as a layer in a bigger network.
+instance CreatableNetwork sublayers subshapes => UpdateLayer (Network sublayers subshapes) where
+  type Gradient (Network sublayers subshapes) = Gradients sublayers
+  runUpdate    = applyUpdate
+  createRandom = randomNetwork
+
+instance (CreatableNetwork sublayers subshapes, i ~ (Head subshapes), o ~ (Last subshapes)) => Layer (Network sublayers subshapes) i o where
+  type Tape (Network sublayers subshapes) i o = Tapes sublayers subshapes
+  runForwards  = runNetwork
+  runBackwards = runGradient

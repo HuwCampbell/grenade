@@ -44,7 +44,7 @@ prop_lstm_reference_forwards =
       gamble genLSTM $ \(net@(LSTM lstmWeights _) :: LSTM 3 2) ->
         let actual          = runRecurrentForwards net (S1D cell) (S1D input)
         in case actual of
-          ((S1D cellOut) :: S ('D1 2), (S1D output) :: S ('D1 2)) ->
+          (_, (S1D cellOut) :: S ('D1 2), (S1D output) :: S ('D1 2)) ->
             let cellOut'        = Reference.Vector . H.toList . S.extract $ cellOut
                 output'         = Reference.Vector . H.toList . S.extract $ output
                 refNet          = Reference.lstmToReference lstmWeights
@@ -57,9 +57,9 @@ prop_lstm_reference_backwards =
   gamble randomVector $ \(input :: S.R 3) ->
     gamble randomVector $ \(cell :: S.R 2) ->
       gamble genLSTM $ \(net@(LSTM lstmWeights _) :: LSTM 3 2) ->
-        let actualBacks     = runRecurrentBackwards net (S1D cell) (S1D input) (S1D (S.konst 1) :: S ('D1 2)) (S1D (S.konst 1) :: S ('D1 2))
+        let actualBacks     = runRecurrentBackwards net (S1D cell, S1D input) (S1D (S.konst 1) :: S ('D1 2)) (S1D (S.konst 1) :: S ('D1 2))
         in case actualBacks of
-          (actualGradients, _, _) ->
+          (actualGradients, _, _ :: S ('D1 3)) ->
             let refNet          = Reference.lstmToReference lstmWeights
                 refCell         = Reference.Vector . H.toList . S.extract $ cell
                 refInput        = Reference.Vector . H.toList . S.extract $ input
@@ -70,9 +70,9 @@ prop_lstm_reference_backwards_input =
   gamble randomVector $ \(input :: S.R 3) ->
     gamble randomVector $ \(cell :: S.R 2) ->
       gamble genLSTM $ \(net@(LSTM lstmWeights _) :: LSTM 3 2) ->
-        let actualBacks     = runRecurrentBackwards net (S1D cell) (S1D input) (S1D (S.konst 1) :: S ('D1 2)) (S1D (S.konst 1) :: S ('D1 2))
+        let actualBacks     = runRecurrentBackwards net (S1D cell, S1D input) (S1D (S.konst 1) :: S ('D1 2)) (S1D (S.konst 1) :: S ('D1 2))
         in case actualBacks of
-          (_, _, S1D actualGradients) ->
+          (_, _, S1D actualGradients :: S ('D1 3)) ->
             let refNet          = Reference.lstmToReference lstmWeights
                 refCell         = Reference.Vector . H.toList . S.extract $ cell
                 refInput        = Reference.Vector . H.toList . S.extract $ input
@@ -83,9 +83,9 @@ prop_lstm_reference_backwards_cell =
   gamble randomVector $ \(input :: S.R 3) ->
     gamble randomVector $ \(cell :: S.R 2) ->
       gamble genLSTM $ \(net@(LSTM lstmWeights _) :: LSTM 3 2) ->
-        let actualBacks     = runRecurrentBackwards net (S1D cell) (S1D input) (S1D (S.konst 1) :: S ('D1 2)) (S1D (S.konst 1) :: S ('D1 2))
+        let actualBacks     = runRecurrentBackwards net (S1D cell, S1D input) (S1D (S.konst 1) :: S ('D1 2)) (S1D (S.konst 1) :: S ('D1 2))
         in case actualBacks of
-          (_, S1D actualGradients, _) ->
+          (_, S1D actualGradients, _ :: S ('D1 3)) ->
             let refNet          = Reference.lstmToReference lstmWeights
                 refCell         = Reference.Vector . H.toList . S.extract $ cell
                 refInput        = Reference.Vector . H.toList . S.extract $ input

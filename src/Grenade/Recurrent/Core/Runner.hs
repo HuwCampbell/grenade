@@ -3,18 +3,23 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE RecordWildCards       #-}
+
+#if __GLASGOW_HASKELL__ < 800
+{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
+#endif
+
 module Grenade.Recurrent.Core.Runner (
     trainRecurrent
   , runRecurrent
   ) where
 
 import           Data.Singletons.Prelude
-import           Grenade.Core.Network
-import           Grenade.Core.Shape
+import           Grenade.Core
 
 import           Grenade.Recurrent.Core.Network
 
@@ -48,11 +53,13 @@ trainRecurrent rate network recinputs examples =
     -- Note we're doing training here, we could just return a list of gradients
     -- (and probably will in future).
     go !xs (layer :~~> n) (() :~~+> nIn)
-        = let ys                 = runForwards layer <$> xs
+        = let tys                = runForwards layer <$> xs
+              tapes              = fst <$> tys
+              ys                 = snd <$> tys
               -- recursively run the rest of the network, and get the gradients from above.
               (newFN, ig, grads) = go ys n nIn
               -- calculate the gradient for this layer to pass down,
-              back               = uncurry (runBackwards layer) <$> zip (reverse xs) grads
+              back               = uncurry (runBackwards layer) <$> zip (reverse tapes) grads
               -- the new trained layer.
               newlayer           = runUpdates rate layer (fst <$> back)
 
@@ -61,11 +68,13 @@ trainRecurrent rate network recinputs examples =
     -- This is a recurrent layer, so we need to do a scan, first input to last, providing
     -- the recurrent shape output to the next layer.
     go !xs (layer :~@> n) (g :~@+> nIn)
-        = let ys                 = scanlFrom layer g xs
+        = let tys                = scanlFrom layer g xs
+              tapes              = fst <$> tys
+              ys                 = snd <$> tys
 
-              (newFN, ig, grads) = go (snd <$> ys) n nIn
+              (newFN, ig, grads) = go ys n nIn
 
-              backExamples       = zip3 (fst <$> reverse ys) (reverse xs) grads
+              backExamples       = zip (reverse tapes) grads
 
               (rg, back)         = myscanbackward layer backExamples
               -- the new trained layer.
@@ -74,21 +83,12 @@ trainRecurrent rate network recinputs examples =
 
     -- Handle the output layer, bouncing the derivatives back down.
     -- We may not have a target for each example, so when we don't use 0 gradient.
-    go !xs (OR layer) (ORS ())
-        = let ys              = runForwards layer <$> xs
-              -- recursively run the rest of the network, and get the gradients from above.
-              back            = uncurry (runBackwards layer) <$> zip xs (zipWith makeError ys targets)
-              -- the new trained layer.
-              newlayer        = runUpdates rate layer (reverse $ fst <$> back)
-          in (OR newlayer, ORS (), reverse (snd <$> back))
-
-    go _ _ _ =
-      error "Impossible for network and recurrent inputs to have different shapes"
-
-
-    makeError :: S (Last shapes) -> Maybe (S (Last shapes)) -> S (Last shapes)
-    makeError _ Nothing = 0
-    makeError y (Just t) = y - t
+    go !xs RNil RINil
+        = (RNil, RINil, reverse (zipWith makeError xs targets))
+      where
+        makeError :: S (Last shapes) -> Maybe (S (Last shapes)) -> S (Last shapes)
+        makeError _ Nothing = 0
+        makeError y (Just t) = y - t
 
     updateRecInputs :: forall sublayers.
            LearningParameters
@@ -102,31 +102,29 @@ trainRecurrent rate network recinputs examples =
     updateRecInputs l@LearningParameters {..} (x :~@+> xs) (y :~@+> ys)
       = (realToFrac (learningRate * learningRegulariser) * x - realToFrac learningRate * y) :~@+> updateRecInputs l xs ys
 
-    updateRecInputs _ (ORS ()) (ORS ())
-      = ORS ()
-    updateRecInputs _ _ _
-      = error "Impossible for updateRecInputs to have different shapes"
+    updateRecInputs _ RINil RINil
+      = RINil
 
 scanlFrom :: forall x i o. RecurrentLayer x i o
           => x                                  -- ^ the layer
           -> S (RecurrentShape x)               -- ^ place to start
           -> [S i]                              -- ^ list of inputs to scan through
-          -> [(S (RecurrentShape x), S o)]      -- ^ list of scan inputs and outputs
+          -> [(RecTape x i o, S o)]      -- ^ list of scan inputs and outputs
 scanlFrom !layer !recShape (x:xs) =
-  let (lerec, lepush) = runRecurrentForwards layer recShape x
-  in  (recShape, lepush) : scanlFrom layer lerec xs
+  let (tape, lerec, lepush) = runRecurrentForwards layer recShape x
+  in  (tape, lepush) : scanlFrom layer lerec xs
 scanlFrom _ _ []      = []
 
 myscanbackward :: forall x i o. RecurrentLayer x i o
                 => x                                           -- ^ the layer
-                -> [(S (RecurrentShape x), S i, S o)]          -- ^ the list of inputs and output to scan over
+                -> [(RecTape x i o, S o)]          -- ^ the list of inputs and output to scan over
                 -> (S (RecurrentShape x), [(Gradient x, S i)]) -- ^ list of gradients to fold and inputs to backprop
 myscanbackward layer =
   goX 0
     where
-  goX :: S (RecurrentShape x) -> [(S (RecurrentShape x), S i, S o)] -> (S (RecurrentShape x), [(Gradient x, S i)])
-  goX !lastback ((recShape, lastin, backgrad):xs) =
-    let (layergrad, recgrad, ingrad) = runRecurrentBackwards layer recShape lastin lastback backgrad
+  goX :: S (RecurrentShape x) -> [(RecTape x i o, S o)] -> (S (RecurrentShape x), [(Gradient x, S i)])
+  goX !lastback ((recTape, backgrad):xs) =
+    let (layergrad, recgrad, ingrad) = runRecurrentBackwards layer recTape lastback backgrad
         (pushedback, ll)             = goX recgrad xs
     in  (pushedback, (layergrad, ingrad) : ll)
   goX !lastback []      = (lastback, [])
@@ -136,15 +134,12 @@ runRecurrent :: RecurrentNetwork layers shapes
              -> RecurrentInputs layers -> S (Head shapes)
              -> (RecurrentInputs layers, S (Last shapes))
 runRecurrent (layer :~~> n) (()    :~~+> nr) !x
-  = let ys = runForwards layer x
+  = let (_, ys)  = runForwards layer x
         (nr', o) = runRecurrent n nr ys
     in  (() :~~+> nr', o)
 runRecurrent (layer :~@> n) (recin :~@+> nr) !x
-  = let (recin', y) = runRecurrentForwards layer recin x
-        (nr', o)    = runRecurrent n nr y
+  = let (_, recin', y) = runRecurrentForwards layer recin x
+        (nr', o)       = runRecurrent n nr y
     in  (recin' :~@+> nr', o)
-runRecurrent (OR layer) (ORS  ()) !x
-  = (ORS (), runForwards layer x)
-
-runRecurrent _ _ _
-  = error "Impossible for the gradients of a network to have a different length or shape to the network"
+runRecurrent RNil RINil !x
+  = (RINil, x)

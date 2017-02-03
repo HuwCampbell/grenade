@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances     #-}
-module Grenade.Recurrent.Layers.Trivial (
+module Grenade.Layers.Trivial (
     Trivial (..)
   ) where
 

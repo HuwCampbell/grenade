@@ -25,8 +25,7 @@ import           Numeric.LinearAlgebra hiding ( uniformSample, konst )
 import qualified Numeric.LinearAlgebra as LA
 import           Numeric.LinearAlgebra.Static hiding ((|||), build, toRows)
 
-import           Grenade.Core.Network
-import           Grenade.Core.Shape
+import           Grenade.Core
 import           Grenade.Layers.Internal.Convolution
 import           Grenade.Layers.Internal.Update
 
@@ -157,6 +156,7 @@ instance ( KnownNat kernelRows
          , KnownNat (kernelRows * kernelCols * 1)
          , KnownNat (outputRows * filters)
          ) => Layer (Convolution 1 filters kernelRows kernelCols strideRows strideCols) ('D2 inputRows inputCols) ('D3 outputRows outputCols filters) where
+  type Tape (Convolution 1 filters kernelRows kernelCols strideRows strideCols) ('D2 inputRows inputCols) ('D3 outputRows outputCols filters) = S ('D2 inputRows inputCols)
   runForwards (Convolution kernel _) (S2D input) =
     let ex = extract input
         ek = extract kernel
@@ -170,7 +170,7 @@ instance ( KnownNat kernelRows
         mt = c LA.<> ek
         r  = col2vid 1 1 1 1 ox oy mt
         rs = fromJust . create $ r
-    in  S3D rs
+    in  (S2D input, S3D rs)
 
   runBackwards (Convolution kernel _) (S2D input) (S3D dEdy) =
     let ex = extract input
@@ -214,6 +214,9 @@ instance ( KnownNat kernelRows
          , KnownNat (kernelRows * kernelCols * channels)
          , KnownNat (outputRows * filters)
          ) => Layer (Convolution channels filters kernelRows kernelCols strideRows strideCols) ('D3 inputRows inputCols channels) ('D3 outputRows outputCols filters) where
+
+  type Tape (Convolution channels filters kernelRows kernelCols strideRows strideCols) ('D3 inputRows inputCols channels) ('D3 outputRows outputCols filters) = S ('D3 inputRows inputCols channels)
+
   runForwards (Convolution kernel _) (S3D input) =
     let ex = extract input
         ek = extract kernel
@@ -230,7 +233,7 @@ instance ( KnownNat kernelRows
         mt = c LA.<> ek
         r  = col2vid 1 1 1 1 ox oy mt
         rs = fromJust . create $ r
-    in  S3D rs
+    in  (S3D input, S3D rs)
   runBackwards (Convolution kernel _) (S3D input) (S3D dEdy) =
     let ex = extract input
         ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)

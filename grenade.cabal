@@ -13,27 +13,28 @@ description:           grenade.
 extra-source-files:
     cbits/im2col.h
     cbits/im2col.c
+    cbits/gradient_decent.h
+    cbits/gradient_decent.c
+    cbits/pad.h
+    cbits/pad.c
 
 library
   build-depends:
                        base                            >= 4.8         && < 5
                      , bytestring                      == 0.10.*
-                     , async
                      , containers
                      , deepseq
                      , either                          == 4.4.*
                      , cereal
                      , exceptions                      == 0.8.*
-                     , hmatrix
+                     , hmatrix                         == 0.18.*
                      , MonadRandom
                      , mtl                             >= 2.2.1      && < 2.3
-                     , parallel                        == 3.2.*
                      , primitive
-                     , reflection
                      , text                            == 1.2.*
                      , transformers
-                     , singletons
-                     , vector
+                     , singletons                      >= 2.1        && < 2.3
+                     , vector                          == 0.11.*
 
   ghc-options:
                        -Wall
@@ -43,22 +44,28 @@ library
 
   exposed-modules:
                        Grenade
+                       Grenade.Core
+                       Grenade.Core.Layer
+                       Grenade.Core.LearningParameters
                        Grenade.Core.Network
                        Grenade.Core.Runner
                        Grenade.Core.Shape
                        Grenade.Layers.Crop
+                       Grenade.Layers.Concat
                        Grenade.Layers.Convolution
                        Grenade.Layers.Dropout
                        Grenade.Layers.FullyConnected
-                       Grenade.Layers.Flatten
-                       Grenade.Layers.Fuse
+                       Grenade.Layers.Reshape
                        Grenade.Layers.Logit
+                       Grenade.Layers.Merge
                        Grenade.Layers.Relu
+                       Grenade.Layers.Elu
                        Grenade.Layers.Tanh
                        Grenade.Layers.Pad
                        Grenade.Layers.Pooling
 
                        Grenade.Layers.Internal.Convolution
+                       Grenade.Layers.Internal.Pad
                        Grenade.Layers.Internal.Pooling
                        Grenade.Layers.Internal.Update
 
@@ -69,14 +76,15 @@ library
 
                        Grenade.Recurrent.Layers.BasicRecurrent
                        Grenade.Recurrent.Layers.LSTM
-                       Grenade.Recurrent.Layers.Trivial
 
                        Grenade.Utils.OneHot
 
   includes:           cbits/im2col.h
                       cbits/gradient_decent.h
+                      cbits/pad.h
   c-sources:          cbits/im2col.c
                       cbits/gradient_decent.c
+                      cbits/pad.c
 
   cc-options:         -std=c99 -O3 -msse4.2 -Wall -Werror -DCABAL=1
 
@@ -89,12 +97,13 @@ executable             feedforward
                      , bytestring
                      , cereal
                      , either
-                     , optparse-applicative            == 0.12.*
+                     , optparse-applicative            == 0.13.*
                      , text                            == 1.2.*
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix
                      , transformers
                      , singletons
+                     , semigroups
                      , MonadRandom
 
 executable             mnist
@@ -104,11 +113,12 @@ executable             mnist
                      , grenade
                      , attoparsec
                      , either
-                     , optparse-applicative            == 0.12.*
+                     , optparse-applicative            == 0.13.*
                      , text                            == 1.2.*
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.19
                      , transformers
+                     , semigroups
                      , singletons
                      , MonadRandom
                      , vector
@@ -120,11 +130,12 @@ executable             recurrent
                      , grenade
                      , attoparsec
                      , either
-                     , optparse-applicative            == 0.12.*
+                     , optparse-applicative            == 0.13.*
                      , text                            == 1.2.*
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.19
                      , transformers
+                     , semigroups
                      , singletons
                      , MonadRandom
 
@@ -138,11 +149,12 @@ executable             shakespeare
                      , bytestring
                      , cereal
                      , either
-                     , optparse-applicative            == 0.12.*
+                     , optparse-applicative            == 0.13.*
                      , text                            == 1.2.*
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.19
                      , transformers
+                     , semigroups
                      , singletons
                      , vector
                      , MonadRandom

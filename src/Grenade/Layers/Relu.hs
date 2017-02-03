@@ -9,8 +9,7 @@ module Grenade.Layers.Relu (
 import           Data.Serialize
 
 import           GHC.TypeLits
-import           Grenade.Core.Network
-import           Grenade.Core.Shape
+import           Grenade.Core
 
 import qualified Numeric.LinearAlgebra.Static as LAS
 
@@ -30,7 +29,9 @@ instance Serialize Relu where
   get = return Relu
 
 instance ( KnownNat i) => Layer Relu ('D1 i) ('D1 i) where
-  runForwards _ (S1D y) = S1D (relu y)
+  type Tape Relu ('D1 i) ('D1 i) = S ('D1 i)
+
+  runForwards _ (S1D y) = (S1D y, S1D (relu y))
     where
       relu = LAS.dvmap (\a -> if a <= 0 then 0 else a)
   runBackwards _ (S1D y) (S1D dEdy) = ((), S1D (relu' y * dEdy))
@@ -38,7 +39,9 @@ instance ( KnownNat i) => Layer Relu ('D1 i) ('D1 i) where
       relu' = LAS.dvmap (\a -> if a <= 0 then 0 else 1)
 
 instance (KnownNat i, KnownNat j) => Layer Relu ('D2 i j) ('D2 i j) where
-  runForwards _ (S2D y) = S2D (relu y)
+  type Tape Relu ('D2 i j) ('D2 i j) = S ('D2 i j)
+
+  runForwards _ (S2D y) = (S2D y, S2D (relu y))
     where
       relu = LAS.dmmap (\a -> if a <= 0 then 0 else a)
   runBackwards _ (S2D y) (S2D dEdy) = ((), S2D (relu' y * dEdy))
@@ -46,7 +49,10 @@ instance (KnownNat i, KnownNat j) => Layer Relu ('D2 i j) ('D2 i j) where
       relu' = LAS.dmmap (\a -> if a <= 0 then 0 else 1)
 
 instance (KnownNat i, KnownNat j, KnownNat k) => Layer Relu ('D3 i j k) ('D3 i j k) where
-  runForwards _ (S3D y) = S3D (relu y)
+
+  type Tape Relu ('D3 i j k) ('D3 i j k) = S ('D3 i j k)
+
+  runForwards _ (S3D y) = (S3D y, S3D (relu y))
     where
       relu = LAS.dmmap (\a -> if a <= 0 then 0 else a)
   runBackwards _ (S3D y) (S3D dEdy) = ((), S3D (relu' y * dEdy))

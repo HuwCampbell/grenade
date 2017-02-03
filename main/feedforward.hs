@@ -10,6 +10,7 @@ import           Data.List ( foldl' )
 
 import qualified Data.ByteString as B
 import           Data.Serialize
+import           Data.Semigroup ( (<>) )
 
 import           GHC.TypeLits
 
