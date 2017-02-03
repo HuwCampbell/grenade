@@ -16,8 +16,10 @@ for concise and precise specifications of complex networks in Haskell.
 As an example, a network which can achieve ~1.5% error on MNIST can be
 specified and initialised with random weights in a few lines of code with
 ```haskell
-type MNIST = Network '[ Convolution 1 10 5 5 1 1, Pooling 2 2 2 2, Relu, Convolution 10 16 5 5 1 1, Pooling 2 2 2 2, FlattenLayer, Relu, FullyConnected 256 80, Logit, FullyConnected 80 10, Logit]
-                     '[ 'D2 28 28, 'D3 24 24 10, 'D3 12 12 10, 'D3 12 12 10, 'D3 8 8 16, 'D3 4 4 16, 'D1 256, 'D1 256, 'D1 80, 'D1 80, 'D1 10, 'D1 10]
+type MNIST
+  = Network
+    '[ Convolution 1 10 5 5 1 1, Pooling 2 2 2 2, Relu, Convolution 10 16 5 5 1 1, Pooling 2 2 2 2, FlattenLayer, Relu, FullyConnected 256 80, Logit, FullyConnected 80 10, Logit]
+    '[ 'D2 28 28, 'D3 24 24 10, 'D3 12 12 10, 'D3 12 12 10, 'D3 8 8 16, 'D3 4 4 16, 'D1 256, 'D1 256, 'D1 80, 'D1 80, 'D1 10, 'D1 10]
 
 randomMnist :: MonadRandom m => m MNIST
 randomMnist = randomNetwork
@@ -31,8 +33,10 @@ If recurrent neural networks are more your style, you can try defining something
 ["unreasonably effective"](http://karpathy.github.io/2015/05/21/rnn-effectiveness/)
 with
 ```haskell
-type Shakespeare = RecurrentNetwork '[ R (LSTM 40 80), R (LSTM 80 40), F (FullyConnected 40 40), F Logit]
-                                    '[ 'D1 40, 'D1 80, 'D1 40, 'D1 40, 'D1 40 ]
+type Shakespeare
+  = RecurrentNetwork
+    '[ R (LSTM 40 80), R (LSTM 80 40), F (FullyConnected 40 40), F Logit]
+    '[ 'D1 40, 'D1 80, 'D1 40, 'D1 40, 'D1 40 ]
 ```
 
 Design
@@ -45,8 +49,13 @@ data that are passed between the layers.
 The definition of a network is surprisingly simple:
 ```haskell
 data Network :: [*] -> [Shape] -> * where
-    O     :: (SingI i, SingI o, Layer x i o) => !x -> Network '[x] '[i, o]
-    (:~>) :: (SingI i, SingI h, Layer x i h) => !x -> !(Network xs (h ': hs)) -> Network (x ': xs) (i ': h ': hs)
+    NNil  :: SingI i
+          => Network '[] '[i]
+
+    (:~>) :: (SingI i, SingI h, Layer x i h)
+          => !x
+          -> !(Network xs (h ': hs))
+          -> Network (x ': xs) (i ': h ': hs)
 ```
 
 The `Layer x i o` constraint ensures that the layer `x` can sensibly perform a
