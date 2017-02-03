@@ -18,7 +18,7 @@ module Grenade.Core.Layer (
   , UpdateLayer (..)
   ) where
 
-import           Control.Monad.Random (MonadRandom)
+import           Control.Monad.Random ( MonadRandom )
 
 import           Data.List ( foldl' )
 

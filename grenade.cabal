@@ -22,22 +22,19 @@ library
   build-depends:
                        base                            >= 4.8         && < 5
                      , bytestring                      == 0.10.*
-                     , async
                      , containers
                      , deepseq
                      , either                          == 4.4.*
                      , cereal
                      , exceptions                      == 0.8.*
-                     , hmatrix
+                     , hmatrix                         == 0.18.*
                      , MonadRandom
                      , mtl                             >= 2.2.1      && < 2.3
-                     , parallel                        == 3.2.*
                      , primitive
-                     , reflection
                      , text                            == 1.2.*
                      , transformers
-                     , singletons
-                     , vector
+                     , singletons                      >= 2.1        && < 2.3
+                     , vector                          == 0.11.*
 
   ghc-options:
                        -Wall
@@ -100,7 +97,7 @@ executable             feedforward
                      , bytestring
                      , cereal
                      , either
-                     , optparse-applicative            == 0.12.*
+                     , optparse-applicative            == 0.13.*
                      , text                            == 1.2.*
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix
@@ -115,7 +112,7 @@ executable             mnist
                      , grenade
                      , attoparsec
                      , either
-                     , optparse-applicative            == 0.12.*
+                     , optparse-applicative            == 0.13.*
                      , text                            == 1.2.*
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.19
@@ -131,7 +128,7 @@ executable             recurrent
                      , grenade
                      , attoparsec
                      , either
-                     , optparse-applicative            == 0.12.*
+                     , optparse-applicative            == 0.13.*
                      , text                            == 1.2.*
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.19
@@ -149,7 +146,7 @@ executable             shakespeare
                      , bytestring
                      , cereal
                      , either
-                     , optparse-applicative            == 0.12.*
+                     , optparse-applicative            == 0.13.*
                      , text                            == 1.2.*
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.19

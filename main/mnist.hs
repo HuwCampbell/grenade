@@ -12,6 +12,7 @@ import           Control.Monad.Trans.Except
 
 import qualified Data.Attoparsec.Text as A
 import           Data.List ( foldl' )
+import           Data.Semigroup ( (<>) )
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Vector.Storable as V
@@ -23,7 +24,6 @@ import           Options.Applicative
 
 import           Grenade
 import           Grenade.Utils.OneHot
-
 
 -- The definition of our convolutional neural network.
 -- In the type signature, we have a type level list of shapes which are passed between the layers.

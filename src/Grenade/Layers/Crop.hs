@@ -82,18 +82,30 @@ instance ( KnownNat cropLeft
          , (outputColumns + cropLeft + cropRight) ~ inputColumns
          ) => Layer (Crop cropLeft cropTop cropRight cropBottom) ('D3 inputRows inputColumns channels) ('D3 outputRows outputColumns channels) where
   type Tape (Crop cropLeft cropTop cropRight cropBottom) ('D3 inputRows inputColumns channels) ('D3 outputRows outputColumns channels)  = ()
-  runForwards Crop input =
-    let cropl   = Proxy :: Proxy cropLeft
-        cropt   = Proxy :: Proxy cropTop
-        cropr   = Proxy :: Proxy cropRight
-        cropb   = Proxy :: Proxy cropBottom
-        cropped = crop cropl cropt cropr cropb input
-    in  ((), cropped)
+  runForwards Crop (S3D input) =
+    let padl  = fromIntegral $ natVal (Proxy :: Proxy cropLeft)
+        padt  = fromIntegral $ natVal (Proxy :: Proxy cropTop)
+        padr  = fromIntegral $ natVal (Proxy :: Proxy cropRight)
+        padb  = fromIntegral $ natVal (Proxy :: Proxy cropBottom)
+        inr   = fromIntegral $ natVal (Proxy :: Proxy inputRows)
+        inc   = fromIntegral $ natVal (Proxy :: Proxy inputColumns)
+        outr  = fromIntegral $ natVal (Proxy :: Proxy outputRows)
+        outc  = fromIntegral $ natVal (Proxy :: Proxy outputColumns)
+        ch    = fromIntegral $ natVal (Proxy :: Proxy channels)
+        m     = extract input
+        cropped = crop ch padl padt padr padb outr outc inr inc m
+    in  ((), S3D . fromJust . create $ cropped)
 
-  runBackwards Crop () gradient =
-    let cropl    = Proxy :: Proxy cropLeft
-        cropt    = Proxy :: Proxy cropTop
-        cropr    = Proxy :: Proxy cropRight
-        cropb    = Proxy :: Proxy cropBottom
-        padded   = pad cropl cropt cropr cropb gradient
-    in  ((), padded)
+  runBackwards Crop () (S3D gradient) =
+    let padl  = fromIntegral $ natVal (Proxy :: Proxy cropLeft)
+        padt  = fromIntegral $ natVal (Proxy :: Proxy cropTop)
+        padr  = fromIntegral $ natVal (Proxy :: Proxy cropRight)
+        padb  = fromIntegral $ natVal (Proxy :: Proxy cropBottom)
+        inr   = fromIntegral $ natVal (Proxy :: Proxy inputRows)
+        inc   = fromIntegral $ natVal (Proxy :: Proxy inputColumns)
+        outr  = fromIntegral $ natVal (Proxy :: Proxy outputRows)
+        outc  = fromIntegral $ natVal (Proxy :: Proxy outputColumns)
+        ch    = fromIntegral $ natVal (Proxy :: Proxy channels)
+        m     = extract gradient
+        padded = pad ch padl padt padr padb outr outc inr inc m
+    in  ((), S3D . fromJust . create $ padded)

@@ -14,6 +14,7 @@ import           Data.List ( unfoldr )
 #else
 import           Data.List ( cycle, unfoldr )
 #endif
+import           Data.Semigroup ( (<>) )
 
 import qualified Numeric.LinearAlgebra.Static as SA
 

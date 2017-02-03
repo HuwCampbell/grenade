@@ -70,7 +70,6 @@ instance ( KnownNat padLeft
         vs    = subMatrix (padt, padl) (nrows, ncols) m
     in  ((), S2D . fromJust . create $ vs)
 
-
 -- | A two dimentional image can be padped.
 instance ( KnownNat padLeft
          , KnownNat padTop
@@ -87,18 +86,30 @@ instance ( KnownNat padLeft
          , (inputColumns + padLeft + padRight) ~ outputColumns
          ) => Layer (Pad padLeft padTop padRight padBottom) ('D3 inputRows inputColumns channels) ('D3 outputRows outputColumns channels) where
   type Tape (Pad padLeft padTop padRight padBottom) ('D3 inputRows inputColumns channels) ('D3 outputRows outputColumns channels)  = ()
-  runForwards Pad input =
-    let padl   = Proxy :: Proxy padLeft
-        padt   = Proxy :: Proxy padTop
-        padr   = Proxy :: Proxy padRight
-        padb   = Proxy :: Proxy padBottom
-        padded = pad padl padt padr padb input
-    in  ((), padded)
+  runForwards Pad (S3D input) =
+    let padl  = fromIntegral $ natVal (Proxy :: Proxy padLeft)
+        padt  = fromIntegral $ natVal (Proxy :: Proxy padTop)
+        padr  = fromIntegral $ natVal (Proxy :: Proxy padRight)
+        padb  = fromIntegral $ natVal (Proxy :: Proxy padBottom)
+        outr  = fromIntegral $ natVal (Proxy :: Proxy outputRows)
+        outc  = fromIntegral $ natVal (Proxy :: Proxy outputColumns)
+        inr   = fromIntegral $ natVal (Proxy :: Proxy inputRows)
+        inc   = fromIntegral $ natVal (Proxy :: Proxy inputColumns)
+        ch    = fromIntegral $ natVal (Proxy :: Proxy channels)
+        m     = extract input
+        padded = pad ch padl padt padr padb inr inc outr outc m
+    in  ((), S3D . fromJust . create $ padded)
 
-  runBackwards Pad () gradient =
-    let padl    = Proxy :: Proxy padLeft
-        padt    = Proxy :: Proxy padTop
-        padr    = Proxy :: Proxy padRight
-        padb    = Proxy :: Proxy padBottom
-        cropped = crop padl padt padr padb gradient
-    in  ((), cropped)
+  runBackwards Pad () (S3D gradient) =
+    let padl  = fromIntegral $ natVal (Proxy :: Proxy padLeft)
+        padt  = fromIntegral $ natVal (Proxy :: Proxy padTop)
+        padr  = fromIntegral $ natVal (Proxy :: Proxy padRight)
+        padb  = fromIntegral $ natVal (Proxy :: Proxy padBottom)
+        outr  = fromIntegral $ natVal (Proxy :: Proxy outputRows)
+        outc  = fromIntegral $ natVal (Proxy :: Proxy outputColumns)
+        inr   = fromIntegral $ natVal (Proxy :: Proxy inputRows)
+        inc   = fromIntegral $ natVal (Proxy :: Proxy inputColumns)
+        ch    = fromIntegral $ natVal (Proxy :: Proxy channels)
+        m     = extract gradient
+        cropped = crop ch padl padt padr padb inr inc outr outc m
+    in  ((), S3D . fromJust . create $ cropped)

@@ -29,23 +29,26 @@ genShape
     , genD2
     , genD3
     ]
-  where
-    genD1 = do
-      n <- genNat
-      return $ case n of
-        SomeNat (_ :: Proxy x) -> SomeSing (sing :: Sing ('D1 x))
 
-    genD2 = do
-      n <- genNat
-      m <- genNat
-      return $ case (n, m) of
-        (SomeNat (_ :: Proxy x), SomeNat (_ :: Proxy y)) -> SomeSing (sing :: Sing ('D2 x y))
+genD1 :: Jack (SomeSing Shape)
+genD1 = do
+  n <- genNat
+  return $ case n of
+    SomeNat (_ :: Proxy x) -> SomeSing (sing :: Sing ('D1 x))
 
-    genD3 = do
-      n <- genNat
-      m <- genNat
-      o <- genNat
-      return $ case (n, m, o) of
-        (SomeNat (px :: Proxy x), SomeNat (_ :: Proxy y), SomeNat (pz :: Proxy z)) ->
-           case natDict px %* natDict pz of
-              Dict -> SomeSing (sing :: Sing ('D3 x y z))
+genD2 :: Jack (SomeSing Shape)
+genD2 = do
+  n <- genNat
+  m <- genNat
+  return $ case (n, m) of
+    (SomeNat (_ :: Proxy x), SomeNat (_ :: Proxy y)) -> SomeSing (sing :: Sing ('D2 x y))
+
+genD3 :: Jack (SomeSing Shape)
+genD3 = do
+  n <- genNat
+  m <- genNat
+  o <- genNat
+  return $ case (n, m, o) of
+    (SomeNat (px :: Proxy x), SomeNat (_ :: Proxy y), SomeNat (pz :: Proxy z)) ->
+        case natDict px %* natDict pz of
+          Dict -> SomeSing (sing :: Sing ('D3 x y z))

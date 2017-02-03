@@ -13,6 +13,7 @@ import           Control.Monad.Trans.Except
 import           Data.Char ( isUpper, toUpper, toLower )
 import           Data.List ( foldl' )
 import           Data.Maybe ( fromMaybe )
+import           Data.Semigroup ( (<>) )
 
 import qualified Data.Vector as V
 import           Data.Vector ( Vector )
