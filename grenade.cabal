@@ -71,6 +71,8 @@ library
 
                        Grenade.Recurrent
 
+                       Grenade.Recurrent.Core
+                       Grenade.Recurrent.Core.Layer
                        Grenade.Recurrent.Core.Network
                        Grenade.Recurrent.Core.Runner
 

@@ -42,6 +42,7 @@ backPropagate network input target =
         (grads, _)      = runGradient network tapes (output - target)
     in  grads
 
+
 -- | Update a network with new weights after training with an instance.
 train :: SingI (Last shapes)
       => LearningParameters
@@ -52,6 +53,7 @@ train :: SingI (Last shapes)
 train rate network input output =
     let grads = backPropagate network input output
     in  applyUpdate rate network grads
+
 
 -- | Run the network with input and return the given output.
 runNet :: Network layers shapes -> S (Head shapes) -> S (Last shapes)

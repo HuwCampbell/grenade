@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE RankNTypes            #-}
@@ -11,7 +12,10 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 
 -- GHC 7.10 doesn't see recurrent run functions as total.
+#if __GLASGOW_HASKELL__ < 800
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
+#endif
+
 module Grenade.Recurrent.Layers.LSTM (
     LSTM (..)
   , LSTMWeights (..)
@@ -29,10 +33,9 @@ import qualified Numeric.LinearAlgebra as LA
 import           Numeric.LinearAlgebra.Static
 
 import           Grenade.Core
-
+import           Grenade.Recurrent.Core
 import           Grenade.Layers.Internal.Update
 
-import           Grenade.Recurrent.Core.Network
 
 -- | Long Short Term Memory Recurrent unit
 --
