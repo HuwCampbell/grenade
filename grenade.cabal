@@ -1,6 +1,7 @@
 name:                  grenade
 version:               0.0.1
 license:               BSD2
+license-file:          LICENSE
 author:                Huw Campbell <huw.campbell@gmail.com>
 maintainer:            Huw Campbell <huw.campbell@gmail.com>
 copyright:             (c) 2015 Huw Campbell.
@@ -17,6 +18,10 @@ extra-source-files:
     cbits/gradient_decent.c
     cbits/pad.h
     cbits/pad.c
+
+source-repository head
+  type: git
+  location: https://github.com/HuwCampbell/grenade.git
 
 library
   build-depends:
