@@ -1,6 +1,8 @@
 Grenade
 =======
 
+[![Build Status](https://api.travis-ci.org/HuwCampbell/grenade.svg?branch=master)](https://travis-ci.org/HuwCampbell/grenade)
+
 ```
 First shalt thou take out the Holy Pin, then shalt thou count to three, no more, no less.
 Three shall be the number thou shalt count, and the number of the counting shall be three.
