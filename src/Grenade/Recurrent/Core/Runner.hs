@@ -74,7 +74,7 @@ updateRecInputs l@LearningParameters {..} (() :~~+> xs) (() :~~+> ys)
   = () :~~+> updateRecInputs l xs ys
 
 updateRecInputs l@LearningParameters {..} (x :~@+> xs) (y :~@+> ys)
-  = (realToFrac (learningRate * learningRegulariser) * x - realToFrac learningRate * y) :~@+> updateRecInputs l xs ys
+  = (realToFrac (1 - learningRate * learningRegulariser) * x - realToFrac learningRate * y) :~@+> updateRecInputs l xs ys
 
 updateRecInputs _ RINil RINil
   = RINil
