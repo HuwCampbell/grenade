@@ -22,7 +22,13 @@ genNat = do
   Just n <- someNatVal <$> choose (1, 10)
   return n
 
-genShape :: Jack (SomeSing Shape)
+#if __GLASGOW_HASKELL__ < 800
+type Shape' = ('KProxy :: KProxy Shape)
+#else
+type Shape' = Shape
+#endif
+
+genShape :: Jack (SomeSing Shape')
 genShape
   = oneOf [
       genD1
@@ -30,20 +36,20 @@ genShape
     , genD3
     ]
 
-genD1 :: Jack (SomeSing Shape)
+genD1 :: Jack (SomeSing Shape')
 genD1 = do
   n <- genNat
   return $ case n of
     SomeNat (_ :: Proxy x) -> SomeSing (sing :: Sing ('D1 x))
 
-genD2 :: Jack (SomeSing Shape)
+genD2 :: Jack (SomeSing Shape')
 genD2 = do
   n <- genNat
   m <- genNat
   return $ case (n, m) of
     (SomeNat (_ :: Proxy x), SomeNat (_ :: Proxy y)) -> SomeSing (sing :: Sing ('D2 x y))
 
-genD3 :: Jack (SomeSing Shape)
+genD3 :: Jack (SomeSing Shape')
 genD3 = do
   n <- genNat
   m <- genNat

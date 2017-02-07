@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE KindSignatures      #-}
@@ -9,6 +10,10 @@
 module Test.Grenade.Layers.Nonlinear where
 
 import           Data.Singletons
+
+#if __GLASGOW_HASKELL__ < 800
+import           Data.Proxy
+#endif
 
 import           Grenade
 import           GHC.TypeLits

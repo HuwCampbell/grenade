@@ -157,7 +157,6 @@ applyUpdate rate (layer :~> rest) (gradient :/> grest)
 applyUpdate _ NNil GNil
   = NNil
 
-
 -- | A network can easily be created by hand with (:~>), but an easy way to
 --   initialise a random network is with the randomNetwork.
 class CreatableNetwork (xs :: [*]) (ss :: [Shape]) where

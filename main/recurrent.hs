@@ -23,7 +23,6 @@ import           Options.Applicative
 import           Grenade
 import           Grenade.Recurrent
 
-{-# OPTIONS_GHC -fno-redundant-imports #-}
 -- The defininition for our simple recurrent network.
 -- This file just trains a network to generate a repeating sequence
 -- of 0 0 1.
