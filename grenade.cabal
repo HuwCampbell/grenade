@@ -130,6 +130,25 @@ executable             mnist
                      , MonadRandom
                      , vector
 
+executable             gan-mnist
+    ghc-options:       -Wall -threaded -O2
+    main-is:           main/gan-mnist.hs
+    build-depends:     base
+                     , grenade
+                     , attoparsec
+                     , bytestring
+                     , cereal
+                     , either
+                     , optparse-applicative            == 0.13.*
+                     , text                            == 1.2.*
+                     , mtl                             >= 2.2.1      && < 2.3
+                     , hmatrix                         >= 0.18       && < 0.19
+                     , transformers
+                     , semigroups
+                     , singletons
+                     , MonadRandom
+                     , vector
+
 executable             recurrent
     ghc-options:       -Wall -threaded -O2
     main-is:           main/recurrent.hs
