@@ -10,8 +10,8 @@
 -- This is a simple generative adversarial network to make pictures
 -- of numbers similar to those in MNIST.
 --
--- It demonstrates a different usage of the library, within a few hours
--- was producing examples like this:
+-- It demonstrates a different usage of the library. Within about an
+-- hour it was producing examples like this:
 --
 --               --.
 --     .=-.--..#=###
