@@ -58,7 +58,7 @@ import           Grenade
 import           Grenade.Utils.OneHot
 
 type Discriminator = Network '[ Convolution 1 10 5 5 1 1, Pooling 2 2 2 2, Relu, Convolution 10 16 5 5 1 1, Pooling 2 2 2 2, Reshape, Relu, FullyConnected 256 80, Logit, FullyConnected 80 1, Logit]
-                             '[ 'D2 28 28, 'D3 24 24 10, 'D3 12 12 10, 'D3 12 12 10, 'D3 8 8 16, 'D3 4 4 16, 'D1 256, 'D1 256, 'D1 80, 'D1 80, 'D1 1, 'D1 1]
+           '[ 'D2 28 28, 'D3 24 24 10, 'D3 12 12 10, 'D3 12 12 10, 'D3 8 8 16, 'D3 4 4 16, 'D1 256, 'D1 256, 'D1 80, 'D1 80, 'D1 1, 'D1 1]
 
 type Generator = Network '[ FullyConnected 100 10240, Relu, Reshape, Convolution 10 10 5 5 1 1, Relu, Convolution 10 1 1 1 1 1, Logit, Reshape]
                          '[ 'D1 100, 'D1 10240, 'D1 10240, 'D3 32 32 10, 'D3 28 28 10, 'D3 28 28 10, 'D3 28 28 1, 'D3 28 28 1, 'D2 28 28 ]
@@ -77,9 +77,10 @@ trainExample rate discriminator generator realExample noiseSource
        (discriminatorTapeFake, guessFake) = runNetwork discriminator fakeExample
 
        (discriminator'real, _)            = runGradient discriminator discriminatorTapeReal ( guessReal - 1 )
-       (discriminator'fake, push)         = runGradient discriminator discriminatorTapeFake guessFake
+       (discriminator'fake, _)            = runGradient discriminator discriminatorTapeFake guessFake
+       (_, push)                          = runGradient discriminator discriminatorTapeFake ( guessFake - 1)
 
-       (generator', _)                    = runGradient generator generatorTape (-push)
+       (generator', _)                    = runGradient generator generatorTape push
 
        newDiscriminator                   = foldl' (applyUpdate rate { learningRegulariser = learningRegulariser rate * 10}) discriminator [ discriminator'real, discriminator'fake ]
        newGenerator                       = applyUpdate rate generator generator'

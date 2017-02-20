@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -10,10 +9,7 @@
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-
-#if __GLASGOW_HASKELL__ < 800
-{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
-#endif
+{-# LANGUAGE UndecidableInstances  #-}
 
 module Grenade.Recurrent.Core.Network (
     Recurrent

@@ -1,6 +1,9 @@
 module Grenade.Recurrent.Core (
-    module X
+    module Grenade.Recurrent.Core.Layer
+  , module Grenade.Recurrent.Core.Network
+  , module Grenade.Recurrent.Core.Runner
   ) where
 
-import           Grenade.Recurrent.Core.Layer as X
-import           Grenade.Recurrent.Core.Network as X
+import           Grenade.Recurrent.Core.Layer
+import           Grenade.Recurrent.Core.Network
+import           Grenade.Recurrent.Core.Runner

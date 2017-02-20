@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE RecordWildCards       #-}
@@ -8,10 +7,6 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE UndecidableInstances  #-}
 
--- GHC 7.10 doesn't see recurrent run functions as total.
-#if __GLASGOW_HASKELL__ < 800
-{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
-#endif
 module Grenade.Recurrent.Layers.BasicRecurrent (
     BasicRecurrent (..)
   , randomBasicRecurrent

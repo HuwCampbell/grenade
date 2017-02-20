@@ -4,7 +4,7 @@ license:               BSD2
 license-file:          LICENSE
 author:                Huw Campbell <huw.campbell@gmail.com>
 maintainer:            Huw Campbell <huw.campbell@gmail.com>
-copyright:             (c) 2015 Huw Campbell.
+copyright:             (c) 2016-2017 Huw Campbell.
 synopsis:              grenade
 category:              System
 cabal-version:         >= 1.8
@@ -12,12 +12,12 @@ build-type:            Simple
 description:           grenade.
 
 extra-source-files:
-    cbits/im2col.h
-    cbits/im2col.c
-    cbits/gradient_decent.h
-    cbits/gradient_decent.c
-    cbits/pad.h
-    cbits/pad.c
+  cbits/im2col.h
+  cbits/im2col.c
+  cbits/gradient_decent.h
+  cbits/gradient_decent.c
+  cbits/pad.h
+  cbits/pad.c
 
 source-repository head
   type: git
@@ -27,24 +27,25 @@ library
   build-depends:
                        base                            >= 4.8         && < 5
                      , bytestring                      == 0.10.*
-                     , containers
-                     , deepseq
-                     , either                          == 4.4.*
-                     , cereal
+                     , containers                      >= 0.5         && < 0.6
+                     , cereal                          >= 0.5         && < 0.6
+                     , deepseq                         >= 1.4         && < 1.5
                      , exceptions                      == 0.8.*
                      , hmatrix                         == 0.18.*
-                     , MonadRandom
-                     , mtl                             >= 2.2.1      && < 2.3
-                     , primitive
+                     , MonadRandom                     >= 0.4         && < 0.6
+                     , mtl                             >= 2.2.1       && < 2.3
+                     , primitive                       >= 0.6         && < 0.7
                      , text                            == 1.2.*
-                     , transformers
-                     , singletons                      >= 2.1        && < 2.3
-                     , vector                          == 0.11.*
+                     , singletons                      >= 2.1         && < 2.3
+                     , vector                          >= 0.11        && < 0.13
 
   ghc-options:
                        -Wall
   hs-source-dirs:
                        src
+
+  if impl(ghc < 8.0)
+    ghc-options:       -fno-warn-incomplete-patterns
 
 
   exposed-modules:
@@ -55,19 +56,24 @@ library
                        Grenade.Core.Network
                        Grenade.Core.Runner
                        Grenade.Core.Shape
-                       Grenade.Layers.Crop
+
+                       Grenade.Layers
                        Grenade.Layers.Concat
                        Grenade.Layers.Convolution
+                       Grenade.Layers.Crop
                        Grenade.Layers.Dropout
+                       Grenade.Layers.Elu
                        Grenade.Layers.FullyConnected
-                       Grenade.Layers.Reshape
+                       Grenade.Layers.Inception
                        Grenade.Layers.Logit
                        Grenade.Layers.Merge
-                       Grenade.Layers.Relu
-                       Grenade.Layers.Elu
-                       Grenade.Layers.Tanh
                        Grenade.Layers.Pad
                        Grenade.Layers.Pooling
+                       Grenade.Layers.Relu
+                       Grenade.Layers.Reshape
+                       Grenade.Layers.Softmax
+                       Grenade.Layers.Tanh
+                       Grenade.Layers.Trivial
 
                        Grenade.Layers.Internal.Convolution
                        Grenade.Layers.Internal.Pad
@@ -81,111 +87,20 @@ library
                        Grenade.Recurrent.Core.Network
                        Grenade.Recurrent.Core.Runner
 
+                       Grenade.Recurrent.Layers
                        Grenade.Recurrent.Layers.BasicRecurrent
                        Grenade.Recurrent.Layers.LSTM
 
                        Grenade.Utils.OneHot
 
-  includes:           cbits/im2col.h
-                      cbits/gradient_decent.h
-                      cbits/pad.h
-  c-sources:          cbits/im2col.c
-                      cbits/gradient_decent.c
-                      cbits/pad.c
+  includes:            cbits/im2col.h
+                       cbits/gradient_decent.h
+                       cbits/pad.h
+  c-sources:           cbits/im2col.c
+                       cbits/gradient_decent.c
+                       cbits/pad.c
 
-  cc-options:         -std=c99 -O3 -msse4.2 -Wall -Werror -DCABAL=1
-
-executable             feedforward
-    ghc-options:       -Wall -threaded -O2
-    main-is:           main/feedforward.hs
-    build-depends:     base
-                     , grenade
-                     , attoparsec
-                     , bytestring
-                     , cereal
-                     , either
-                     , optparse-applicative            == 0.13.*
-                     , text                            == 1.2.*
-                     , mtl                             >= 2.2.1      && < 2.3
-                     , hmatrix
-                     , transformers
-                     , singletons
-                     , semigroups
-                     , MonadRandom
-
-executable             mnist
-    ghc-options:       -Wall -threaded -O2
-    main-is:           main/mnist.hs
-    build-depends:     base
-                     , grenade
-                     , attoparsec
-                     , either
-                     , optparse-applicative            == 0.13.*
-                     , text                            == 1.2.*
-                     , mtl                             >= 2.2.1      && < 2.3
-                     , hmatrix                         >= 0.18       && < 0.19
-                     , transformers
-                     , semigroups
-                     , singletons
-                     , MonadRandom
-                     , vector
-
-executable             gan-mnist
-    ghc-options:       -Wall -threaded -O2
-    main-is:           main/gan-mnist.hs
-    build-depends:     base
-                     , grenade
-                     , attoparsec
-                     , bytestring
-                     , cereal
-                     , either
-                     , optparse-applicative            == 0.13.*
-                     , text                            == 1.2.*
-                     , mtl                             >= 2.2.1      && < 2.3
-                     , hmatrix                         >= 0.18       && < 0.19
-                     , transformers
-                     , semigroups
-                     , singletons
-                     , MonadRandom
-                     , vector
-
-executable             recurrent
-    ghc-options:       -Wall -threaded -O2
-    main-is:           main/recurrent.hs
-    build-depends:     base
-                     , grenade
-                     , attoparsec
-                     , either
-                     , optparse-applicative            == 0.13.*
-                     , text                            == 1.2.*
-                     , mtl                             >= 2.2.1      && < 2.3
-                     , hmatrix                         >= 0.18       && < 0.19
-                     , transformers
-                     , semigroups
-                     , singletons
-                     , MonadRandom
-
-
-executable             shakespeare
-    ghc-options:       -Wall -threaded -O2
-    main-is:           main/shakespeare.hs
-    build-depends:     base
-                     , grenade
-                     , attoparsec
-                     , bytestring
-                     , cereal
-                     , either
-                     , optparse-applicative            == 0.13.*
-                     , text                            == 1.2.*
-                     , mtl                             >= 2.2.1      && < 2.3
-                     , hmatrix                         >= 0.18       && < 0.19
-                     , transformers
-                     , semigroups
-                     , singletons
-                     , vector
-                     , MonadRandom
-                     , containers
-
+  cc-options:          -std=c99 -O3 -msse4.2 -Wall -Werror -DCABAL=1
 
 test-suite test
   type:                exitcode-stdio-1.0

@@ -9,7 +9,7 @@ module Grenade.Layers.Trivial (
 
 import           Data.Serialize
 
-import           Grenade.Core.Network
+import           Grenade.Core
 
 -- | A trivial layer.
 data Trivial = Trivial
@@ -25,5 +25,6 @@ instance UpdateLayer Trivial where
   createRandom = return Trivial
 
 instance (a ~ b) => Layer Trivial a b where
-  runForwards _ = id
+  type Tape Trivial a b = ()
+  runForwards _ a = ((), a)
   runBackwards _ _ y = ((), y)

@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE GADTs                 #-}
@@ -18,10 +17,6 @@ Stability   : experimental
 This module defines the core data types and functions
 for non-recurrent neural networks.
 -}
-
-#if __GLASGOW_HASKELL__ < 800
-{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
-#endif
 
 module Grenade.Core.Network (
     Network (..)
@@ -47,9 +42,9 @@ import           Grenade.Core.Shape
 
 -- | Type of a network.
 --
---   The [*] type specifies the types of the layers.
+--   The @[*]@ type specifies the types of the layers.
 --
---   The [Shape] type specifies the shapes of data passed between the layers.
+--   The @[Shape]@ type specifies the shapes of data passed between the layers.
 --
 --   Can be considered to be a heterogeneous list of layers which are able to
 --   transform the data shapes of the network.

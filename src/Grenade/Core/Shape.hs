@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE KindSignatures        #-}
@@ -8,11 +7,6 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE RankNTypes            #-}
-
--- Ghc 7.10 fails to recognise n2 is complete.
-#if __GLASGOW_HASKELL__ < 800
-{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
-#endif
 {-|
 Module      : Grenade.Core.Shape
 Description : Core definition of the Shapes of data we understand
@@ -65,17 +59,14 @@ data Shape
 --   All shapes are held in contiguous memory.
 --   3D is held in a matrix (usually row oriented) which has height depth * rows.
 data S (n :: Shape) where
-  -- | One dimensional data
   S1D :: ( KnownNat len )
       => R len
       -> S ('D1 len)
 
-  -- | Two dimensional data
   S2D :: ( KnownNat rows, KnownNat columns )
       => L rows columns
       -> S ('D2 rows columns)
 
-  -- | Three dimensional data
   S3D :: ( KnownNat rows
          , KnownNat columns
          , KnownNat depth

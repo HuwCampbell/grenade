@@ -9,11 +9,13 @@
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
 {-|
-Module      : Grenade.Core.Network
-Description : Core definition a simple neural etwork
+Module      : Grenade.Layers.Concat
+Description : Concatenation layer
 Copyright   : (c) Huw Campbell, 2016-2017
 License     : BSD2
 Stability   : experimental
+
+This module provides the concatenation layer, whic used to run two separate layers in parallel and combine their outputs.
 -}
 module Grenade.Layers.Concat (
     Concat (..)

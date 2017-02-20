@@ -1,8 +1,13 @@
 module Grenade.Core (
-    module X
+    module Grenade.Core.Layer
+  , module Grenade.Core.LearningParameters
+  , module Grenade.Core.Network
+  , module Grenade.Core.Runner
+  , module Grenade.Core.Shape
   ) where
 
-import           Grenade.Core.Layer as X
-import           Grenade.Core.LearningParameters as X
-import           Grenade.Core.Shape as X
-import           Grenade.Core.Network as X
+import           Grenade.Core.Layer
+import           Grenade.Core.LearningParameters
+import           Grenade.Core.Network
+import           Grenade.Core.Runner
+import           Grenade.Core.Shape

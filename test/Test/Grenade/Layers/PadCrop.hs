@@ -30,6 +30,15 @@ prop_pad_crop =
           (_    , grad) = runBackwards net tapes d
       in  d ~~~ res .&&. grad ~~~ d
 
+prop_pad_crop_2d :: Property
+prop_pad_crop_2d =
+  let net :: Network '[Pad 2 3 4 6, Crop 2 3 4 6] '[ 'D2 7 9, 'D2 16 15, 'D2 7 9 ]
+      net = Pad :~> Crop :~> NNil
+  in  gamble genOfShape $ \(d :: S ('D2 7 9)) ->
+      let (tapes, res)  = runForwards  net d
+          (_    , grad) = runBackwards net tapes d
+      in  d ~~~ res .&&. grad ~~~ d
+
 (~~~) :: S x -> S x -> Bool
 (S1D x) ~~~ (S1D y) = norm_Inf (x - y) < 0.00001
 (S2D x) ~~~ (S2D y) = norm_Inf (x - y) < 0.00001
