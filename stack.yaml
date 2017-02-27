@@ -1,0 +1,18 @@
+flags:
+  time-locale-compat:
+    old-locale: false
+extra-package-dbs: []
+packages:
+- '.'
+
+resolver: lts-8.2
+
+# Dependency packages to be pulled from upstream that are not in the resolver
+# (e.g., acme-missiles-0.3)
+extra-deps: []
+
+# Override default flag values for local packages and extra-deps
+flags: {}
+
+# Extra package databases containing global packages
+extra-package-dbs: []
