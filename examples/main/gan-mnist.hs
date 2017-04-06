@@ -10,8 +10,8 @@
 -- This is a simple generative adversarial network to make pictures
 -- of numbers similar to those in MNIST.
 --
--- It demonstrates a different usage of the library. Within about an
--- hour it was producing examples like this:
+-- It demonstrates a different usage of the library. Within about 15
+-- minutes hour it was producing examples like this:
 --
 --               --.
 --     .=-.--..#=###
@@ -57,11 +57,25 @@ import           Options.Applicative
 import           Grenade
 import           Grenade.Utils.OneHot
 
-type Discriminator = Network '[ Convolution 1 10 5 5 1 1, Pooling 2 2 2 2, Relu, Convolution 10 16 5 5 1 1, Pooling 2 2 2 2, Reshape, Relu, FullyConnected 256 80, Logit, FullyConnected 80 1, Logit]
-           '[ 'D2 28 28, 'D3 24 24 10, 'D3 12 12 10, 'D3 12 12 10, 'D3 8 8 16, 'D3 4 4 16, 'D1 256, 'D1 256, 'D1 80, 'D1 80, 'D1 1, 'D1 1]
+type Discriminator =
+  Network
+    '[ Convolution 1 10 5 5 1 1, Pooling 2 2 2 2, Relu
+     , Convolution 10 16 5 5 1 1, Pooling 2 2 2 2, Relu
+     , Reshape, FullyConnected 256 80, Logit, FullyConnected 80 1, Logit]
+    '[ 'D2 28 28
+     , 'D3 24 24 10, 'D3 12 12 10, 'D3 12 12 10
+     , 'D3 8 8 16, 'D3 4 4 16, 'D3 4 4 16
+     , 'D1 256, 'D1 80, 'D1 80, 'D1 1, 'D1 1]
 
-type Generator = Network '[ FullyConnected 100 10240, Relu, Reshape, Convolution 10 10 5 5 1 1, Relu, Convolution 10 1 1 1 1 1, Logit, Reshape]
-                         '[ 'D1 100, 'D1 10240, 'D1 10240, 'D3 32 32 10, 'D3 28 28 10, 'D3 28 28 10, 'D3 28 28 1, 'D3 28 28 1, 'D2 28 28 ]
+type Generator =
+  Network
+    '[ FullyConnected 80 256, Relu, Reshape
+     , Deconvolution 16 10 5 5 2 2, Relu
+     , Deconvolution 10 1 8 8 2 2, Logit]
+    '[ 'D1 80
+     , 'D1 256, 'D1 256, 'D3 4 4 16
+     , 'D3 11 11 10, 'D3 11 11 10
+     , 'D2 28 28, 'D2 28 28 ]
 
 randomDiscriminator :: MonadRandom m => m Discriminator
 randomDiscriminator = randomNetwork
@@ -69,7 +83,7 @@ randomDiscriminator = randomNetwork
 randomGenerator :: MonadRandom m => m Generator
 randomGenerator = randomNetwork
 
-trainExample :: LearningParameters -> Discriminator -> Generator -> S ('D2 28 28) -> S ('D1 100) -> ( Discriminator, Generator )
+trainExample :: LearningParameters -> Discriminator -> Generator -> S ('D2 28 28) -> S ('D1 80) -> ( Discriminator, Generator )
 trainExample rate discriminator generator realExample noiseSource
  = let (generatorTape, fakeExample)       = runNetwork generator noiseSource
 

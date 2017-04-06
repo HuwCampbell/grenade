@@ -12,7 +12,7 @@ Five is right out.
 
 💣 Machine learning which might blow up in your face 💣
 
-Grenade is a dependently typed, practical, and fast recurrent neural network library
+Grenade is a composable, dependently typed, practical, and fast recurrent neural network library
 for concise and precise specifications of complex networks in Haskell.
 
 As an example, a network which can achieve ~1.5% error on MNIST can be
@@ -100,9 +100,48 @@ easy in downstream code. If the shapes of a network are not specified correctly
 and a layer can not sensibly perform the operation between two shapes, then
 it will result in a compile time error.
 
+Composition
+-----------
+
+Networks and Layers in Grenade are easily composed at the type level. As a `Network`
+is an instance of `Layer`, one can use a trained Network as a small component in a
+larger network easily. Furthermore, we provide 2 layers which are designed to run
+layers in parallel and merge their output (either by concatenating them across one
+dimension or summing by pointwise adding their activations). This allows one to
+write any Network which can be expressed as a
+[series parallel graph](https://en.wikipedia.org/wiki/Series-parallel_graph).
+
+A residual network layer specification for instance could be written as
+```haskell
+type Residual net = Merge Trivial net
+```
+If the type `net` is an instance of `Layer`, then `Residual net` will be too. It will
+run the network, while retaining its input by passing it through the `Trivial` layer,
+and merge the original image with the output.
+
+See the [MNIST](https://github.com/HuwCampbell/grenade/blob/master/examples/main/mnist.hs)
+example, which has been overengineered to contain both residual style learning as well
+as inception style convolutions.
+
+Generative Adversarial Networks
+-------------------------------
+
+As Grenade is purely functional, one can compose its training functions in flexible
+ways. [GAN-MNIST](https://github.com/HuwCampbell/grenade/blob/master/examples/main/gan-mnist.hs)
+example displays an interesting, type safe way of writing a generative adversarial
+training function in 10 lines of code.
+
+Layer Zoo
+---------
+
+Grenade layers are normal haskell data types which are an instance of `Layer`, so
+it's easy to build one's own downstream code. We do however provide a decent set
+of layers, including convolution, deconvolution, pooling, pad, crop, logit, relu,
+elu, tanh, and fully connected.
+
 Build Instructions
 ------------------
-Grenade currently only builds with the [mafia](https://github.com/ambiata/mafia)
+Grenade is most easily built with the [mafia](https://github.com/ambiata/mafia)
 script that is located in the repository. You will also need the `lapack` and
 `blas` libraries and development tools. Once you have all that, Grenade can be
 build using:
@@ -117,7 +156,7 @@ and the tests run using:
 ./mafia test
 ```
 
-Grenade is currently known to build with ghc 7.10 and 8.0.
+Grenade builds with ghc 7.10 and 8.0.
 
 Thanks
 ------

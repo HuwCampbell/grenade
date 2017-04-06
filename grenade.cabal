@@ -61,6 +61,7 @@ library
                        Grenade.Layers.Concat
                        Grenade.Layers.Convolution
                        Grenade.Layers.Crop
+                       Grenade.Layers.Deconvolution
                        Grenade.Layers.Dropout
                        Grenade.Layers.Elu
                        Grenade.Layers.FullyConnected

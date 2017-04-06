@@ -19,6 +19,8 @@ complex multiconvolution size networks.
 -}
 module Grenade.Layers.Inception (
     Inception
+  , InceptionMini
+  , Resnet
   ) where
 
 import           GHC.TypeLits
@@ -27,6 +29,8 @@ import           Grenade.Core
 import           Grenade.Layers.Convolution
 import           Grenade.Layers.Pad
 import           Grenade.Layers.Concat
+import           Grenade.Layers.Merge
+import           Grenade.Layers.Trivial
 
 -- | Type of an inception layer.
 --
@@ -41,10 +45,10 @@ import           Grenade.Layers.Concat
 --   The network get padded effectively before each convolution filters
 --   such that the output dimension is the same x and y as the input.
 type Inception rows cols channels chx chy chz
-  = Network '[ Concat ('D3 rows cols (chx + chy)) (InceptionS rows cols channels chx chy) ('D3 rows cols chz) (Inception7x7 rows cols channels chz) ]
+  = Network '[ Concat ('D3 rows cols (chx + chy)) (InceptionMini rows cols channels chx chy) ('D3 rows cols chz) (Inception7x7 rows cols channels chz) ]
             '[ 'D3 rows cols channels, 'D3 rows cols (chx + chy + chz) ]
 
-type InceptionS rows cols channels chx chy
+type InceptionMini rows cols channels chx chy
   = Network '[ Concat ('D3 rows cols chx) (Inception3x3 rows cols channels chx) ('D3 rows cols chy) (Inception5x5 rows cols channels chy) ]
             '[ 'D3 rows cols channels, 'D3 rows cols (chx + chy) ]
 
@@ -60,3 +64,4 @@ type Inception7x7 rows cols channels chx
   = Network '[ Pad 3 3 3 3, Convolution channels chx 7 7 1 1 ]
             '[ 'D3 rows cols channels, 'D3 (rows + 6) (cols + 6) channels, 'D3 rows cols chx ]
 
+type Resnet branch = Merge Trivial branch

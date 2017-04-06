@@ -141,62 +141,6 @@ instance ( KnownNat channels
       let mm = konst 0
       return $ Convolution wN mm
 
--- | A two dimentional image may have a convolution filter applied to it
-instance ( KnownNat kernelRows
-         , KnownNat kernelCols
-         , KnownNat filters
-         , KnownNat strideRows
-         , KnownNat strideCols
-         , KnownNat inputRows
-         , KnownNat inputCols
-         , KnownNat outputRows
-         , KnownNat outputCols
-         , ((outputRows - 1) * strideRows) ~ (inputRows - kernelRows)
-         , ((outputCols - 1) * strideCols) ~ (inputCols - kernelCols)
-         , KnownNat (kernelRows * kernelCols * 1)
-         , KnownNat (outputRows * filters)
-         ) => Layer (Convolution 1 filters kernelRows kernelCols strideRows strideCols) ('D2 inputRows inputCols) ('D3 outputRows outputCols filters) where
-  type Tape (Convolution 1 filters kernelRows kernelCols strideRows strideCols) ('D2 inputRows inputCols) ('D3 outputRows outputCols filters) = S ('D2 inputRows inputCols)
-  runForwards (Convolution kernel _) (S2D input) =
-    let ex = extract input
-        ek = extract kernel
-        kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
-        ky = fromIntegral $ natVal (Proxy :: Proxy kernelCols)
-        sx = fromIntegral $ natVal (Proxy :: Proxy strideRows)
-        sy = fromIntegral $ natVal (Proxy :: Proxy strideCols)
-        ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
-        oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
-        c  = im2col kx ky sx sy ex
-        mt = c LA.<> ek
-        r  = col2vid 1 1 1 1 ox oy mt
-        rs = fromJust . create $ r
-    in  (S2D input, S3D rs)
-
-  runBackwards (Convolution kernel _) (S2D input) (S3D dEdy) =
-    let ex = extract input
-        ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
-        iy = fromIntegral $ natVal (Proxy :: Proxy inputCols)
-        kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
-        ky = fromIntegral $ natVal (Proxy :: Proxy kernelCols)
-        sx = fromIntegral $ natVal (Proxy :: Proxy strideRows)
-        sy = fromIntegral $ natVal (Proxy :: Proxy strideCols)
-        ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
-        oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
-
-        c  = im2col kx ky sx sy ex
-
-        eo = extract dEdy
-        ek = extract kernel
-
-        vs = vid2col 1 1 1 1 ox oy eo
-
-        kN = fromJust . create $ tr c LA.<> vs
-        dW = vs LA.<> tr ek
-
-        xW = col2im kx ky sx sy ix iy dW
-    in  (Convolution' kN, S2D . fromJust . create $ xW)
-
-
 -- | A three dimensional image (or 2d with many channels) can have
 --   an appropriately sized convolution filter run across it.
 instance ( KnownNat kernelRows
@@ -258,3 +202,75 @@ instance ( KnownNat kernelRows
 
         xW = col2vid kx ky sx sy ix iy dW
     in  (Convolution' kN, S3D . fromJust . create $ xW)
+
+
+-- | A two dimentional image may have a convolution filter applied to it
+instance ( KnownNat kernelRows
+         , KnownNat kernelCols
+         , KnownNat filters
+         , KnownNat strideRows
+         , KnownNat strideCols
+         , KnownNat inputRows
+         , KnownNat inputCols
+         , KnownNat outputRows
+         , KnownNat outputCols
+         , ((outputRows - 1) * strideRows) ~ (inputRows - kernelRows)
+         , ((outputCols - 1) * strideCols) ~ (inputCols - kernelCols)
+         , KnownNat (kernelRows * kernelCols * 1)
+         , KnownNat (outputRows * filters)
+         ) => Layer (Convolution 1 filters kernelRows kernelCols strideRows strideCols) ('D2 inputRows inputCols) ('D3 outputRows outputCols filters) where
+  type Tape (Convolution 1 filters kernelRows kernelCols strideRows strideCols) ('D2 inputRows inputCols) ('D3 outputRows outputCols filters) = S ('D3 inputRows inputCols 1)
+  runForwards c (S2D input) =
+    runForwards c (S3D input :: S ('D3 inputRows inputCols 1))
+
+  runBackwards c tape grads =
+    case runBackwards c tape grads of
+      (c', S3D back :: S ('D3 inputRows inputCols 1)) ->  (c', S2D back)
+
+
+-- | A two dimensional image may have a convolution filter applied to it producing
+--   a two dimensional image if both channels and filters is 1.
+instance ( KnownNat kernelRows
+         , KnownNat kernelCols
+         , KnownNat strideRows
+         , KnownNat strideCols
+         , KnownNat inputRows
+         , KnownNat inputCols
+         , KnownNat outputRows
+         , KnownNat outputCols
+         , ((outputRows - 1) * strideRows) ~ (inputRows - kernelRows)
+         , ((outputCols - 1) * strideCols) ~ (inputCols - kernelCols)
+         , KnownNat (kernelRows * kernelCols * 1)
+         , KnownNat (outputRows * 1)
+         ) => Layer (Convolution 1 1 kernelRows kernelCols strideRows strideCols) ('D2 inputRows inputCols) ('D2 outputRows outputCols) where
+  type Tape (Convolution 1 1 kernelRows kernelCols strideRows strideCols) ('D2 inputRows inputCols) ('D2 outputRows outputCols) = S ('D3 inputRows inputCols 1)
+  runForwards c (S2D input) =
+    case runForwards c (S3D input :: S ('D3 inputRows inputCols 1)) of
+      (tps, S3D back :: S ('D3 outputRows outputCols 1)) ->  (tps, S2D back)
+
+  runBackwards c tape (S2D grads) =
+    case runBackwards c tape (S3D grads :: S ('D3 outputRows outputCols 1)) of
+      (c', S3D back :: S ('D3 inputRows inputCols 1)) -> (c', S2D back)
+
+-- | A three dimensional image can produce a 2D image from a convolution with 1 filter
+instance ( KnownNat kernelRows
+         , KnownNat kernelCols
+         , KnownNat strideRows
+         , KnownNat strideCols
+         , KnownNat inputRows
+         , KnownNat inputCols
+         , KnownNat outputRows
+         , KnownNat outputCols
+         , KnownNat channels
+         , ((outputRows - 1) * strideRows) ~ (inputRows - kernelRows)
+         , ((outputCols - 1) * strideCols) ~ (inputCols - kernelCols)
+         , KnownNat (kernelRows * kernelCols * channels)
+         , KnownNat (outputRows * 1)
+         ) => Layer (Convolution channels 1 kernelRows kernelCols strideRows strideCols) ('D3 inputRows inputCols channels) ('D2 outputRows outputCols) where
+  type Tape (Convolution channels 1 kernelRows kernelCols strideRows strideCols) ('D3 inputRows inputCols channels) ('D2 outputRows outputCols) = S ('D3 inputRows inputCols channels)
+  runForwards c input =
+    case runForwards c input of
+      (tps, S3D back :: S ('D3 outputRows outputCols 1)) ->  (tps, S2D back)
+
+  runBackwards c tape (S2D grads) =
+    runBackwards c tape (S3D grads :: S ('D3 outputRows outputCols 1))

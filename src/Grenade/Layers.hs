@@ -2,6 +2,7 @@ module Grenade.Layers (
     module Grenade.Layers.Concat
   , module Grenade.Layers.Convolution
   , module Grenade.Layers.Crop
+  , module Grenade.Layers.Deconvolution
   , module Grenade.Layers.Elu
   , module Grenade.Layers.FullyConnected
   , module Grenade.Layers.Inception
@@ -19,6 +20,7 @@ module Grenade.Layers (
 import           Grenade.Layers.Concat
 import           Grenade.Layers.Convolution
 import           Grenade.Layers.Crop
+import           Grenade.Layers.Deconvolution
 import           Grenade.Layers.Elu
 import           Grenade.Layers.Pad
 import           Grenade.Layers.FullyConnected
