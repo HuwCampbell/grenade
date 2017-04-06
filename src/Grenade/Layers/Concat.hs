@@ -21,6 +21,8 @@ module Grenade.Layers.Concat (
     Concat (..)
   ) where
 
+import           Data.Serialize
+
 import           Data.Singletons
 import           GHC.TypeLits
 
@@ -125,3 +127,7 @@ instance ( SingI i
         (x', xB :: S i) = runBackwards x xTape (S3D ox :: S ('D3 rows cols m))
         (y', yB :: S i) = runBackwards y yTape (S3D oy :: S ('D3 rows cols n))
     in  ((x', y'), xB + yB)
+
+instance (Serialize a, Serialize b) => Serialize (Concat sa a sb b) where
+  put (Concat a b) = put a *> put b
+  get = Concat <$> get <*> get

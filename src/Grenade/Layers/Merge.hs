@@ -19,6 +19,8 @@ module Grenade.Layers.Merge (
     Merge (..)
   ) where
 
+import           Data.Serialize
+
 import           Data.Singletons
 
 import           Grenade.Core
@@ -53,3 +55,7 @@ instance (SingI i, SingI o, Layer x i o, Layer y i o) => Layer (Merge x y) i o w
     let (x', xB) = runBackwards x xTape o
         (y', yB) = runBackwards y yTape o
     in  ((x', y'), xB + yB)
+
+instance (Serialize a, Serialize b) => Serialize (Merge a b) where
+  put (Merge a b) = put a *> put b
+  get = Merge <$> get <*> get
