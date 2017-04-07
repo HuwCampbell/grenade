@@ -1,14 +1,11 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-|
-Module      : Grenade.Core.Shape
-Description : Core definition of the Shapes of data we understand
+Module      : Grenade.Core.Runner
+Description : Functions to perform training and backpropagation
 Copyright   : (c) Huw Campbell, 2016-2017
 License     : BSD2
 Stability   : experimental
-
-This module defines simple back propagation and training functions
-for a network.
 -}
 module Grenade.Core.Runner (
     train

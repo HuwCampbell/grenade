@@ -9,13 +9,12 @@
 {-# LANGUAGE RankNTypes            #-}
 {-|
 Module      : Grenade.Core.Shape
-Description : Core definition of the Shapes of data we understand
+Description : Dependently typed shapes of data which are passed between layers of a network
 Copyright   : (c) Huw Campbell, 2016-2017
 License     : BSD2
 Stability   : experimental
 
-This module defines the core data types for the shapes of data that
-are understood by Grenade.
+
 -}
 module Grenade.Core.Shape (
     Shape (..)

@@ -7,14 +7,30 @@
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-|
-Module      : Grenade.Core.Network
-Description : Core definition a simple neural etwork
+Module      : Grenade.Core.Layer
+Description : Defines the Layer Classes
 Copyright   : (c) Huw Campbell, 2016-2017
 License     : BSD2
 Stability   : experimental
 
 This module defines what a Layer is in a Grenade
 neural network.
+
+There are two classes of interest: `UpdateLayer` and `Layer`.
+
+`UpdateLayer` is required for all types which are used as a layer
+in a network. Having no shape information, this class is agnotostic
+to the input and output data of the layer.
+
+An instance of `Layer` on the other hand is required for usage in
+a neural network, but also specifies the shapes of data that the
+network can transform. Multiple instance of `Layer` are permitted
+for a single type, to transform different shapes. The `Reshape` layer
+for example can act as a flattening layer, and its inverse, projecting
+a 1D shape up to 2 or 3 dimensions.
+
+Instances of `Layer` should be as strict as possible, and not emit
+runtime errors.
 -}
 module Grenade.Core.Layer (
     Layer (..)

@@ -1,4 +1,4 @@
-import           Disorder.Core.Main
+import           Control.Monad
 
 import qualified Test.Grenade.Layers.Pooling
 import qualified Test.Grenade.Layers.Convolution
@@ -10,6 +10,9 @@ import qualified Test.Grenade.Layers.Internal.Convolution
 import qualified Test.Grenade.Layers.Internal.Pooling
 
 import qualified Test.Grenade.Recurrent.Layers.LSTM
+
+import           System.Exit
+import           System.IO
 
 main :: IO ()
 main =
@@ -25,3 +28,15 @@ main =
 
     , Test.Grenade.Recurrent.Layers.LSTM.tests
     ]
+
+disorderMain :: [IO Bool] -> IO ()
+disorderMain tests = do
+  lineBuffer
+  rs <- sequence tests
+  unless (and rs) exitFailure
+
+
+lineBuffer :: IO ()
+lineBuffer = do
+  hSetBuffering stdout LineBuffering
+  hSetBuffering stderr LineBuffering

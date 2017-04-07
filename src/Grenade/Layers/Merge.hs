@@ -10,7 +10,7 @@
 {-# LANGUAGE StandaloneDeriving    #-}
 {-|
 Module      : Grenade.Core.Network
-Description : Core definition a simple neural etwork
+Description : Merging layer for parallel network composition
 Copyright   : (c) Huw Campbell, 2016-2017
 License     : BSD2
 Stability   : experimental

@@ -15,7 +15,7 @@ Copyright   : (c) Huw Campbell, 2016-2017
 License     : BSD2
 Stability   : experimental
 
-This module provides the concatenation layer, whic used to run two separate layers in parallel and combine their outputs.
+This module provides the concatenation layer, which runs two chilld layers in parallel and combines their outputs.
 -}
 module Grenade.Layers.Concat (
     Concat (..)

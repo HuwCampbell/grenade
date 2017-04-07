@@ -7,6 +7,16 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-|
+Module      : Grenade.Layers.Convolution
+Description : Convolution layer
+Copyright   : (c) Huw Campbell, 2016-2017
+License     : BSD2
+Stability   : experimental
+
+This module provides the Convolution layer, which is critical in many computer vision tasks.
+
+-}
 module Grenade.Layers.Convolution (
     Convolution (..)
   , Convolution' (..)

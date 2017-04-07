@@ -5,11 +5,20 @@ license-file:          LICENSE
 author:                Huw Campbell <huw.campbell@gmail.com>
 maintainer:            Huw Campbell <huw.campbell@gmail.com>
 copyright:             (c) 2016-2017 Huw Campbell.
-synopsis:              grenade
+synopsis:              Practical Deep Learning in Haskell
 category:              System
 cabal-version:         >= 1.8
 build-type:            Simple
-description:           grenade.
+description:
+    Grenade is a composable, dependently typed, practical, and fast
+    recurrent neural network library for concise and precise
+    specifications of complex networks in Haskell.
+    .
+    Grenade provides an API for composing layers of a neural network
+    into a sequence parallel graph in a type safe manner.
+    .
+    Documentation and examples are available on github
+    <https://github.com/HuwCampbell/grenade>.
 
 extra-source-files:
   cbits/im2col.h

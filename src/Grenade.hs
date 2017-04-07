@@ -29,6 +29,7 @@ It provides an expressive type level API for the construction
 of complex neural network architectures. Backing this API is and
 implementation written using BLAS and LAPACK, mostly provided by
 the hmatrix library.
+
 -}
 
 {- $example
@@ -45,7 +46,7 @@ is a simple example which runs a logistic regression.
 > randomMyNet = randomNetwork
 
 The function `randomMyNet` witnesses the `CreatableNetwork`
-constraint of the neural network, that is it ensures the network
+constraint of the neural network, that is, it ensures the network
 can be built, and hence, that the architecture is sound.
 -}
 

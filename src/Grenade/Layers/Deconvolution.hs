@@ -7,6 +7,20 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-|
+Module      : Grenade.Layers.Deconvolution
+Description : Deconvolution layer
+Copyright   : (c) Huw Campbell, 2016-2017
+License     : BSD2
+Stability   : experimental
+
+A deconvolution layer is in many ways a convolution layer in reverse.
+It learns a kernel to apply to each pixel location, spreading it out
+into a larger layer.
+
+This layer is important for image generation tasks, such as GANs on
+images.
+-}
 module Grenade.Layers.Deconvolution (
     Deconvolution (..)
   , Deconvolution' (..)
@@ -30,42 +44,37 @@ import           Grenade.Layers.Internal.Convolution
 import           Grenade.Layers.Internal.Update
 
 -- | A Deconvolution layer for a neural network.
---   This uses the im2col Deconvolution trick popularised by Caffe, which essentially turns the
---   many, many, many, many loop Deconvolution into a single matrix multiplication.
+--   This uses the im2col Convolution trick popularised by Caffe.
 --
---   The Deconvolution layer takes all of the kernels for the Deconvolution, which are flattened
---   and then put into columns in the matrix.
+--   The Deconvolution layer is a way of spreading out a single response
+--   into a larger image, and is useful in generating images.
 --
---   The kernel size dictates which input and output sizes will "fit". Fitting the equation:
---   `out = (in - kernel) / stride + 1` for both dimensions.
---
---   One probably shouldn't build their own layer, but rather use the randomDeconvolution function.
 data Deconvolution :: Nat -- Number of channels, for the first layer this could be RGB for instance.
-                 -> Nat -- Number of filters, this is the number of channels output by the layer.
-                 -> Nat -- The number of rows in the kernel filter
-                 -> Nat -- The number of column in the kernel filter
-                 -> Nat -- The row stride of the Deconvolution filter
-                 -> Nat -- The columns stride of the Deconvolution filter
-                 -> * where
+                   -> Nat -- Number of filters, this is the number of channels output by the layer.
+                   -> Nat -- The number of rows in the kernel filter
+                   -> Nat -- The number of column in the kernel filter
+                   -> Nat -- The row stride of the Deconvolution filter
+                   -> Nat -- The columns stride of the Deconvolution filter
+                   -> * where
   Deconvolution :: ( KnownNat channels
-                 , KnownNat filters
-                 , KnownNat kernelRows
-                 , KnownNat kernelColumns
-                 , KnownNat strideRows
-                 , KnownNat strideColumns
-                 , KnownNat kernelFlattened
-                 , kernelFlattened ~ (kernelRows * kernelColumns * filters))
-              => !(L kernelFlattened channels) -- The kernel filter weights
-              -> !(L kernelFlattened channels) -- The last kernel update (or momentum)
-              -> Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns
+                   , KnownNat filters
+                   , KnownNat kernelRows
+                   , KnownNat kernelColumns
+                   , KnownNat strideRows
+                   , KnownNat strideColumns
+                   , KnownNat kernelFlattened
+                   , kernelFlattened ~ (kernelRows * kernelColumns * filters))
+                 => !(L kernelFlattened channels) -- The kernel filter weights
+                 -> !(L kernelFlattened channels) -- The last kernel update (or momentum)
+                 -> Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns
 
 data Deconvolution' :: Nat -- Number of channels, for the first layer this could be RGB for instance.
-                  -> Nat -- Number of filters, this is the number of channels output by the layer.
-                  -> Nat -- The number of rows in the kernel filter
-                  -> Nat -- The number of column in the kernel filter
-                  -> Nat -- The row stride of the Deconvolution filter
-                  -> Nat -- The columns stride of the Deconvolution filter
-                  -> * where
+                    -> Nat -- Number of filters, this is the number of channels output by the layer.
+                    -> Nat -- The number of rows in the kernel filter
+                    -> Nat -- The number of column in the kernel filter
+                    -> Nat -- The row stride of the Deconvolution filter
+                    -> Nat -- The columns stride of the Deconvolution filter
+                    -> * where
   Deconvolution' :: ( KnownNat channels
                   , KnownNat filters
                   , KnownNat kernelRows

@@ -9,7 +9,7 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-|
 Module      : Grenade.Core.Network
-Description : Core definition a simple neural etwork
+Description : Core definition of a Neural Network
 Copyright   : (c) Huw Campbell, 2016-2017
 License     : BSD2
 Stability   : experimental
@@ -91,7 +91,6 @@ data Tapes :: [*] -> [Shape] -> * where
 --
 --   This gives the output, and the Wengert tape required for back
 --   propagation.
---
 runNetwork :: forall layers shapes.
               Network layers shapes
            -> S (Head shapes)
@@ -119,7 +118,6 @@ runNetwork =
 --
 --   Gives the gradients for the layer, and the gradient across the
 --   input (which may not be required).
---
 runGradient :: forall layers shapes.
                Network layers shapes
             -> Tapes layers shapes
@@ -179,12 +177,15 @@ instance (SingI i, SingI o, Layer x i o, Serialize x, Serialize (Network xs (o '
 
 -- | Ultimate composition.
 --
---   This allows a complete network to be treated as a layer in a bigger network.
+--   This allows a complete network to be treated as a layer in a larger network.
 instance CreatableNetwork sublayers subshapes => UpdateLayer (Network sublayers subshapes) where
   type Gradient (Network sublayers subshapes) = Gradients sublayers
   runUpdate    = applyUpdate
   createRandom = randomNetwork
 
+-- | Ultimate composition.
+--
+--   This allows a complete network to be treated as a layer in a larger network.
 instance (CreatableNetwork sublayers subshapes, i ~ (Head subshapes), o ~ (Last subshapes)) => Layer (Network sublayers subshapes) i o where
   type Tape (Network sublayers subshapes) i o = Tapes sublayers subshapes
   runForwards  = runNetwork
