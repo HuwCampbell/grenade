@@ -1,15 +1,3 @@
-[submodule "lib/disorder"]
-	path = lib/disorder
-	url = https://github.com/ambiata/disorder.hs
-[submodule "lib/x"]
-	path = lib/x
-	url = https://github.com/ambiata/x.git
-[submodule "lib/p"]
-	path = lib/p
-	url = https://github.com/ambiata/p
-[submodule "lib/disorder.hs"]
-	path = lib/disorder.hs
-	url = https://github.com/ambiata/disorder.hs.git
-[submodule "lib/hmatrix"]
-	path = lib/hmatrix
-	url = https://github.com/albertoruiz/hmatrix.git
+[submodule "lib/haskell-hedgehog"]
+	path = lib/haskell-hedgehog
+	url = git@github.com:hedgehogqa/haskell-hedgehog.git
