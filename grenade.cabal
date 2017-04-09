@@ -125,16 +125,14 @@ test-suite test
   build-depends:
                        base                            >= 4.8         && < 5
                      , grenade
-                     , ambiata-disorder-core
-                     , ambiata-disorder-jack
+                     , hedgehog                        >= 0.1         && < 0.2
                      , hmatrix
                      , mtl
                      , singletons
                      , text                            == 1.2.*
                      , typelits-witnesses
+                     , transformers
                      , constraints
-                     , QuickCheck                      >= 2.7        && < 2.9
-                     , quickcheck-instances            == 0.3.*
                      , MonadRandom
                      , random
                      , ad

@@ -15,9 +15,10 @@ import           GHC.TypeLits
 import           Grenade.Core
 import           Grenade.Layers.FullyConnected
 
-import           Disorder.Jack
+import           Hedgehog
 
 import           Test.Jack.Hmatrix
+import           Test.Jack.Compat
 
 
 data OpaqueFullyConnected :: * where
@@ -28,8 +29,8 @@ instance Show OpaqueFullyConnected where
 
 genOpaqueFullyConnected :: Jack OpaqueFullyConnected
 genOpaqueFullyConnected = do
-    input   :: Integer  <- choose (2, 100)
-    output  :: Integer  <- choose (1, 100)
+    input   :: Integer  <- choose 2 100
+    output  :: Integer  <- choose 1 100
     let Just input'      = someNatVal input
     let Just output'     = someNatVal output
     case (input', output') of
@@ -41,14 +42,13 @@ genOpaqueFullyConnected = do
             return . OpaqueFullyConnected $ (FullyConnected (FullyConnected' wB wN) (FullyConnected' bM kM) :: FullyConnected i' o')
 
 prop_fully_connected_forwards :: Property
-prop_fully_connected_forwards =
-    gamble genOpaqueFullyConnected $ \(OpaqueFullyConnected (fclayer :: FullyConnected i o)) ->
-        gamble (S1D <$> randomVector) $ \(input :: S ('D1 i)) ->
-            let (tape, output :: S ('D1 o)) = runForwards fclayer input
-                backed :: (Gradient (FullyConnected i o), S ('D1 i))
-                                            = runBackwards fclayer tape output
-            in  backed `seq` True
+prop_fully_connected_forwards = property $ do
+    OpaqueFullyConnected (fclayer :: FullyConnected i o) <- forAll genOpaqueFullyConnected
+    input :: S ('D1 i) <- forAll (S1D <$> randomVector)
+    let (tape, output :: S ('D1 o)) = runForwards fclayer input
+        backed :: (Gradient (FullyConnected i o), S ('D1 i))
+                                    = runBackwards fclayer tape output
+    backed `seq` success
 
-return []
 tests :: IO Bool
-tests = $quickCheckAll
+tests = $$(checkConcurrent)

@@ -10,16 +10,18 @@ import           Data.Constraint
 import           Data.Proxy
 #endif
 import           Data.Singletons
-import           Disorder.Jack
+
+import qualified Hedgehog.Gen as Gen
 
 import           Grenade
 
 import           GHC.TypeLits
 import           GHC.TypeLits.Witnesses
+import           Test.Jack.Compat
 
 genNat :: Jack SomeNat
 genNat = do
-  Just n <- someNatVal <$> choose (1, 10)
+  Just n <- someNatVal <$> choose 1 10
   return n
 
 #if __GLASGOW_HASKELL__ < 800
@@ -30,7 +32,7 @@ type Shape' = Shape
 
 genShape :: Jack (SomeSing Shape')
 genShape
-  = oneOf [
+  = Gen.choice [
       genD1
     , genD2
     , genD3

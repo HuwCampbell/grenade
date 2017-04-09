@@ -12,28 +12,35 @@ import           Grenade.Layers.Internal.Pooling
 
 import           Numeric.LinearAlgebra hiding (uniformSample, konst, (===))
 
-import           Disorder.Jack
+import           Hedgehog
+import qualified Hedgehog.Gen as Gen
+import qualified Hedgehog.Range as Range
 
 import qualified Test.Grenade.Layers.Internal.Reference as Reference
+import           Test.Jack.Compat
 
 prop_poolForwards_poolBackwards_behaves_as_reference =
   let ok extent kernel = [stride | stride <- [1..extent], (extent - kernel) `mod` stride == 0]
       output extent kernel stride = (extent - kernel) `div` stride + 1
-  in  gamble (choose (2, 100)) $ \height ->
-        gamble (choose (2, 100)) $ \width ->
-          gamble (choose (1, height - 1)) $ \kernel_h ->
-            gamble (choose (1, width - 1)) $ \kernel_w ->
-              gamble (elements (ok height kernel_h)) $ \stride_h ->
-                gamble (elements (ok width kernel_w)) $ \stride_w ->
-                  gamble (listOfN (height * width) (height * width) sizedRealFrac) $ \input ->
-                    let input'        = (height >< width) input
-                        outFast       = poolForward 1 height width kernel_h kernel_w stride_h stride_w input'
-                        retFast       = poolBackward 1 height width kernel_h kernel_w stride_h stride_w input' outFast
+  in  property $ do
+        height   <- forAll $ choose 2 100
+        width    <- forAll $ choose 2 100
+        kernel_h <- forAll $ choose 1 (height - 1)
+        kernel_w <- forAll $ choose 1 (width - 1)
+        stride_h <- forAll $ Gen.element (ok height kernel_h)
+        stride_w <- forAll $ Gen.element (ok width kernel_w)
+        input    <- forAll $ Gen.list (Range.singleton $ height * width) (Gen.realFloat $ Range.linearFracFrom 0 (-100) 100)
 
-                        outReference  = Reference.poolForward kernel_h kernel_w stride_h stride_w (output height kernel_h stride_h) (output width kernel_w stride_w) input'
-                        retReference  = Reference.poolBackward kernel_h kernel_w stride_h stride_w  input' outReference
-                    in  outFast === outReference .&&. retFast === retReference
+        let input'        = (height >< width) input
+        let outFast       = poolForward 1 height width kernel_h kernel_w stride_h stride_w input'
+        let retFast       = poolBackward 1 height width kernel_h kernel_w stride_h stride_w input' outFast
 
-return []
+        let outReference  = Reference.poolForward kernel_h kernel_w stride_h stride_w (output height kernel_h stride_h) (output width kernel_w stride_w) input'
+        let retReference  = Reference.poolBackward kernel_h kernel_w stride_h stride_w  input' outReference
+
+        outFast === outReference
+        retFast === retReference
+
+
 tests :: IO Bool
-tests = $quickCheckAll
+tests = $$(checkConcurrent)

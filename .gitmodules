@@ -1,3 +1,0 @@
-[submodule "lib/haskell-hedgehog"]
-	path = lib/haskell-hedgehog
-	url = git@github.com:hedgehogqa/haskell-hedgehog.git

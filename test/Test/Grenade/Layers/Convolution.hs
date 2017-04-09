@@ -18,10 +18,12 @@ import           GHC.TypeLits.Witnesses
 import           Grenade.Core
 import           Grenade.Layers.Convolution
 
-import           Disorder.Jack
+import           Hedgehog
+import qualified Hedgehog.Gen as Gen
 
 import           Test.Jack.Hmatrix
 import           Test.Jack.TypeLits
+import           Test.Jack.Compat
 
 data OpaqueConvolution :: * where
      OpaqueConvolution :: Convolution channels filters kernelRows kernelColumns strideRows strideColumns -> OpaqueConvolution
@@ -58,15 +60,15 @@ genOpaqueOpaqueConvolution = do
           in  case p1 %* p2 %* p3 of
             Dict -> OpaqueConvolution <$> (genConvolution :: Jack (Convolution ch fl kr kc sr sc))
 
-prop_conv_net_witness =
-  gamble genOpaqueOpaqueConvolution $ \onet ->
-    (case onet of
-       (OpaqueConvolution ((Convolution _ _) :: Convolution channels filters kernelRows kernelCols strideRows strideCols)) -> True
-    ) :: Bool
+prop_conv_net_witness = property $
+  forAll genOpaqueOpaqueConvolution >>= \onet ->
+    case onet of
+       (OpaqueConvolution ((Convolution _ _) :: Convolution channels filters kernelRows kernelCols strideRows strideCols)) -> success
 
-prop_conv_net =
-  gamble genOpaqueOpaqueConvolution $ \onet ->
-    (case onet of
+
+prop_conv_net = property $
+  forAll genOpaqueOpaqueConvolution >>= \onet ->
+    case onet of
        (OpaqueConvolution (convLayer@(Convolution _ _) :: Convolution channels filters kernelRows kernelCols strideRows strideCols)) ->
           let ok stride kernel = [extent | extent <- [(kernel + 1) .. 30 ], (extent - kernel) `mod` stride == 0]
               kr = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
@@ -74,15 +76,15 @@ prop_conv_net =
               sr = fromIntegral $ natVal (Proxy :: Proxy strideRows)
               sc = fromIntegral $ natVal (Proxy :: Proxy strideCols)
 
-          in  gamble (elements (ok sr kr)) $ \er ->
-                  gamble (elements (ok sc kc)) $ \ec ->
+          in  forAll (Gen.element (ok sr kr)) >>= \er ->
+                  forAll (Gen.element (ok sc kc)) >>= \ec ->
                       let rr = ((er - kr) `div` sr) + 1
                           rc = ((ec - kc) `div` sc) + 1
                           Just er' = someNatVal er
                           Just ec' = someNatVal ec
                           Just rr' = someNatVal rr
                           Just rc' = someNatVal rc
-                      in (case (er', ec', rr', rc') of
+                      in case (er', ec', rr', rc') of
                             ( SomeNat (pinr :: Proxy inRows), SomeNat (_  :: Proxy inCols), SomeNat (pour :: Proxy outRows), SomeNat (_ :: Proxy outCols)) ->
                               case ( natDict pinr %* natDict (Proxy :: Proxy channels)
                                    , natDict pour %* natDict (Proxy :: Proxy filters)
@@ -90,14 +92,12 @@ prop_conv_net =
                                    , (unsafeCoerce (Dict :: Dict ()) :: Dict (((outRows - 1) * strideRows) ~ (inRows - kernelRows)))
                                    , (unsafeCoerce (Dict :: Dict ()) :: Dict (((outCols - 1) * strideCols) ~ (inCols - kernelCols)))) of
                                 (Dict, Dict, Dict, Dict) ->
-                                    gamble (S3D <$> uniformSample) $ \(input :: S ('D3 inRows inCols channels)) ->
+                                    forAll (S3D <$> uniformSample) >>= \(input :: S ('D3 inRows inCols channels)) ->
                                         let (tape, output :: S ('D3 outRows outCols filters)) = runForwards convLayer input
                                             backed :: (Gradient (Convolution channels filters kernelRows kernelCols strideRows strideCols), S ('D3 inRows inCols channels))
                                                                                               = runBackwards convLayer tape output
-                                        in  backed `seq` True
-                         ) :: Property
-    ) :: Property
+                                        in  backed `seq` success
 
-return []
+
 tests :: IO Bool
-tests = $quickCheckAll
+tests = $$(checkConcurrent)
