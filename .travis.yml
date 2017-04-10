@@ -16,11 +16,7 @@ install:
  - cabal --version
  - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
  - travis_retry cabal update
- - git submodule update --init
  - cabal sandbox init
- - CABAL_SOURCES=$(find lib -maxdepth 4 ! -path lib/\*/bin/\* ! -path lib/\*/lib/\* -name \*.cabal | xargs -L 1 dirname)
- - for CABAL_SOURCE in $CABAL_SOURCES; do cabal sandbox add-source -- $CABAL_SOURCE; done
-
  - cabal install --enable-tests --enable-benchmarks
 
 notifications:
