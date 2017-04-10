@@ -17,9 +17,8 @@ import           Grenade.Layers.FullyConnected
 
 import           Hedgehog
 
-import           Test.Jack.Hmatrix
 import           Test.Jack.Compat
-
+import           Test.Jack.Hmatrix
 
 data OpaqueFullyConnected :: * where
      OpaqueFullyConnected :: (KnownNat i, KnownNat o) => FullyConnected i o -> OpaqueFullyConnected
@@ -43,8 +42,8 @@ genOpaqueFullyConnected = do
 
 prop_fully_connected_forwards :: Property
 prop_fully_connected_forwards = property $ do
-    OpaqueFullyConnected (fclayer :: FullyConnected i o) <- forAll genOpaqueFullyConnected
-    input :: S ('D1 i) <- forAll (S1D <$> randomVector)
+    OpaqueFullyConnected (fclayer :: FullyConnected i o) <- blindForAll genOpaqueFullyConnected
+    input :: S ('D1 i) <- blindForAll (S1D <$> randomVector)
     let (tape, output :: S ('D1 o)) = runForwards fclayer input
         backed :: (Gradient (FullyConnected i o), S ('D1 i))
                                     = runBackwards fclayer tape output

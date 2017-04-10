@@ -61,13 +61,13 @@ genOpaqueOpaqueConvolution = do
             Dict -> OpaqueConvolution <$> (genConvolution :: Jack (Convolution ch fl kr kc sr sc))
 
 prop_conv_net_witness = property $
-  forAll genOpaqueOpaqueConvolution >>= \onet ->
+  blindForAll genOpaqueOpaqueConvolution >>= \onet ->
     case onet of
        (OpaqueConvolution ((Convolution _ _) :: Convolution channels filters kernelRows kernelCols strideRows strideCols)) -> success
 
 
 prop_conv_net = property $
-  forAll genOpaqueOpaqueConvolution >>= \onet ->
+  blindForAll genOpaqueOpaqueConvolution >>= \onet ->
     case onet of
        (OpaqueConvolution (convLayer@(Convolution _ _) :: Convolution channels filters kernelRows kernelCols strideRows strideCols)) ->
           let ok stride kernel = [extent | extent <- [(kernel + 1) .. 30 ], (extent - kernel) `mod` stride == 0]
@@ -92,7 +92,7 @@ prop_conv_net = property $
                                    , (unsafeCoerce (Dict :: Dict ()) :: Dict (((outRows - 1) * strideRows) ~ (inRows - kernelRows)))
                                    , (unsafeCoerce (Dict :: Dict ()) :: Dict (((outCols - 1) * strideCols) ~ (inCols - kernelCols)))) of
                                 (Dict, Dict, Dict, Dict) ->
-                                    forAll (S3D <$> uniformSample) >>= \(input :: S ('D3 inRows inCols channels)) ->
+                                    blindForAll (S3D <$> uniformSample) >>= \(input :: S ('D3 inRows inCols channels)) ->
                                         let (tape, output :: S ('D3 outRows outCols filters)) = runForwards convLayer input
                                             backed :: (Gradient (Convolution channels filters kernelRows kernelCols strideRows strideCols), S ('D3 inRows inCols channels))
                                                                                               = runBackwards convLayer tape output

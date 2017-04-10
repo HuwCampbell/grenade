@@ -9,9 +9,6 @@
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Test.Grenade.Layers.Nonlinear where
 
-
-import           Control.Monad.Trans.Class (MonadTrans(..))
-
 import           Data.Singletons
 
 #if __GLASGOW_HASKELL__ < 800
@@ -22,17 +19,12 @@ import           Grenade
 import           GHC.TypeLits
 
 import           Hedgehog
-import           Hedgehog.Internal.Property ( Test (..) )
 
+import           Test.Jack.Compat
 import           Test.Jack.Hmatrix
 import           Test.Jack.TypeLits
 
 import           Numeric.LinearAlgebra.Static ( norm_Inf )
-
--- | Generates a random input for the test by running the provided generator.
---
-blindForAll :: Monad m => Gen m a -> Test m a
-blindForAll = Test . lift . lift
 
 prop_sigmoid_grad :: Property
 prop_sigmoid_grad = property $
@@ -66,9 +58,9 @@ prop_tanh_grad = property $
 
 prop_softmax_grad :: Property
 prop_softmax_grad = property $
-    forAll genNat >>= \case
+    blindForAll genNat >>= \case
         (SomeNat (_ :: Proxy s)) ->
-            forAll genOfShape >>= \(ds :: S ('D1 s)) ->
+            blindForAll genOfShape >>= \(ds :: S ('D1 s)) ->
                 let (tape, f  :: S ('D1 s))  = runForwards Relu ds
                     ((), ret  :: S ('D1 s))  = runBackwards Relu tape (1 :: S ('D1 s))
                     (_, numer :: S ('D1 s))  = runForwards Relu (ds + 0.0001)
