@@ -29,14 +29,13 @@ prop_poolForwards_poolBackwards_behaves_as_reference =
         kernel_w <- forAll $ choose 1 (width - 1)
         stride_h <- forAll $ Gen.element (ok height kernel_h)
         stride_w <- forAll $ Gen.element (ok width kernel_w)
-        input    <- forAll $ Gen.list (Range.singleton $ height * width) (Gen.realFloat $ Range.linearFracFrom 0 (-100) 100)
+        input    <- forAll $ (height >< width) <$> Gen.list (Range.singleton $ height * width) (Gen.realFloat $ Range.linearFracFrom 0 (-100) 100)
 
-        let input'        = (height >< width) input
-        let outFast       = poolForward 1 height width kernel_h kernel_w stride_h stride_w input'
-        let retFast       = poolBackward 1 height width kernel_h kernel_w stride_h stride_w input' outFast
+        let outFast       = poolForward 1 height width kernel_h kernel_w stride_h stride_w input
+        let retFast       = poolBackward 1 height width kernel_h kernel_w stride_h stride_w input outFast
 
-        let outReference  = Reference.poolForward kernel_h kernel_w stride_h stride_w (output height kernel_h stride_h) (output width kernel_w stride_w) input'
-        let retReference  = Reference.poolBackward kernel_h kernel_w stride_h stride_w  input' outReference
+        let outReference  = Reference.poolForward kernel_h kernel_w stride_h stride_w (output height kernel_h stride_h) (output width kernel_w stride_w) input
+        let retReference  = Reference.poolBackward kernel_h kernel_w stride_h stride_w  input outReference
 
         outFast === outReference
         retFast === retReference
