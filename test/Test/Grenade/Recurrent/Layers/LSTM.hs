@@ -11,6 +11,9 @@
 module Test.Grenade.Recurrent.Layers.LSTM where
 
 import           Hedgehog
+import           Hedgehog.Internal.Source
+import           Hedgehog.Internal.Show
+import           Hedgehog.Internal.Property ( failWith, Diff (..) )
 
 import           Data.Foldable ( toList )
 import           Data.Singletons.TypeLits
@@ -54,8 +57,8 @@ prop_lstm_reference_forwards =
             refCell         = Reference.Vector . H.toList . S.extract $ cell
             refInput        = Reference.Vector . H.toList . S.extract $ input
             (refCO, refO)   = Reference.runLSTM refNet refCell refInput
-        in do assert (toList refCO ~~~ toList cellOut')
-              assert (toList refO ~~~ toList output')
+        in do toList refCO ~~~ toList cellOut'
+              toList refO ~~~ toList output'
 
 
 prop_lstm_reference_backwards =
@@ -70,7 +73,7 @@ prop_lstm_reference_backwards =
             refCell         = Reference.Vector . H.toList . S.extract $ cell
             refInput        = Reference.Vector . H.toList . S.extract $ input
             refGradients    = Reference.runLSTMback refCell refInput refNet
-        in assert $ toList refGradients ~~~ toList (Reference.lstmToReference actualGradients)
+        in toList refGradients ~~~ toList (Reference.lstmToReference actualGradients)
 
 prop_lstm_reference_backwards_input =
   property $ do
@@ -84,7 +87,7 @@ prop_lstm_reference_backwards_input =
             refCell         = Reference.Vector . H.toList . S.extract $ cell
             refInput        = Reference.Vector . H.toList . S.extract $ input
             refGradients    = Reference.runLSTMbackOnInput refCell refNet refInput
-        in assert $ toList refGradients ~~~ H.toList (S.extract actualGradients)
+        in toList refGradients ~~~ H.toList (S.extract actualGradients)
 
 prop_lstm_reference_backwards_cell =
   property $ do
@@ -98,11 +101,26 @@ prop_lstm_reference_backwards_cell =
             refCell         = Reference.Vector . H.toList . S.extract $ cell
             refInput        = Reference.Vector . H.toList . S.extract $ input
             refGradients    = Reference.runLSTMbackOnCell refInput refNet refCell
-        in assert $ toList refGradients ~~~ H.toList (S.extract actualGradients)
+        in toList refGradients ~~~ H.toList (S.extract actualGradients)
 
-
-(~~~) as bs = all (< 1e-8) (zipWith (-) as bs)
+(~~~) :: (Monad m, Eq a, Ord a, Num a, Fractional a, Show a, HasCallStack) => [a] -> [a] -> Test m ()
+(~~~) x y =
+  if all (< 1e-8) (zipWith (-) x y) then
+    success
+  else
+    case valueDiff <$> mkValue x <*> mkValue y of
+      Nothing ->
+        withFrozenCallStack $
+          failWith Nothing $ unlines [
+              "━━━ Not Simliar ━━━"
+            , showPretty x
+            , showPretty y
+            ]
+      Just diff ->
+        withFrozenCallStack $
+          failWith (Just $ Diff "Failed (" "- lhs" "~/~" "+ rhs" ")" diff) ""
 infix 4 ~~~
+
 
 tests :: IO Bool
 tests = $$(checkConcurrent)
