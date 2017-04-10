@@ -3,6 +3,13 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-|
+Module      : Grenade.Layers.Reshape
+Description : Multipurpose reshaping layer
+Copyright   : (c) Huw Campbell, 2016-2017
+License     : BSD2
+Stability   : experimental
+-}
 module Grenade.Layers.Reshape (
     Reshape (..)
   ) where
@@ -19,9 +26,9 @@ import           Grenade.Core
 
 -- | Reshape Layer
 --
--- Flattens input down to D1 from either 2D or 3D data.
---
--- Casts input D1 up to either 2D or 3D data if the shapes are good.
+-- The Reshape layer can flatten any 2D or 3D image to 1D vector with the
+-- same number of activations, as well as cast up from 1D to a 2D or 3D
+-- shape.
 --
 -- Can also be used to turn a 3D image with only one channel into a 2D image
 -- or vice versa.

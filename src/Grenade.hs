@@ -46,7 +46,7 @@ is a simple example which runs a logistic regression.
 > randomMyNet = randomNetwork
 
 The function `randomMyNet` witnesses the `CreatableNetwork`
-constraint of the neural network, that is, it ensures the network
+constraint of the neural network, and in doing so, ensures the network
 can be built, and hence, that the architecture is sound.
 -}
 

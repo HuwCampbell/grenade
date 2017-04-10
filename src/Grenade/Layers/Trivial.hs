@@ -3,6 +3,13 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-|
+Module      : Grenade.Core.Trivial
+Description : Trivial layer which perfoms no operations on the data
+Copyright   : (c) Huw Campbell, 2016-2017
+License     : BSD2
+Stability   : experimental
+-}
 module Grenade.Layers.Trivial (
     Trivial (..)
   ) where
@@ -11,7 +18,10 @@ import           Data.Serialize
 
 import           Grenade.Core
 
--- | A trivial layer.
+-- | A Trivial layer.
+--
+--   This can be used to pass an unchanged value up one side of a
+--   graph, for a Residual network for example.
 data Trivial = Trivial
   deriving Show
 

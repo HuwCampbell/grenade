@@ -3,6 +3,13 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-|
+Module      : Grenade.Layers.Tanh
+Description : Hyperbolic tangent nonlinear layer
+Copyright   : (c) Huw Campbell, 2016-2017
+License     : BSD2
+Stability   : experimental
+-}
 module Grenade.Layers.Tanh (
     Tanh (..)
   ) where

@@ -3,6 +3,13 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-|
+Module      : Grenade.Core.Softmax
+Description : Softmax loss layer
+Copyright   : (c) Huw Campbell, 2016-2017
+License     : BSD2
+Stability   : experimental
+-}
 module Grenade.Layers.Softmax (
     Softmax (..)
   , softmax
@@ -17,8 +24,12 @@ import           Grenade.Core
 import           Numeric.LinearAlgebra.Static as LAS
 
 -- | A Softmax layer
+--
 --   This layer is like a logit layer, but normalises
 --   a set of matricies to be probabilities.
+--
+--   One can use this layer as the last layer in a network
+--   if they need normalised probabilities.
 data Softmax = Softmax
   deriving Show
 

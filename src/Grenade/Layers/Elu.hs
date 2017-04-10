@@ -2,6 +2,13 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-|
+Module      : Grenade.Layers.Logit
+Description : Exponential linear unit layer
+Copyright   : (c) Huw Campbell, 2016-2017
+License     : BSD2
+Stability   : experimental
+-}
 module Grenade.Layers.Elu (
     Elu (..)
   ) where

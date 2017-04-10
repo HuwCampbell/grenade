@@ -5,6 +5,13 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-|
+Module      : Grenade.Core.Pad
+Description : Padding layer for 2D and 3D images
+Copyright   : (c) Huw Campbell, 2016-2017
+License     : BSD2
+Stability   : experimental
+-}
 module Grenade.Layers.Pad (
     Pad (..)
   ) where
@@ -22,6 +29,8 @@ import           Numeric.LinearAlgebra (konst, subMatrix, diagBlock)
 import           Numeric.LinearAlgebra.Static (extract, create)
 
 -- | A padding layer for a neural network.
+--
+--   Pads on the X and Y dimension of an image.
 data Pad  :: Nat
           -> Nat
           -> Nat

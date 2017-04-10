@@ -6,6 +6,13 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-|
+Module      : Grenade.Core.Pooling
+Description : Max Pooling layer for 2D and 3D images
+Copyright   : (c) Huw Campbell, 2016-2017
+License     : BSD2
+Stability   : experimental
+-}
 module Grenade.Layers.Pooling (
     Pooling (..)
   ) where
@@ -22,6 +29,7 @@ import           Grenade.Layers.Internal.Pooling
 import           Numeric.LinearAlgebra.Static as LAS hiding ((|||), build, toRows)
 
 -- | A pooling layer for a neural network.
+--
 --   Does a max pooling, looking over a kernel similarly to the convolution network, but returning
 --   maxarg only. This layer is often used to provide minor amounts of translational invariance.
 --

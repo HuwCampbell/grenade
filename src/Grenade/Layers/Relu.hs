@@ -2,6 +2,13 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-|
+Module      : Grenade.Layers.Relu
+Description : Rectifying linear unit layer
+Copyright   : (c) Huw Campbell, 2016-2017
+License     : BSD2
+Stability   : experimental
+-}
 module Grenade.Layers.Relu (
     Relu (..)
   ) where
