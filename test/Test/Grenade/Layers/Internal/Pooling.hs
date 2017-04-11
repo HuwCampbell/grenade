@@ -17,7 +17,7 @@ import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 
 import qualified Test.Grenade.Layers.Internal.Reference as Reference
-import           Test.Jack.Compat
+import           Test.Hedgehog.Compat
 
 prop_poolForwards_poolBackwards_behaves_as_reference =
   let ok extent kernel = [stride | stride <- [1..extent], (extent - kernel) `mod` stride == 0]

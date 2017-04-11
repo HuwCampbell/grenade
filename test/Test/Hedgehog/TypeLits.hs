@@ -3,7 +3,9 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE PolyKinds             #-}
-module Test.Jack.TypeLits where
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE GADTs                 #-}
+module Test.Hedgehog.TypeLits where
 
 import           Data.Constraint
 #if __GLASGOW_HASKELL__ < 800
@@ -11,15 +13,16 @@ import           Data.Proxy
 #endif
 import           Data.Singletons
 
+import           Hedgehog.Gen ( Gen )
 import qualified Hedgehog.Gen as Gen
 
 import           Grenade
 
 import           GHC.TypeLits
 import           GHC.TypeLits.Witnesses
-import           Test.Jack.Compat
+import           Test.Hedgehog.Compat
 
-genNat :: Jack SomeNat
+genNat :: Monad m => Gen m SomeNat
 genNat = do
   Just n <- someNatVal <$> choose 1 10
   return n
@@ -30,7 +33,7 @@ type Shape' = ('KProxy :: KProxy Shape)
 type Shape' = Shape
 #endif
 
-genShape :: Jack (SomeSing Shape')
+genShape :: Monad m => Gen m (SomeSing Shape')
 genShape
   = Gen.choice [
       genD1
@@ -38,20 +41,20 @@ genShape
     , genD3
     ]
 
-genD1 :: Jack (SomeSing Shape')
+genD1 :: Monad m => Gen m (SomeSing Shape')
 genD1 = do
   n <- genNat
   return $ case n of
     SomeNat (_ :: Proxy x) -> SomeSing (sing :: Sing ('D1 x))
 
-genD2 :: Jack (SomeSing Shape')
+genD2 :: Monad m => Gen m (SomeSing Shape')
 genD2 = do
   n <- genNat
   m <- genNat
   return $ case (n, m) of
     (SomeNat (_ :: Proxy x), SomeNat (_ :: Proxy y)) -> SomeSing (sing :: Sing ('D2 x y))
 
-genD3 :: Jack (SomeSing Shape')
+genD3 :: Monad m => Gen m (SomeSing Shape')
 genD3 = do
   n <- genNat
   m <- genNat

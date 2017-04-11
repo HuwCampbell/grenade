@@ -19,7 +19,7 @@ import           Hedgehog
 
 import           Numeric.LinearAlgebra.Static ( norm_Inf )
 
-import           Test.Jack.Hmatrix
+import           Test.Hedgehog.Hmatrix
 
 prop_pad_crop :: Property
 prop_pad_crop =

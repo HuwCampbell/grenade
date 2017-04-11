@@ -20,9 +20,9 @@ import           GHC.TypeLits
 
 import           Hedgehog
 
-import           Test.Jack.Compat
-import           Test.Jack.Hmatrix
-import           Test.Jack.TypeLits
+import           Test.Hedgehog.Compat
+import           Test.Hedgehog.Hmatrix
+import           Test.Hedgehog.TypeLits
 
 import           Numeric.LinearAlgebra.Static ( norm_Inf )
 
@@ -67,8 +67,6 @@ prop_softmax_grad = property $
                     numericalGradient  = (numer - f) * 10000
                 in assert ((case numericalGradient - ret of
                         (S1D x) -> norm_Inf x < 0.0001) :: Bool)
-
-
 
 tests :: IO Bool
 tests = $$(checkConcurrent)

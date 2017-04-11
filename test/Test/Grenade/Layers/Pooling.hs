@@ -13,7 +13,9 @@ import           GHC.TypeLits
 import           Grenade.Layers.Pooling
 
 import           Hedgehog
-import           Test.Jack.Compat
+import           Hedgehog.Gen ( Gen )
+
+import           Test.Hedgehog.Compat
 
 data OpaquePooling :: * where
      OpaquePooling :: (KnownNat kh, KnownNat kw, KnownNat sh, KnownNat sw) => Pooling kh kw sh sw -> OpaquePooling
@@ -21,7 +23,7 @@ data OpaquePooling :: * where
 instance Show OpaquePooling where
     show (OpaquePooling n) = show n
 
-genOpaquePooling :: Jack OpaquePooling
+genOpaquePooling :: Monad m => Gen m OpaquePooling
 genOpaquePooling = do
     Just kernelHeight <- someNatVal <$> choose 2 15
     Just kernelWidth  <- someNatVal <$> choose 2 15

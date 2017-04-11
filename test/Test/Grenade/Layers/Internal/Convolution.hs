@@ -17,7 +17,7 @@ import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 
 import qualified Test.Grenade.Layers.Internal.Reference as Reference
-import           Test.Jack.Compat
+import           Test.Hedgehog.Compat
 
 prop_im2col_col2im_symmetrical_with_kernel_stride =
   let factors n = [x | x <- [1..n], n `mod` x == 0]

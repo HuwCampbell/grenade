@@ -17,8 +17,8 @@ import           Grenade.Layers.FullyConnected
 
 import           Hedgehog
 
-import           Test.Jack.Compat
-import           Test.Jack.Hmatrix
+import           Test.Hedgehog.Compat
+import           Test.Hedgehog.Hmatrix
 
 data OpaqueFullyConnected :: * where
      OpaqueFullyConnected :: (KnownNat i, KnownNat o) => FullyConnected i o -> OpaqueFullyConnected
@@ -26,7 +26,7 @@ data OpaqueFullyConnected :: * where
 instance Show OpaqueFullyConnected where
     show (OpaqueFullyConnected n) = show n
 
-genOpaqueFullyConnected :: Jack OpaqueFullyConnected
+genOpaqueFullyConnected :: Monad m => Gen m OpaqueFullyConnected
 genOpaqueFullyConnected = do
     input   :: Integer  <- choose 2 100
     output  :: Integer  <- choose 1 100

@@ -19,11 +19,12 @@ import           Grenade.Core
 import           Grenade.Layers.Convolution
 
 import           Hedgehog
+import           Hedgehog.Gen ( Gen )
 import qualified Hedgehog.Gen as Gen
 
-import           Test.Jack.Hmatrix
-import           Test.Jack.TypeLits
-import           Test.Jack.Compat
+import           Test.Hedgehog.Hmatrix
+import           Test.Hedgehog.TypeLits
+import           Test.Hedgehog.Compat
 
 data OpaqueConvolution :: * where
      OpaqueConvolution :: Convolution channels filters kernelRows kernelColumns strideRows strideColumns -> OpaqueConvolution
@@ -39,10 +40,11 @@ genConvolution :: ( KnownNat channels
                   , KnownNat strideColumns
                   , KnownNat kernelFlattened
                   , kernelFlattened ~ (kernelRows * kernelColumns * channels)
-                  ) => Jack (Convolution channels filters kernelRows kernelColumns strideRows strideColumns)
+                  , Monad m
+                  ) => Gen m (Convolution channels filters kernelRows kernelColumns strideRows strideColumns)
 genConvolution = Convolution <$> uniformSample <*> uniformSample
 
-genOpaqueOpaqueConvolution :: Jack OpaqueConvolution
+genOpaqueOpaqueConvolution :: Monad m => Gen m OpaqueConvolution
 genOpaqueOpaqueConvolution = do
     channels <- genNat
     filters  <- genNat
@@ -58,7 +60,7 @@ genOpaqueOpaqueConvolution = do
               p2 = natDict pkc
               p3 = natDict pch
           in  case p1 %* p2 %* p3 of
-            Dict -> OpaqueConvolution <$> (genConvolution :: Jack (Convolution ch fl kr kc sr sc))
+            Dict -> OpaqueConvolution <$> (genConvolution :: Monad n => Gen n (Convolution ch fl kr kc sr sc))
 
 prop_conv_net_witness = property $
   blindForAll genOpaqueOpaqueConvolution >>= \onet ->

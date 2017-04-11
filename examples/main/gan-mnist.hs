@@ -11,7 +11,7 @@
 -- of numbers similar to those in MNIST.
 --
 -- It demonstrates a different usage of the library. Within about 15
--- minutes hour it was producing examples like this:
+-- minutes it was producing examples like this:
 --
 --               --.
 --     .=-.--..#=###
