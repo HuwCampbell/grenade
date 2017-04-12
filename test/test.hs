@@ -1,5 +1,7 @@
 import           Control.Monad
 
+import qualified Test.Grenade.Network
+
 import qualified Test.Grenade.Layers.Pooling
 import qualified Test.Grenade.Layers.Convolution
 import qualified Test.Grenade.Layers.FullyConnected
@@ -10,7 +12,6 @@ import qualified Test.Grenade.Layers.Internal.Convolution
 import qualified Test.Grenade.Layers.Internal.Pooling
 
 import qualified Test.Grenade.Recurrent.Layers.LSTM
-import qualified Test.Hedgehog.Network
 
 import           System.Exit
 import           System.IO
@@ -18,7 +19,7 @@ import           System.IO
 main :: IO ()
 main =
   disorderMain [
-      Test.Hedgehog.Network.tests
+      Test.Grenade.Network.tests
 
     , Test.Grenade.Layers.Pooling.tests
     , Test.Grenade.Layers.Convolution.tests

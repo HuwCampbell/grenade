@@ -8,7 +8,7 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE FlexibleContexts      #-}
-module Test.Hedgehog.Network where
+module Test.Grenade.Network where
 
 import           Control.Monad ( guard )
 import           Control.Monad.ST ( runST )
