@@ -2,6 +2,8 @@ Grenade
 =======
 
 [![Build Status](https://api.travis-ci.org/HuwCampbell/grenade.svg?branch=master)](https://travis-ci.org/HuwCampbell/grenade)
+[![Hackage page (downloads and API reference)][hackage-png]][hackage]
+
 
 ```
 First shalt thou take out the Holy Pin, then shalt thou count to three, no more, no less.
@@ -182,3 +184,7 @@ core took around 12 minutes, achieving 1.5% error rate on a 1000 sample holdout 
 Contributing
 ------------
 Contributions are welcome.
+
+ [hackage]: http://hackage.haskell.org/package/grenade
+ [hackage-png]: http://img.shields.io/hackage/v/grenade.svg
+
