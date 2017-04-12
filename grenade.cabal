@@ -122,6 +122,24 @@ test-suite test
   hs-source-dirs:
                        test
 
+
+  other-modules:       Test.Hedgehog.Compat
+                       Test.Hedgehog.Hmatrix
+                       Test.Hedgehog.TypeLits
+
+                       Test.Grenade.Network
+                       Test.Grenade.Layers.Convolution
+                       Test.Grenade.Layers.FullyConnected
+                       Test.Grenade.Layers.Nonlinear
+                       Test.Grenade.Layers.PadCrop
+                       Test.Grenade.Layers.Pooling
+                       Test.Grenade.Layers.Internal.Convolution
+                       Test.Grenade.Layers.Internal.Pooling
+                       Test.Grenade.Layers.Internal.Reference
+
+                       Test.Grenade.Recurrent.Layers.LSTM
+                       Test.Grenade.Recurrent.Layers.LSTM.Reference
+
   if impl(ghc < 8.0)
     ghc-options:       -fno-warn-incomplete-patterns
 

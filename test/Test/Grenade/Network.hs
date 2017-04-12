@@ -243,8 +243,6 @@ prop_auto_diff = withTests 10000 . property $ do
 
   result ~~~ expected
 
-    where
-
 -- Make a shape where all are 0 except for 1 value, which is 1.
 oneUp :: forall shape m. ( Monad m, SingI shape ) => Gen.Gen m (S shape)
 oneUp =
