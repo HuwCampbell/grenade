@@ -6,21 +6,24 @@ author:                Huw Campbell <huw.campbell@gmail.com>
 maintainer:            Huw Campbell <huw.campbell@gmail.com>
 copyright:             (c) 2016-2017 Huw Campbell.
 synopsis:              Practical Deep Learning in Haskell
-category:              System
+category:              AI, Machine Learning
 cabal-version:         >= 1.8
 build-type:            Simple
 description:
     Grenade is a composable, dependently typed, practical, and fast
-    recurrent neural network library for concise and precise
-    specifications of complex networks in Haskell.
+    recurrent neural network library for precise specifications and
+    complex deep neural networks in Haskell.
     .
     Grenade provides an API for composing layers of a neural network
-    into a sequence parallel graph in a type safe manner.
+    into a sequence parallel graph in a type safe manner; running
+    networks with reverse automatic differentiation to calculate their
+    gradients; and applying gradient decent for learning.
     .
     Documentation and examples are available on github
     <https://github.com/HuwCampbell/grenade>.
 
 extra-source-files:
+  README.md
   cbits/im2col.h
   cbits/im2col.c
   cbits/gradient_decent.h
