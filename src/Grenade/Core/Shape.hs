@@ -81,16 +81,16 @@ deriving instance Show (S n)
 -- clear and makes adding the KnownNat constraints simple.
 -- We can also keep our code TH free, which is great.
 data instance Sing (n :: Shape) where
-  D1Sing :: KnownNat a => Sing ('D1 a)
-  D2Sing :: (KnownNat a, KnownNat b) => Sing ('D2 a b)
-  D3Sing :: (KnownNat a, KnownNat b, KnownNat c, KnownNat (a * c)) => Sing ('D3 a b c)
+  D1Sing :: Sing a -> Sing ('D1 a)
+  D2Sing :: Sing a -> Sing b -> Sing ('D2 a b)
+  D3Sing :: KnownNat (a * c) => Sing a -> Sing b -> Sing c -> Sing ('D3 a b c)
 
 instance KnownNat a => SingI ('D1 a) where
-  sing = D1Sing
+  sing = D1Sing sing
 instance (KnownNat a, KnownNat b) => SingI ('D2 a b) where
-  sing = D2Sing
+  sing = D2Sing sing sing
 instance (KnownNat a, KnownNat b, KnownNat c, KnownNat (a * c)) => SingI ('D3 a b c) where
-  sing = D3Sing
+  sing = D3Sing sing sing sing
 
 instance SingI x => Num (S x) where
   (+) = n2 (+)
@@ -139,18 +139,30 @@ randomOfShape :: forall x m. ( MonadRandom m, SingI x ) => m (S x)
 randomOfShape = do
   seed :: Int <- getRandom
   return $ case (sing :: Sing x) of
-    D1Sing -> S1D (randomVector  seed Uniform * 2 - 1)
-    D2Sing -> S2D (uniformSample seed (-1) 1)
-    D3Sing -> S3D (uniformSample seed (-1) 1)
+    D1Sing l ->
+      withKnownNat l $
+        S1D (randomVector  seed Uniform * 2 - 1)
+    D2Sing r c ->
+      withKnownNat r $ withKnownNat c $
+        S2D (uniformSample seed (-1) 1)
+    D3Sing r c d ->
+      withKnownNat r $ withKnownNat c $ withKnownNat d $
+        S3D (uniformSample seed (-1) 1)
 
 -- | Generate a shape from a Storable Vector.
 --
 --   Returns Nothing if the vector is of the wrong size.
 fromStorable :: forall x. SingI x => Vector Double -> Maybe (S x)
 fromStorable xs = case sing :: Sing x of
-    D1Sing -> S1D <$> H.create xs
-    D2Sing -> S2D <$> mkL xs
-    D3Sing -> S3D <$> mkL xs
+    D1Sing l ->
+      withKnownNat l $
+        S1D <$> H.create xs
+    D2Sing r c ->
+      withKnownNat r $ withKnownNat c $
+        S2D <$> mkL xs
+    D3Sing r c d ->
+      withKnownNat r $ withKnownNat c $ withKnownNat d $
+        S3D <$> mkL xs
   where
     mkL :: forall rows columns. (KnownNat rows, KnownNat columns)
         => Vector Double -> Maybe (L rows columns)
@@ -176,6 +188,12 @@ n2 f (S3D x) (S3D y) = S3D (f x y)
 -- Helper function for creating the number instances
 nk :: forall x. SingI x => Double -> S x
 nk x = case (sing :: Sing x) of
-  D1Sing -> S1D (konst x)
-  D2Sing -> S2D (konst x)
-  D3Sing -> S3D (konst x)
+  D1Sing l ->
+    withKnownNat l $
+      S1D (konst x)
+  D2Sing r c ->
+    withKnownNat r $ withKnownNat c $
+      S2D (konst x)
+  D3Sing r c d ->
+    withKnownNat r $ withKnownNat c $ withKnownNat d $
+      S3D (konst x)

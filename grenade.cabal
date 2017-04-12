@@ -122,6 +122,9 @@ test-suite test
   hs-source-dirs:
                        test
 
+  if impl(ghc < 8.0)
+    ghc-options:       -fno-warn-incomplete-patterns
+
   build-depends:
                        base                            >= 4.8         && < 5
                      , grenade

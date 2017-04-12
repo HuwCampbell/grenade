@@ -19,7 +19,6 @@ import           Grenade.Core
 import           Grenade.Layers.Convolution
 
 import           Hedgehog
-import           Hedgehog.Gen ( Gen )
 import qualified Hedgehog.Gen as Gen
 
 import           Test.Hedgehog.Hmatrix
@@ -41,7 +40,7 @@ genConvolution :: ( KnownNat channels
                   , KnownNat kernelFlattened
                   , kernelFlattened ~ (kernelRows * kernelColumns * channels)
                   , Monad m
-                  ) => Gen m (Convolution channels filters kernelRows kernelColumns strideRows strideColumns)
+                  ) => Gen.Gen m (Convolution channels filters kernelRows kernelColumns strideRows strideColumns)
 genConvolution = Convolution <$> uniformSample <*> uniformSample
 
 genOpaqueOpaqueConvolution :: Monad m => Gen m OpaqueConvolution

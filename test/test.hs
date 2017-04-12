@@ -18,7 +18,9 @@ import           System.IO
 main :: IO ()
 main =
   disorderMain [
-      Test.Grenade.Layers.Pooling.tests
+      Test.Hedgehog.Network.tests
+
+    , Test.Grenade.Layers.Pooling.tests
     , Test.Grenade.Layers.Convolution.tests
     , Test.Grenade.Layers.FullyConnected.tests
     , Test.Grenade.Layers.Nonlinear.tests
@@ -29,7 +31,6 @@ main =
 
     , Test.Grenade.Recurrent.Layers.LSTM.tests
 
-    , Test.Hedgehog.Network.tests
     ]
 
 disorderMain :: [IO Bool] -> IO ()

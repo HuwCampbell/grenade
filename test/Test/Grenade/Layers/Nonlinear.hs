@@ -16,7 +16,6 @@ import           Data.Proxy
 #endif
 
 import           Grenade
-import           GHC.TypeLits
 
 import           Hedgehog
 
@@ -55,18 +54,6 @@ prop_tanh_grad = property $
                            (S1D x) -> norm_Inf x < 0.001
                            (S2D x) -> norm_Inf x < 0.001
                            (S3D x) -> norm_Inf x < 0.001) :: Bool)
-
-prop_softmax_grad :: Property
-prop_softmax_grad = property $
-    blindForAll genNat >>= \case
-        (SomeNat (_ :: Proxy s)) ->
-            blindForAll genOfShape >>= \(ds :: S ('D1 s)) ->
-                let (tape, f  :: S ('D1 s))  = runForwards Relu ds
-                    ((), ret  :: S ('D1 s))  = runBackwards Relu tape (1 :: S ('D1 s))
-                    (_, numer :: S ('D1 s))  = runForwards Relu (ds + 0.0001)
-                    numericalGradient  = (numer - f) * 10000
-                in assert ((case numericalGradient - ret of
-                        (S1D x) -> norm_Inf x < 0.0001) :: Bool)
 
 tests :: IO Bool
 tests = $$(checkConcurrent)

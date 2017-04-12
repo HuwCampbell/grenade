@@ -1,11 +1,16 @@
 {-# LANGUAGE RankNTypes            #-}
-module Test.Hedgehog.Compat where
+module Test.Hedgehog.Compat (
+    (...)
+  , choose
+  , blindForAll
+  , semiBlindForAll
+  , forAllRender
+  )where
 
 import           Control.Monad.Trans.Class (MonadTrans(..))
 
 import           Data.Typeable ( typeOf )
 
-import           Hedgehog.Gen ( Gen )
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 import           Hedgehog.Internal.Property
@@ -16,23 +21,19 @@ import           Hedgehog.Internal.Show
 (...) = (.) . (.)
 {-# INLINE (...) #-}
 
-choose :: ( Monad m, Integral a ) => a -> a -> Gen m a
+choose :: ( Monad m, Integral a ) => a -> a -> Gen.Gen m a
 choose = Gen.integral ... Range.constant
 
--- | Generates a random input for the test by running the provided generator.
-blindForAll :: Monad m => Gen m a -> Test m a
+blindForAll :: Monad m => Gen.Gen m a -> Test m a
 blindForAll = Test . lift . lift
 
--- | Generates a random input for the test by running the provided generator.
-semiBlindForAll :: (Monad m, Show a, HasCallStack) => Gen m a -> Test m a
+semiBlindForAll :: (Monad m, Show a, HasCallStack) => Gen.Gen m a -> Test m a
 semiBlindForAll gen = do
   x <- Test . lift $ lift gen
   writeLog $ Input (getCaller callStack) (typeOf ()) (showPretty x)
   return x
 
-
--- | Generates a random input for the test by running the provided generator.
-forAllRender :: (Monad m, HasCallStack) => ( a -> String ) -> Gen m a -> Test m a
+forAllRender :: (Monad m, HasCallStack) => ( a -> String ) -> Gen.Gen m a -> Test m a
 forAllRender render gen = do
   x <- Test . lift $ lift gen
   writeLog $ Input (getCaller callStack) (typeOf ()) (render x)

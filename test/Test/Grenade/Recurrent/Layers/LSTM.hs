@@ -11,7 +11,7 @@
 module Test.Grenade.Recurrent.Layers.LSTM where
 
 import           Hedgehog
-import           Hedgehog.Gen ( Gen )
+import qualified Hedgehog.Gen as Gen
 import           Hedgehog.Internal.Source
 import           Hedgehog.Internal.Show
 import           Hedgehog.Internal.Property ( failWith, Diff (..) )
@@ -29,7 +29,7 @@ import qualified Numeric.LinearAlgebra.Static as S
 import qualified Test.Grenade.Recurrent.Layers.LSTM.Reference as Reference
 import           Test.Hedgehog.Hmatrix
 
-genLSTM :: forall i o m. (KnownNat i, KnownNat o, Monad m) => Gen m (LSTM i o)
+genLSTM :: forall i o m. (KnownNat i, KnownNat o, Monad m) => Gen.Gen m (LSTM i o)
 genLSTM = do
     let w = uniformSample
         u = uniformSample
