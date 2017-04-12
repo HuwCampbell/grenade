@@ -142,9 +142,11 @@ randomOfShape = do
     D1Sing l ->
       withKnownNat l $
         S1D (randomVector  seed Uniform * 2 - 1)
+
     D2Sing r c ->
       withKnownNat r $ withKnownNat c $
         S2D (uniformSample seed (-1) 1)
+
     D3Sing r c d ->
       withKnownNat r $ withKnownNat c $ withKnownNat d $
         S3D (uniformSample seed (-1) 1)
@@ -157,9 +159,11 @@ fromStorable xs = case sing :: Sing x of
     D1Sing l ->
       withKnownNat l $
         S1D <$> H.create xs
+
     D2Sing r c ->
       withKnownNat r $ withKnownNat c $
         S2D <$> mkL xs
+
     D3Sing r c d ->
       withKnownNat r $ withKnownNat c $ withKnownNat d $
         S3D <$> mkL xs
@@ -191,9 +195,11 @@ nk x = case (sing :: Sing x) of
   D1Sing l ->
     withKnownNat l $
       S1D (konst x)
+
   D2Sing r c ->
     withKnownNat r $ withKnownNat c $
       S2D (konst x)
+
   D3Sing r c d ->
     withKnownNat r $ withKnownNat c $ withKnownNat d $
       S3D (konst x)

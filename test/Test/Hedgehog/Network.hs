@@ -73,6 +73,19 @@ genNetwork =
                    , pure (SomeNetwork (Relu    :~> rest :: Network ( Relu    ': layers ) ( h ': h ': hs )))
                    , pure (SomeNetwork (Elu     :~> rest :: Network ( Elu     ': layers ) ( h ': h ': hs )))
                    , pure (SomeNetwork (Softmax :~> rest :: Network ( Softmax ': layers ) ( h ': h ': hs )))
+                   , do -- Reshape to two dimensions
+                        let divisors n = 1 : [x | x <- [2..(n-1)], n `rem` x == 0]
+                        let len = natVal l
+                        rs  <- Gen.element $ divisors len
+                        let cs  = len `quot` rs
+                        case ( someNatVal rs, someNatVal cs, someNatVal len ) of
+                          ( Just (SomeNat (rs' :: Proxy inRows)), Just (SomeNat (cs' :: Proxy inCols)), Just (SomeNat (_ :: Proxy outLen ) )) ->
+                            let p1 = natDict rs'
+                                p2 = natDict cs'
+                            in  case ( p1 %* p2, unsafeCoerce (Dict :: Dict ()) :: Dict ((inRows * inCols) ~ outLen), unsafeCoerce (Dict :: Dict ()) :: Dict (( 'D1 outLen ) ~ h )) of
+                                  ( Dict, Dict, Dict ) ->
+                                    pure (SomeNetwork (Reshape :~> rest :: Network ( Reshape ': layers ) ( ('D2 inRows inCols) ': h ': hs )))
+                          _ -> Gen.discard -- Doesn't occur
                    ]
                  D2Sing r c -> withKnownNat r $ withKnownNat c $
                    Gen.choice [
