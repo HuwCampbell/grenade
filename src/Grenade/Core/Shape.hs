@@ -139,16 +139,13 @@ randomOfShape :: forall x m. ( MonadRandom m, SingI x ) => m (S x)
 randomOfShape = do
   seed :: Int <- getRandom
   return $ case (sing :: Sing x) of
-    D1Sing l ->
-      withKnownNat l $
+    D1Sing SNat ->
         S1D (randomVector  seed Uniform * 2 - 1)
 
-    D2Sing r c ->
-      withKnownNat r $ withKnownNat c $
+    D2Sing SNat SNat ->
         S2D (uniformSample seed (-1) 1)
 
-    D3Sing r c d ->
-      withKnownNat r $ withKnownNat c $ withKnownNat d $
+    D3Sing SNat SNat SNat ->
         S3D (uniformSample seed (-1) 1)
 
 -- | Generate a shape from a Storable Vector.
@@ -156,17 +153,14 @@ randomOfShape = do
 --   Returns Nothing if the vector is of the wrong size.
 fromStorable :: forall x. SingI x => Vector Double -> Maybe (S x)
 fromStorable xs = case sing :: Sing x of
-    D1Sing l ->
-      withKnownNat l $
-        S1D <$> H.create xs
+    D1Sing SNat ->
+      S1D <$> H.create xs
 
-    D2Sing r c ->
-      withKnownNat r $ withKnownNat c $
-        S2D <$> mkL xs
+    D2Sing SNat SNat ->
+      S2D <$> mkL xs
 
-    D3Sing r c d ->
-      withKnownNat r $ withKnownNat c $ withKnownNat d $
-        S3D <$> mkL xs
+    D3Sing SNat SNat SNat ->
+      S3D <$> mkL xs
   where
     mkL :: forall rows columns. (KnownNat rows, KnownNat columns)
         => Vector Double -> Maybe (L rows columns)
@@ -192,14 +186,11 @@ n2 f (S3D x) (S3D y) = S3D (f x y)
 -- Helper function for creating the number instances
 nk :: forall x. SingI x => Double -> S x
 nk x = case (sing :: Sing x) of
-  D1Sing l ->
-    withKnownNat l $
-      S1D (konst x)
+  D1Sing SNat ->
+    S1D (konst x)
 
-  D2Sing r c ->
-    withKnownNat r $ withKnownNat c $
-      S2D (konst x)
+  D2Sing SNat SNat ->
+    S2D (konst x)
 
-  D3Sing r c d ->
-    withKnownNat r $ withKnownNat c $ withKnownNat d $
-      S3D (konst x)
+  D3Sing SNat SNat SNat ->
+    S3D (konst x)

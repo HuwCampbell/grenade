@@ -66,7 +66,7 @@ genNetwork =
            SCons ( h :: Sing h ) ( _ :: Sing hs ) ->
              withSingI h $
               case h of
-                 D1Sing l -> withKnownNat l $
+                 D1Sing l@SNat ->
                    Gen.choice [
                      pure (SomeNetwork (Tanh    :~> rest :: Network ( Tanh    ': layers ) ( h ': h ': hs )))
                    , pure (SomeNetwork (Logit   :~> rest :: Network ( Logit   ': layers ) ( h ': h ': hs )))
@@ -87,7 +87,7 @@ genNetwork =
                                     pure (SomeNetwork (Reshape :~> rest :: Network ( Reshape ': layers ) ( ('D2 inRows inCols) ': h ': hs )))
                           _ -> Gen.discard -- Doesn't occur
                    ]
-                 D2Sing r c -> withKnownNat r $ withKnownNat c $
+                 D2Sing r@SNat c@SNat ->
                    Gen.choice [
                      pure (SomeNetwork (Tanh    :~> rest :: Network ( Tanh    ': layers ) ( h ': h ': hs )))
                    , pure (SomeNetwork (Logit   :~> rest :: Network ( Logit   ': layers ) ( h ': h ': hs )))
@@ -215,7 +215,7 @@ genNetwork =
                                         pure (SomeNetwork (Pooling :~> rest :: Network ( Pooling kernelRows kernelCols strideRows strideCols ': layers ) ( ('D2 inRows inCols) ': h ': hs )))
                           _ -> Gen.discard -- Can't occur
                    ]
-                 D3Sing r c d -> withKnownNat d $ withKnownNat r $ withKnownNat c $
+                 D3Sing SNat SNat SNat ->
                    Gen.choice [
                      pure (SomeNetwork (Tanh    :~> rest :: Network ( Tanh    ': layers ) ( h ': h ': hs )))
                    , pure (SomeNetwork (Logit   :~> rest :: Network ( Logit   ': layers ) ( h ': h ': hs )))
@@ -247,7 +247,7 @@ prop_auto_diff = withTests 10000 . property $ do
 oneUp :: forall shape m. ( Monad m, SingI shape ) => Gen.Gen m (S shape)
 oneUp =
   case ( sing :: Sing shape ) of
-    D1Sing l -> withKnownNat l $
+    D1Sing SNat ->
       let x = 0 :: S ( shape )
       in  case x of
               ( S1D x' ) -> do
@@ -259,7 +259,7 @@ oneUp =
                                   VS.freeze ex'
               maybe Gen.discard pure . fromStorable $ nx
 
-    D2Sing r c -> withKnownNat r $ withKnownNat c $
+    D2Sing SNat SNat ->
       let x = 0 :: S ( shape )
       in  case x of
               ( S2D x' ) -> do
@@ -271,7 +271,7 @@ oneUp =
                                   VS.freeze ex'
               maybe Gen.discard pure . fromStorable $ nx
 
-    D3Sing r c d -> withKnownNat r $ withKnownNat c $ withKnownNat d $
+    D3Sing SNat SNat SNat ->
       let x = 0 :: S ( shape )
       in  case x of
               ( S3D x' ) -> do
