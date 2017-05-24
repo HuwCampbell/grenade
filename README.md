@@ -88,7 +88,7 @@ backPropagate :: forall shapes layers.
 ```
 which takes a network, appropriate input and target data, and returns the
 back propagated gradients for the network. The shapes of the gradients are
-appropriate for each layer, and may be trivial for layers like `Rulu` which
+appropriate for each layer, and may be trivial for layers like `Relu` which
 have no learnable parameters.
 
 The gradients however can always be applied, yielding a new (hopefully better)
