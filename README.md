@@ -160,6 +160,31 @@ and the tests run using:
 
 Grenade builds with ghc 7.10 and 8.0.
 
+Windows build
+-------------
+
+This recipe is for Stack 1.4.0 - tested and working.
+
+1) 
+
+	> stack setup
+
+2) Download and unzip somewhere OpenBLAS http://www.openblas.net/
+
+3) In MSYS2 console of Stack, i.e.: C:\Users\{User}\AppData\Local\Programs\stack\x86_64-windows\msys2-{version}\msys2_shell.bat
+
+    > cd /.../OpenBLAS
+    > pacman -Sy
+    > pacman -S make perl gcc-fortran
+    > make clean
+    > make
+    > make install
+
+3) Then in normal Windows console (fill in user name, versions and check if paths are different on your machine):
+
+    > stack install --flag hmatrix:openblas --extra-include-dirs=C:\Users\{User}\AppData\Local\Programs\stack\x86_64-windows\msys2-20150512\opt\OpenBLAS\include --extra-lib-dirs=C:\Users\{User}\AppData\Local\Programs\stack\x86_64-windows\msys2-20150512\opt\OpenBLAS\bin --extra-lib-dirs=C:\Users\{User}\AppData\Local\Programs\stack\x86_64-windows\msys2-20150512\usr\lib\gcc\x86_64-pc-msys\6.3.0\
+
+
 Thanks
 ------
 Writing a library like this has been on my mind for a while now, but a big shout
