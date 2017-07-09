@@ -62,3 +62,9 @@ genD3 = do
     (SomeNat (px :: Proxy x), SomeNat (_ :: Proxy y), SomeNat (pz :: Proxy z)) ->
         case natDict px %* natDict pz of
           Dict -> SomeSing (sing :: Sing ('D3 x y z))
+
+rss :: SomeSing Shape' -> String
+rss (SomeSing (r :: Sing s)) = case r of
+  (D1Sing a@SNat) -> "D1 " ++ show (natVal a)
+  (D2Sing a@SNat b@SNat) -> "D2 " ++ show (natVal a) ++ " " ++ show (natVal b)
+  (D3Sing a@SNat b@SNat c@SNat) -> "D3 " ++ show (natVal a) ++ " " ++ show (natVal b) ++ " " ++ show (natVal c)

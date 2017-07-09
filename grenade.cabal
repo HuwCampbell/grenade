@@ -149,7 +149,7 @@ test-suite test
   build-depends:
                        base                            >= 4.8         && < 5
                      , grenade
-                     , hedgehog                        >= 0.1         && < 0.2
+                     , hedgehog                        >= 0.4         && < 0.5
                      , hmatrix
                      , mtl
                      , singletons

@@ -101,4 +101,4 @@ prop_conv_net = property $
 
 
 tests :: IO Bool
-tests = $$(checkConcurrent)
+tests = checkParallel $$(discover)

@@ -50,4 +50,4 @@ prop_pad_crop_2d =
 
 
 tests :: IO Bool
-tests = $$(checkConcurrent)
+tests = checkParallel $$(discover)

@@ -50,4 +50,4 @@ prop_fully_connected_forwards = property $ do
     backed `seq` success
 
 tests :: IO Bool
-tests = $$(checkConcurrent)
+tests = checkParallel $$(discover)

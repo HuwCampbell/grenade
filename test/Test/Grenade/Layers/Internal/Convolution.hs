@@ -53,6 +53,5 @@ prop_im2col_col2im_behaves_as_reference =
         outFast === outReference
         retFast === retReference
 
-return []
 tests :: IO Bool
-tests = $$(checkConcurrent)
+tests = checkParallel $$(discover)

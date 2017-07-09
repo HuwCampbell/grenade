@@ -22,7 +22,7 @@ import           Numeric.LinearAlgebra.Static ( norm_Inf )
 
 prop_sigmoid_grad :: Property
 prop_sigmoid_grad = property $
-    blindForAll genShape >>= \case
+    forAllWith rss genShape >>= \case
         (SomeSing (r :: Sing s)) ->
             withSingI r $
                 blindForAll genOfShape >>= \(ds :: S s) ->
@@ -37,7 +37,7 @@ prop_sigmoid_grad = property $
 
 prop_tanh_grad :: Property
 prop_tanh_grad = property $
-    blindForAll genShape >>= \case
+    forAllWith rss genShape >>= \case
         (SomeSing (r :: Sing s)) ->
             withSingI r $
                 blindForAll genOfShape >>=  \(ds :: S s) ->
@@ -51,5 +51,4 @@ prop_tanh_grad = property $
                            (S3D x) -> norm_Inf x < 0.001) :: Bool)
 
 tests :: IO Bool
-tests = $$(checkConcurrent)
-
+tests = checkParallel $$(discover)

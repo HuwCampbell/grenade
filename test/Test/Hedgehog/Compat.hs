@@ -9,8 +9,6 @@ module Test.Hedgehog.Compat (
 
 import           Control.Monad.Trans.Class (MonadTrans(..))
 
-import           Data.Typeable ( typeOf )
-
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
 import           Hedgehog.Internal.Property
@@ -30,11 +28,11 @@ blindForAll = Test . lift . lift
 semiBlindForAll :: (Monad m, Show a, HasCallStack) => Gen.Gen m a -> Test m a
 semiBlindForAll gen = do
   x <- Test . lift $ lift gen
-  writeLog $ Input (getCaller callStack) (typeOf ()) (showPretty x)
+  annotate (showPretty x)
   return x
 
 forAllRender :: (Monad m, HasCallStack) => ( a -> String ) -> Gen.Gen m a -> Test m a
 forAllRender render gen = do
   x <- Test . lift $ lift gen
-  writeLog $ Input (getCaller callStack) (typeOf ()) (render x)
+  footnote (render x)
   return x

@@ -303,4 +303,4 @@ infix 4 ~~~
 
 
 tests :: IO Bool
-tests = $$(checkConcurrent)
+tests = checkParallel $$(discover)

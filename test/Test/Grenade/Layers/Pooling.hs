@@ -42,4 +42,4 @@ prop_pool_layer_witness =
         assert True
 
 tests :: IO Bool
-tests = $$(checkConcurrent)
+tests = checkParallel $$(discover)

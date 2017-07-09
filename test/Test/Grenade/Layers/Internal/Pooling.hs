@@ -42,4 +42,4 @@ prop_poolForwards_poolBackwards_behaves_as_reference =
 
 
 tests :: IO Bool
-tests = $$(checkConcurrent)
+tests = checkParallel $$(discover)

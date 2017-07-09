@@ -122,4 +122,4 @@ prop_lstm_reference_backwards_cell =
 infix 4 ~~~
 
 tests :: IO Bool
-tests = $$(checkConcurrent)
+tests = checkParallel $$(discover)
