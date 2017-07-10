@@ -376,7 +376,7 @@ maxVal ( S3D x ) = norm_Inf x
 
 (~~~) :: (Monad m, HasCallStack) => Double -> Double -> Test m ()
 (~~~) x y =
-  if abs (x - y) < 1e-5 then
+  if abs (x - y) < 2e-5 then
     success
   else
     withFrozenCallStack $
