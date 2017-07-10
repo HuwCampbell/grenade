@@ -62,7 +62,7 @@ genNetwork =
     ] [
       do SomeNetwork ( rest :: Network layers shapes ) <- genNetwork
          case ( sing :: Sing shapes ) of
-           SNil -> Gen.discard
+           SNil -> Gen.discard -- Can't occur
            SCons ( h :: Sing h ) ( _ :: Sing hs ) ->
              withSingI h $
               case h of
@@ -215,12 +215,98 @@ genNetwork =
                                         pure (SomeNetwork (Pooling :~> rest :: Network ( Pooling kernelRows kernelCols strideRows strideCols ': layers ) ( ('D2 inRows inCols) ': h ': hs )))
                           _ -> Gen.discard -- Can't occur
                    ]
-                 D3Sing SNat SNat SNat ->
+                 D3Sing r@SNat c@SNat f@SNat ->
                    Gen.choice [
                      pure (SomeNetwork (Tanh    :~> rest :: Network ( Tanh    ': layers ) ( h ': h ': hs )))
                    , pure (SomeNetwork (Logit   :~> rest :: Network ( Logit   ': layers ) ( h ': h ': hs )))
                    , pure (SomeNetwork (Relu    :~> rest :: Network ( Relu    ': layers ) ( h ': h ': hs )))
                    , pure (SomeNetwork (Elu     :~> rest :: Network ( Elu     ': layers ) ( h ': h ': hs )))
+                   , do -- Build a convolution layer with one filter output
+                        -- Figure out some kernel sizes which work for this layer
+                        -- There must be a better way than this...
+                        let output_r = natVal r
+                        let output_c = natVal c
+                        let output_f = natVal f
+
+                        let ok extent kernel = [stride | stride <- [ 1 .. extent ], (extent - kernel) `mod` stride == 0]
+
+                        -- Get some kernels which will fit
+                        kernel_r <- choose 1 output_r
+                        kernel_c <- choose 1 output_c
+                        channels <- choose 1 10
+
+                        -- Build up some strides which also fit
+                        stride_r <- Gen.element $ ok output_r kernel_r
+                        stride_c <- Gen.element $ ok output_c kernel_c
+
+                        -- Determine the input size
+                        let input_r = (output_r - 1) * stride_r + kernel_r
+                        let input_c = (output_c - 1) * stride_c + kernel_c
+
+                        guard (input_r < 100)
+                        guard (input_c < 100)
+
+                        -- Remake types for input
+                        case ( someNatVal channels, someNatVal output_f, someNatVal input_r, someNatVal input_c, someNatVal output_r, someNatVal output_c, someNatVal kernel_r, someNatVal kernel_c, someNatVal stride_r, someNatVal stride_c ) of
+                          ( Just (SomeNat (chan :: Proxy channels)),   Just (SomeNat  (_    :: Proxy filters)),
+                            Just (SomeNat (pinr :: Proxy inRows)),     Just (SomeNat  (_    :: Proxy inCols)),
+                            Just (SomeNat (_    :: Proxy outRows)),    Just (SomeNat  (_    :: Proxy outCols)),
+                            Just (SomeNat (pkr  :: Proxy kernelRows)), Just (SomeNat  (pkc  :: Proxy kernelCols)),
+                            Just (SomeNat (_    :: Proxy strideRows)), Just (SomeNat  (_    :: Proxy strideCols))) ->
+                              let p1 = natDict pkr
+                                  p2 = natDict pkc
+                                  p3 = natDict chan
+                              in  case ( p1 %* p2 %* p3
+                                        , natDict pinr %* natDict chan
+                                        -- Fake it till you make it.
+                                        , (unsafeCoerce (Dict :: Dict ()) :: Dict ( ( 'D3 outRows outCols filters) ~ h ))
+                                        , (unsafeCoerce (Dict :: Dict ()) :: Dict (((outRows - 1) * strideRows) ~ (inRows - kernelRows)))
+                                        , (unsafeCoerce (Dict :: Dict ()) :: Dict (((outCols - 1) * strideCols) ~ (inCols - kernelCols)))) of
+                                    (Dict, Dict, Dict, Dict, Dict) -> do
+                                        conv <- genConvolution
+                                        pure (SomeNetwork (conv :~> rest :: Network ( Convolution channels filters kernelRows kernelCols strideRows strideCols ': layers ) ( ('D3 inRows inCols channels) ': h ': hs )))
+                          _ -> Gen.discard -- Can't occur
+                   , do -- Build a Pooling layer
+                        let output_r = natVal r
+                        let output_c = natVal c
+                        let output_f = natVal f
+
+                        let ok extent kernel = [stride | stride <- [ 1 .. extent ], (extent - kernel) `mod` stride == 0]
+
+                        -- Get some kernels which will fit
+                        kernel_r <- choose 1 output_r
+                        kernel_c <- choose 1 output_c
+
+                        -- Build up some strides which also fit
+                        stride_r <- Gen.element $ ok output_r kernel_r
+                        stride_c <- Gen.element $ ok output_c kernel_c
+
+                        -- Determine the input size
+                        let input_r = (output_r - 1) * stride_r + kernel_r
+                        let input_c = (output_c - 1) * stride_c + kernel_c
+
+                        guard (input_r < 100)
+                        guard (input_c < 100)
+
+                        -- Remake types for input
+                        case ( someNatVal output_f, someNatVal input_r, someNatVal input_c, someNatVal output_r, someNatVal output_c, someNatVal kernel_r, someNatVal kernel_c, someNatVal stride_r, someNatVal stride_c ) of
+                          ( Just (SomeNat (chan :: Proxy filters)),
+                            Just (SomeNat (pinr :: Proxy inRows)),     Just (SomeNat  (_    :: Proxy inCols)),
+                            Just (SomeNat (_    :: Proxy outRows)),    Just (SomeNat  (_    :: Proxy outCols)),
+                            Just (SomeNat (pkr  :: Proxy kernelRows)), Just (SomeNat  (pkc  :: Proxy kernelCols)),
+                            Just (SomeNat (_    :: Proxy strideRows)), Just (SomeNat  (_    :: Proxy strideCols))) ->
+                              let p1 = natDict pkr
+                                  p2 = natDict pkc
+                                  p3 = natDict chan
+                              in  case ( p1 %* p2 %* p3
+                                        , natDict pinr %* natDict chan
+                                        -- Fake it till you make it.
+                                        , (unsafeCoerce (Dict :: Dict ()) :: Dict ( ( 'D3 outRows outCols filters) ~ h ))
+                                        , (unsafeCoerce (Dict :: Dict ()) :: Dict (((outRows - 1) * strideRows) ~ (inRows - kernelRows)))
+                                        , (unsafeCoerce (Dict :: Dict ()) :: Dict (((outCols - 1) * strideCols) ~ (inCols - kernelCols)))) of
+                                    (Dict, Dict, Dict, Dict, Dict) ->
+                                        pure (SomeNetwork (Pooling :~> rest :: Network ( Pooling kernelRows kernelCols strideRows strideCols ': layers ) ( ('D3 inRows inCols filters) ': h ': hs )))
+                          _ -> Gen.discard -- Can't occur
                    ]
     ]
 
@@ -228,7 +314,7 @@ genNetwork =
 --
 -- This is the most important test.
 prop_auto_diff :: Property
-prop_auto_diff = withTests 10000 . property $ do
+prop_auto_diff = withDiscards 1000 . withTests 10000 . property $ do
   SomeNetwork (network :: Network layers shapes) <- forAll genNetwork
   (input  :: S (Head shapes))     <- forAllRender nice genOfShape
   (target :: S (Last shapes))     <- forAllRender nice oneUp
