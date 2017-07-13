@@ -7,7 +7,7 @@ Stability   : experimental
 -}
 module Grenade.Core.LearningParameters (
   -- | This module contains learning algorithm specific
-  --   code. Currently, this module should be consifered
+  --   code. Currently, this module should be considered
   --   unstable, due to issue #26.
 
     LearningParameters (..)
