@@ -214,6 +214,57 @@ genNetwork =
                                     (Dict, Dict, Dict, Dict) ->
                                         pure (SomeNetwork (Pooling :~> rest :: Network ( Pooling kernelRows kernelCols strideRows strideCols ': layers ) ( ('D2 inRows inCols) ': h ': hs )))
                           _ -> Gen.discard -- Can't occur
+                   , do -- Build a Pad layer
+                        let output_r = natVal r
+                        let output_c = natVal c
+
+                        pad_left   <- choose 0 (output_r - 1)
+                        pad_right  <- choose 0 (output_r - 1 - pad_left)
+                        pad_top    <- choose 0 (output_c - 1)
+                        pad_bottom <- choose 0 (output_c - 1 - pad_top)
+
+                        let input_r = output_r - pad_top - pad_bottom
+                        let input_c = output_c - pad_left - pad_right
+
+                        guard (input_r > 1)
+                        guard (input_c > 1)
+
+                        -- Remake types for input
+                        case ( someNatVal input_r, someNatVal input_c, someNatVal output_r, someNatVal output_c, someNatVal pad_left, someNatVal pad_right, someNatVal pad_top, someNatVal pad_bottom ) of
+                          ( Just (SomeNat (_    :: Proxy inputRows)),  Just (SomeNat  (_    :: Proxy inputColumns)),
+                            Just (SomeNat (_    :: Proxy outputRows)), Just (SomeNat  (_    :: Proxy outputColumns)),
+                            Just (SomeNat (_    :: Proxy padLeft)),    Just (SomeNat  (_    :: Proxy padRight)),
+                            Just (SomeNat (_    :: Proxy padTop)),     Just (SomeNat  (_    :: Proxy padBottom))) ->
+                              case (  (unsafeCoerce (Dict :: Dict ()) :: Dict ( ( 'D2 outputRows outputColumns) ~ h ))
+                                    , (unsafeCoerce (Dict :: Dict ()) :: Dict ( (inputRows + padTop + padBottom) ~ outputRows) )
+                                    , (unsafeCoerce (Dict :: Dict ()) :: Dict ( (inputColumns + padLeft + padRight) ~ outputColumns ))) of
+                                    ( Dict, Dict, Dict ) ->
+                                        pure (SomeNetwork (Pad :~> rest :: Network ( Pad padLeft padTop padRight padBottom ': layers ) ( ('D2 inputRows inputColumns) ': h ': hs )))
+                          _ -> Gen.discard -- Can't occur
+                   , do -- Build a Crop layer
+                        let output_r = natVal r
+                        let output_c = natVal c
+
+                        crop_left   <- choose 0 10
+                        crop_right  <- choose 0 10
+                        crop_top    <- choose 0 10
+                        crop_bottom <- choose 0 10
+
+                        let input_r = output_r + crop_top + crop_bottom
+                        let input_c = output_c + crop_left + crop_right
+
+                        -- Remake types for input
+                        case ( someNatVal input_r, someNatVal input_c, someNatVal output_r, someNatVal output_c, someNatVal crop_left, someNatVal crop_right, someNatVal crop_top, someNatVal crop_bottom ) of
+                          ( Just (SomeNat (_    :: Proxy inputRows)),  Just (SomeNat  (_    :: Proxy inputColumns)),
+                            Just (SomeNat (_    :: Proxy outputRows)), Just (SomeNat  (_    :: Proxy outputColumns)),
+                            Just (SomeNat (_    :: Proxy cropLeft)),   Just (SomeNat  (_    :: Proxy cropRight)),
+                            Just (SomeNat (_    :: Proxy cropTop)),    Just (SomeNat  (_    :: Proxy cropBottom))) ->
+                              case (  (unsafeCoerce (Dict :: Dict ()) :: Dict ( ( 'D2 outputRows outputColumns) ~ h ))
+                                    , (unsafeCoerce (Dict :: Dict ()) :: Dict ( (outputRows + cropTop + cropBottom) ~ inputRows ) )
+                                    , (unsafeCoerce (Dict :: Dict ()) :: Dict ( (outputColumns + cropLeft + cropRight) ~ inputColumns ))) of
+                                    (Dict, Dict, Dict) ->
+                                        pure (SomeNetwork (Crop :~> rest :: Network ( Crop cropLeft cropTop cropRight cropBottom ': layers ) ( ('D2 inputRows inputColumns) ': h ': hs )))
+                          _ -> Gen.discard -- Can't occur
                    ]
                  D3Sing r@SNat c@SNat f@SNat ->
                    Gen.choice [
@@ -307,7 +358,64 @@ genNetwork =
                                     (Dict, Dict, Dict, Dict, Dict) ->
                                         pure (SomeNetwork (Pooling :~> rest :: Network ( Pooling kernelRows kernelCols strideRows strideCols ': layers ) ( ('D3 inRows inCols filters) ': h ': hs )))
                           _ -> Gen.discard -- Can't occur
-                   ]
+                   , do -- Build a Pad layer
+                        let output_r = natVal r
+                        let output_c = natVal c
+                        let output_f = natVal f
+
+                        pad_left   <- choose 0 (output_r - 1)
+                        pad_right  <- choose 0 (output_r - 1 - pad_left)
+                        pad_top    <- choose 0 (output_c - 1)
+                        pad_bottom <- choose 0 (output_c - 1 - pad_top)
+
+                        let input_r = output_r - pad_top - pad_bottom
+                        let input_c = output_c - pad_left - pad_right
+
+                        guard (input_r > 1)
+                        guard (input_c > 1)
+
+                        -- Remake types for input
+                        case ( someNatVal output_f, someNatVal input_r, someNatVal input_c, someNatVal output_r, someNatVal output_c, someNatVal pad_left, someNatVal pad_right, someNatVal pad_top, someNatVal pad_bottom ) of
+                          ( Just (SomeNat (chan :: Proxy filters)),
+                            Just (SomeNat (pinr :: Proxy inputRows)),  Just (SomeNat  (_    :: Proxy inputColumns)),
+                            Just (SomeNat (_    :: Proxy outputRows)), Just (SomeNat  (_    :: Proxy outputColumns)),
+                            Just (SomeNat (_    :: Proxy padLeft)),    Just (SomeNat  (_    :: Proxy padRight)),
+                            Just (SomeNat (_    :: Proxy padTop)),     Just (SomeNat  (_    :: Proxy padBottom))) ->
+                              case (   natDict pinr %* natDict chan
+                                    , (unsafeCoerce (Dict :: Dict ()) :: Dict ( ( 'D3 outputRows outputColumns filters) ~ h ))
+                                    , (unsafeCoerce (Dict :: Dict ()) :: Dict ( (inputRows + padTop + padBottom) ~ outputRows) )
+                                    , (unsafeCoerce (Dict :: Dict ()) :: Dict ( (inputColumns + padLeft + padRight) ~ outputColumns ))) of
+                                    (Dict, Dict, Dict, Dict) ->
+                                        pure (SomeNetwork (Pad :~> rest :: Network ( Pad padLeft padTop padRight padBottom ': layers ) ( ('D3 inputRows inputColumns filters) ': h ': hs )))
+                          _ -> Gen.discard -- Can't occur
+                   , do -- Build a Crop layer
+                        let output_r = natVal r
+                        let output_c = natVal c
+                        let output_f = natVal f
+
+                        crop_left   <- choose 0 10
+                        crop_right  <- choose 0 10
+                        crop_top    <- choose 0 10
+                        crop_bottom <- choose 0 10
+
+                        let input_r = output_r + crop_top + crop_bottom
+                        let input_c = output_c + crop_left + crop_right
+
+                        -- Remake types for input
+                        case ( someNatVal output_f, someNatVal input_r, someNatVal input_c, someNatVal output_r, someNatVal output_c, someNatVal crop_left, someNatVal crop_right, someNatVal crop_top, someNatVal crop_bottom ) of
+                          ( Just (SomeNat (chan :: Proxy filters)),
+                            Just (SomeNat (pinr :: Proxy inputRows)),  Just (SomeNat  (_    :: Proxy inputColumns)),
+                            Just (SomeNat (_    :: Proxy outputRows)), Just (SomeNat  (_    :: Proxy outputColumns)),
+                            Just (SomeNat (_    :: Proxy cropLeft)),   Just (SomeNat  (_    :: Proxy cropRight)),
+                            Just (SomeNat (_    :: Proxy cropTop)),    Just (SomeNat  (_    :: Proxy cropBottom))) ->
+                              case (   natDict pinr %* natDict chan
+                                    , (unsafeCoerce (Dict :: Dict ()) :: Dict ( ( 'D3 outputRows outputColumns filters) ~ h ))
+                                    , (unsafeCoerce (Dict :: Dict ()) :: Dict ( (outputRows + cropTop + cropBottom) ~ inputRows ) )
+                                    , (unsafeCoerce (Dict :: Dict ()) :: Dict ( (outputColumns + cropLeft + cropRight) ~ inputColumns ))) of
+                                    (Dict, Dict, Dict, Dict) ->
+                                        pure (SomeNetwork (Crop :~> rest :: Network ( Crop cropLeft cropTop cropRight cropBottom ': layers ) ( ('D3 inputRows inputColumns filters) ': h ': hs )))
+                          _ -> Gen.discard -- Can't occur
+                     ]
     ]
 
 -- | Test a partial derivative numerically for a random network and input
@@ -316,9 +424,9 @@ genNetwork =
 prop_auto_diff :: Property
 prop_auto_diff = withDiscards 1000 . withTests 10000 . property $ do
   SomeNetwork (network :: Network layers shapes) <- forAll genNetwork
-  (input  :: S (Head shapes))     <- forAllRender nice genOfShape
-  (target :: S (Last shapes))     <- forAllRender nice oneUp
-  (tested :: S (Head shapes))     <- forAllRender nice oneUp
+  (input  :: S (Head shapes))     <- forAllWith nice genOfShape
+  (target :: S (Last shapes))     <- forAllWith nice oneUp
+  (tested :: S (Head shapes))     <- forAllWith nice oneUp
 
   let (!tapes, !output) = runNetwork network input
   let (_, !backgrad)    = runGradient network tapes target

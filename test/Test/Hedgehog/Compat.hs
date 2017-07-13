@@ -28,11 +28,11 @@ blindForAll = Test . lift . lift
 semiBlindForAll :: (Monad m, Show a, HasCallStack) => Gen.Gen m a -> Test m a
 semiBlindForAll gen = do
   x <- Test . lift $ lift gen
-  annotate (showPretty x)
+  withFrozenCallStack $ annotate (showPretty x)
   return x
 
 forAllRender :: (Monad m, HasCallStack) => ( a -> String ) -> Gen.Gen m a -> Test m a
 forAllRender render gen = do
   x <- Test . lift $ lift gen
-  footnote (render x)
+  withFrozenCallStack $ footnote (render x)
   return x
