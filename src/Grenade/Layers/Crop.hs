@@ -51,8 +51,8 @@ instance ( KnownNat cropLeft
          , KnownNat inputColumns
          , KnownNat outputRows
          , KnownNat outputColumns
-         , (inputRows - cropTop - cropBottom) ~ outputRows
-         , (inputColumns - cropLeft - cropRight) ~ outputColumns
+         , (outputRows + cropTop + cropBottom) ~ inputRows
+         , (outputColumns + cropLeft + cropRight) ~ inputColumns
          ) => Layer (Crop cropLeft cropTop cropRight cropBottom) ('D2 inputRows inputColumns) ('D2 outputRows outputColumns) where
   type Tape (Crop cropLeft cropTop cropRight cropBottom) ('D2 inputRows inputColumns) ('D2 outputRows outputColumns) = ()
   runForwards Crop (S2D input) =
