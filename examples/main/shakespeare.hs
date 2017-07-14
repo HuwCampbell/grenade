@@ -61,7 +61,7 @@ type Shakespeare = RecurrentNetwork '[ R (LSTM 40 80), R (LSTM 80 40), F (FullyC
 -- The definition of the "sideways" input, which the network is fed recurrently.
 type Shakespearian = RecurrentInputs  '[ R (LSTM 40 80), R (LSTM 80 40), F (FullyConnected 40 40), F Logit]
 
-randomNet :: MonadRandom m => m (Shakespeare, Shakespearian)
+randomNet :: MonadRandom m => m Shakespeare
 randomNet = randomRecurrent
 
 -- | Load the data files and prepare a map of characters to a compressed int representation.
@@ -90,7 +90,7 @@ runShakespeare ShakespeareOpts {..} = do
   (net0, i0) <- lift $
     case loadPath of
       Just loadFile -> netLoad loadFile
-      Nothing -> randomNet
+      Nothing -> (,0) <$> randomNet
 
   (trained, bestInput) <- lift $ foldM (\(!net, !io) size -> do
     xs <- take (iterations `div` 10) <$> getRandomRs (0, length shakespeare - size - 1)
@@ -102,7 +102,7 @@ runShakespeare ShakespeareOpts {..} = do
     ) (net0, i0) $ replicate 10 sequenceSize
 
   case savePath of
-    Just saveFile -> lift . B.writeFile saveFile $ runPut (put (trained, bestInput))
+    Just saveFile -> lift . B.writeFile saveFile $ runPut (put trained >> put bestInput)
     Nothing -> return ()
 
 generateParagraph :: forall layers shapes n a. (Last shapes ~ 'D1 n, Head shapes ~ 'D1 n, KnownNat n, Ord a)
@@ -117,10 +117,10 @@ generateParagraph n s temperature hotmap hotdict =
   go s
     where
   go x y =
-    do let (ns, o) = runRecurrent n x y
-       un         <- sample temperature hotdict o
-       Just re    <- return $ makeHot hotmap un
-       rest       <- unsafeInterleaveIO $ go ns re
+    do let (_, ns, o) = runRecurrent n x y
+       un            <- sample temperature hotdict o
+       Just re       <- return $ makeHot hotmap un
+       rest          <- unsafeInterleaveIO $ go ns re
        return (un : rest)
 
 data ShakespeareOpts = ShakespeareOpts {

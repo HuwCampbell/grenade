@@ -17,12 +17,12 @@ module Grenade.Recurrent.Core.Network (
 
   , RecurrentNetwork (..)
   , RecurrentInputs (..)
-  , RecurrentTapes (..)
-  , RecurrentGradients (..)
+  , RecurrentTape (..)
+  , RecurrentGradient (..)
 
   , randomRecurrent
-  , runRecurrentNetwork
-  , runRecurrentGradient
+  , runRecurrent
+  , runRecurrent'
   , applyRecurrentUpdate
   ) where
 
@@ -31,13 +31,9 @@ import           Control.Monad.Random ( MonadRandom )
 import           Data.Singletons ( SingI )
 import           Data.Singletons.Prelude ( Head, Last )
 import           Data.Serialize
-import qualified Data.Vector.Storable as V
 
 import           Grenade.Core
 import           Grenade.Recurrent.Core.Layer
-
-import qualified Numeric.LinearAlgebra as LA
-import qualified Numeric.LinearAlgebra.Static as LAS
 
 -- | Witness type to say indicate we're building up with a normal feed
 --   forward layer.
@@ -75,96 +71,82 @@ infixr 5 :~@>
 -- | Gradient of a network.
 --
 --   Parameterised on the layers of the network.
-data RecurrentGradients :: [*] -> * where
-   RGNil  :: RecurrentGradients '[]
+data RecurrentGradient :: [*] -> * where
+   RGNil  :: RecurrentGradient '[]
 
    (://>) :: UpdateLayer x
-          => [Gradient x]
-          -> RecurrentGradients xs
-          -> RecurrentGradients (phantom x ': xs)
+          => Gradient x
+          -> RecurrentGradient xs
+          -> RecurrentGradient (phantom x ': xs)
 
 -- | Recurrent inputs (sideways shapes on an imaginary unrolled graph)
 --   Parameterised on the layers of a Network.
 data RecurrentInputs :: [*] -> * where
    RINil   :: RecurrentInputs '[]
 
-   (:~~+>) :: UpdateLayer x
+   (:~~+>) :: (UpdateLayer x, Fractional (RecurrentInputs xs))
            => ()                      -> !(RecurrentInputs xs) -> RecurrentInputs (FeedForward x ': xs)
 
-   (:~@+>) :: (SingI (RecurrentShape x), RecurrentUpdateLayer x)
-           => !(S (RecurrentShape x)) -> !(RecurrentInputs xs) -> RecurrentInputs (Recurrent x ': xs)
+   (:~@+>) :: (Fractional (RecurrentShape x), Fractional (RecurrentInputs xs), RecurrentUpdateLayer x)
+           => !(RecurrentShape x) -> !(RecurrentInputs xs) -> RecurrentInputs (Recurrent x ': xs)
 
 -- | All the information required to backpropogate
 --   through time safely.
 --
 --   We index on the time step length as well, to ensure
 --   that that all Tape lengths are the same.
-data RecurrentTapes :: [*] -> [Shape] -> * where
+data RecurrentTape :: [*] -> [Shape] -> * where
    TRNil  :: SingI i
-          => RecurrentTapes '[] '[i]
+          => RecurrentTape '[] '[i]
 
-   (:\~>) :: [Tape x i h]
-          -> !(RecurrentTapes xs (h ': hs))
-          -> RecurrentTapes (FeedForward x ': xs) (i ': h ': hs)
+   (:\~>) :: Tape x i h
+          -> !(RecurrentTape xs (h ': hs))
+          -> RecurrentTape (FeedForward x ': xs) (i ': h ': hs)
+
+   (:\@>) :: RecTape x i h
+          -> !(RecurrentTape xs (h ': hs))
+          -> RecurrentTape (Recurrent x ': xs) (i ': h ': hs)
 
 
-   (:\@>) :: [RecTape x i h]
-          -> !(RecurrentTapes xs (h ': hs))
-          -> RecurrentTapes (Recurrent x ': xs) (i ': h ': hs)
-
-
-runRecurrentNetwork  :: forall shapes layers.
-                        RecurrentNetwork layers shapes
-                     -> RecurrentInputs layers
-                     -> [S (Head shapes)]
-                     -> (RecurrentTapes layers shapes, RecurrentInputs layers, [S (Last shapes)])
-runRecurrentNetwork =
+runRecurrent :: forall shapes layers.
+                RecurrentNetwork layers shapes
+             -> RecurrentInputs layers
+             -> S (Head shapes)
+             -> (RecurrentTape layers shapes, RecurrentInputs layers, S (Last shapes))
+runRecurrent =
   go
     where
   go  :: forall js sublayers. (Last js ~ Last shapes)
       => RecurrentNetwork sublayers js
       -> RecurrentInputs sublayers
-      -> [S (Head js)]
-      -> (RecurrentTapes sublayers js, RecurrentInputs sublayers, [S (Last js)])
-  -- This is a simple non-recurrent layer, just map it forwards
-  go (layer :~~> n) (() :~~+> nIn) !xs
-      = let tys                 = runForwards layer <$> xs
-            feedForwardTapes    = fst <$> tys
-            forwards            = snd <$> tys
+      -> S (Head js)
+      -> (RecurrentTape sublayers js, RecurrentInputs sublayers, S (Last js))
+  go (!layer :~~> n) (() :~~+> nIn) !x
+      = let (!tape, !forwards) = runForwards layer x
+
             -- recursively run the rest of the network, and get the gradients from above.
-            (newFN, ig, answer) = go n nIn forwards
-        in (feedForwardTapes :\~> newFN, () :~~+> ig, answer)
+            (!newFN, !ig, !answer) = go n nIn forwards
+        in (tape :\~> newFN, () :~~+> ig, answer)
 
   -- This is a recurrent layer, so we need to do a scan, first input to last, providing
   -- the recurrent shape output to the next layer.
-  go (layer :~@> n) (recIn :~@+> nIn) !xs
-      = let (recOut, tys)       = goR layer recIn xs
-            recurrentTapes      = fst <$> tys
-            forwards            = snd <$> tys
-
+  go (layer :~@> n) (recIn :~@+> nIn) !x
+      = let (tape, shape, forwards) = runRecurrentForwards layer recIn x
             (newFN, ig, answer) = go n nIn forwards
-        in (recurrentTapes :\@> newFN, recOut :~@+> ig, answer)
+        in (tape :\@> newFN, shape :~@+> ig, answer)
 
   -- Handle the output layer, bouncing the derivatives back down.
   -- We may not have a target for each example, so when we don't use 0 gradient.
   go RNil RINil !x
     = (TRNil, RINil, x)
 
-  -- Helper function for recurrent layers
-  -- Scans over the recurrent direction of the graph.
-  goR !layer !recShape (x:xs) =
-    let (tape, lerec, lepush) = runRecurrentForwards layer recShape x
-        (rems, push)          = goR layer lerec xs
-    in  (rems, (tape, lepush) : push)
-  goR _ rin []      = (rin, [])
-
-runRecurrentGradient :: forall layers shapes.
-                        RecurrentNetwork layers shapes
-                     -> RecurrentTapes layers shapes
-                     -> RecurrentInputs layers
-                     -> [S (Last shapes)]
-                     -> (RecurrentGradients layers, RecurrentInputs layers, [S (Head shapes)])
-runRecurrentGradient net tapes r o =
+runRecurrent' :: forall layers shapes.
+                 RecurrentNetwork layers shapes
+              -> RecurrentTape layers shapes
+              -> RecurrentInputs layers
+              -> S (Last shapes)
+              -> (RecurrentGradient layers, RecurrentInputs layers, S (Head shapes))
+runRecurrent' net tapes r o =
   go net tapes r
     where
   -- We have to be careful regarding the direction of the lists
@@ -172,51 +154,41 @@ runRecurrentGradient net tapes r o =
   -- through time.
   go  :: forall js ss. (Last js ~ Last shapes)
       => RecurrentNetwork ss js
-      -> RecurrentTapes ss js
+      -> RecurrentTape ss js
       -> RecurrentInputs ss
-      -> (RecurrentGradients ss, RecurrentInputs ss, [S (Head js)])
+      -> (RecurrentGradient ss, RecurrentInputs ss, S (Head js))
   -- This is a simple non-recurrent layer
-  -- Run the rest of the network, then fmap the tapes and gradients
-  go (layer :~~> n) (feedForwardTapes :\~> nTapes) (() :~~+> nRecs) =
-    let (gradients, rins, feed)  = go n nTapes nRecs
-        backs                    = uncurry (runBackwards layer) <$> zip (reverse feedForwardTapes) feed
-    in  ((fst <$> backs) ://> gradients, () :~~+> rins, snd <$> backs)
+  -- Run the rest of the network, update with the tapes and gradients
+  go (!layer :~~> n) (!tape :\~> nTapes) (() :~~+> nRecs) =
+    let (!gradients, !rins, !feed)  = go n nTapes nRecs
+        (!grad, !back)              = runBackwards layer tape feed
+    in  (grad ://> gradients, () :~~+> rins, back)
 
   -- This is a recurrent layer
   -- Run the rest of the network, scan over the tapes in reverse
-  go (layer :~@> n) (recurrentTapes :\@> nTapes) (recGrad :~@+> nRecs) =
-    let (gradients, rins, feed)  = go n nTapes nRecs
-        backExamples             = zip (reverse recurrentTapes) feed
-        (rg, backs)              = goX layer recGrad backExamples
-    in  ((fst <$> backs) ://> gradients, rg :~@+> rins, snd <$> backs)
+  go (!layer :~@> n) (!tape :\@> nTapes) (!recGrad :~@+> nRecs) =
+    let (!gradients, !rins, !feed)    = go n nTapes nRecs
+        (!grad, !sidegrad, !back)     = runRecurrentBackwards layer tape recGrad feed
+    in  (grad ://> gradients, sidegrad :~@+> rins, back)
 
   -- End of the road, so we reflect the given gradients backwards.
   -- Crucially, we reverse the list, so it's backwards in time as
   -- well.
-  go RNil TRNil RINil
-    = (RGNil, RINil, reverse o)
-
-  -- Helper function for recurrent layers
-  -- Scans over the recurrent direction of the graph.
-  goX :: RecurrentLayer x i o => x -> S (RecurrentShape x) -> [(RecTape x i o, S o)] -> (S (RecurrentShape x), [(Gradient x, S i)])
-  goX layer !lastback ((recTape, backgrad):xs) =
-    let (layergrad, recgrad, ingrad) = runRecurrentBackwards layer recTape lastback backgrad
-        (pushedback, ll)             = goX layer recgrad xs
-    in  (pushedback, (layergrad, ingrad) : ll)
-  goX _ !lastback []      = (lastback, [])
+  go !RNil !TRNil !RINil
+    = (RGNil, RINil, o)
 
 -- | Apply a batch of gradients to the network
 --   Uses runUpdates which can be specialised for
 --   a layer.
 applyRecurrentUpdate :: LearningParameters
                      -> RecurrentNetwork layers shapes
-                     -> RecurrentGradients layers
+                     -> RecurrentGradient layers
                      -> RecurrentNetwork layers shapes
 applyRecurrentUpdate rate (layer :~~> rest) (gradient ://> grest)
-  = runUpdates rate layer gradient :~~> applyRecurrentUpdate rate rest grest
+  = runUpdate rate layer gradient :~~> applyRecurrentUpdate rate rest grest
 
 applyRecurrentUpdate rate (layer :~@> rest) (gradient ://> grest)
-  = runUpdates rate layer gradient :~@> applyRecurrentUpdate rate rest grest
+  = runUpdate rate layer gradient :~@> applyRecurrentUpdate rate rest grest
 
 applyRecurrentUpdate _ RNil RGNil
   = RNil
@@ -234,24 +206,23 @@ instance (Show x, Show (RecurrentNetwork xs rs)) => Show (RecurrentNetwork (Recu
 --   recurrent network and a set of random inputs for it is with the randomRecurrent.
 class CreatableRecurrent (xs :: [*]) (ss :: [Shape]) where
   -- | Create a network of the types requested
-  randomRecurrent :: MonadRandom m => m (RecurrentNetwork xs ss, RecurrentInputs xs)
+  randomRecurrent :: MonadRandom m => m (RecurrentNetwork xs ss)
 
 instance SingI i => CreatableRecurrent '[] '[i] where
   randomRecurrent =
-    return (RNil, RINil)
+    return RNil
 
 instance (SingI i, Layer x i o, CreatableRecurrent xs (o ': rs)) => CreatableRecurrent (FeedForward x ': xs) (i ': o ': rs) where
   randomRecurrent = do
     thisLayer     <- createRandom
-    (rest, resti) <- randomRecurrent
-    return (thisLayer :~~> rest, () :~~+> resti)
+    rest          <- randomRecurrent
+    return (thisLayer :~~> rest)
 
 instance (SingI i, RecurrentLayer x i o, CreatableRecurrent xs (o ':  rs)) => CreatableRecurrent (Recurrent x ': xs) (i ': o ': rs) where
   randomRecurrent = do
     thisLayer     <- createRandom
-    thisShape     <- randomOfShape
-    (rest, resti) <- randomRecurrent
-    return (thisLayer :~@> rest, thisShape :~@+> resti)
+    rest          <- randomRecurrent
+    return (thisLayer :~@> rest)
 
 -- | Add very simple serialisation to the recurrent network
 instance SingI i => Serialize (RecurrentNetwork '[] '[i]) where
@@ -270,23 +241,13 @@ instance (Serialize (RecurrentInputs '[])) where
   put _ = return ()
   get = return RINil
 
-instance (UpdateLayer x, Serialize (RecurrentInputs ys)) => (Serialize (RecurrentInputs (FeedForward x ': ys))) where
+instance (UpdateLayer x, Serialize (RecurrentInputs ys), Fractional (RecurrentInputs ys)) => (Serialize (RecurrentInputs (FeedForward x ': ys))) where
   put ( () :~~+> rest) = put rest
   get = ( () :~~+> ) <$> get
 
-instance (SingI (RecurrentShape x), RecurrentUpdateLayer x, Serialize (RecurrentInputs ys)) => (Serialize (RecurrentInputs (Recurrent x ': ys))) where
-  put ( i :~@+> rest ) = do
-    _ <- (case i of
-           (S1D x) -> putListOf put . LA.toList . LAS.extract $ x
-           (S2D x) -> putListOf put . LA.toList . LA.flatten . LAS.extract $ x
-           (S3D x) -> putListOf put . LA.toList . LA.flatten . LAS.extract $ x
-         ) :: PutM ()
-    put rest
-
-  get = do
-    Just i <- fromStorable . V.fromList <$> getListOf get
-    rest   <- get
-    return ( i :~@+> rest)
+instance (Serialize (RecurrentShape x), Fractional (RecurrentShape x), RecurrentUpdateLayer x, Serialize (RecurrentInputs ys), Fractional (RecurrentInputs ys)) => (Serialize (RecurrentInputs (Recurrent x ': ys))) where
+  put ( i :~@+> rest ) = put i >> put rest
+  get = (:~@+>) <$> get <*> get
 
 
 -- Num instance for `RecurrentInputs layers`
@@ -307,7 +268,7 @@ instance (Num (RecurrentInputs '[])) where
   signum _ = RINil
   fromInteger _ = RINil
 
-instance (UpdateLayer x, Num (RecurrentInputs ys)) => (Num (RecurrentInputs (FeedForward x ': ys))) where
+instance (UpdateLayer x, Fractional (RecurrentInputs ys)) => (Num (RecurrentInputs (FeedForward x ': ys))) where
   (+) (() :~~+> x) (() :~~+> y)  = () :~~+> (x + y)
   (-) (() :~~+> x) (() :~~+> y)  = () :~~+> (x - y)
   (*) (() :~~+> x) (() :~~+> y)  = () :~~+> (x * y)
@@ -315,10 +276,51 @@ instance (UpdateLayer x, Num (RecurrentInputs ys)) => (Num (RecurrentInputs (Fee
   signum (() :~~+> x)   = () :~~+> signum x
   fromInteger x         = () :~~+> fromInteger x
 
-instance (SingI (RecurrentShape x), RecurrentUpdateLayer x, Num (RecurrentInputs ys)) => (Num (RecurrentInputs (Recurrent x ': ys))) where
+instance (Fractional (RecurrentShape x), RecurrentUpdateLayer x, Fractional (RecurrentInputs ys)) => (Num (RecurrentInputs (Recurrent x ': ys))) where
   (+) (x :~@+> x') (y :~@+> y')  = (x + y) :~@+> (x' + y')
   (-) (x :~@+> x') (y :~@+> y')  = (x - y) :~@+> (x' - y')
   (*) (x :~@+> x') (y :~@+> y')  = (x * y) :~@+> (x' * y')
   abs (x :~@+> x')      = abs x :~@+> abs x'
   signum (x :~@+> x')   = signum x :~@+> signum x'
   fromInteger x         = fromInteger x :~@+> fromInteger x
+
+instance (Fractional (RecurrentInputs '[])) where
+  (/) _ _        = RINil
+  recip _        = RINil
+  fromRational _ = RINil
+
+instance (UpdateLayer x, Fractional (RecurrentInputs ys)) => (Fractional (RecurrentInputs (FeedForward x ': ys))) where
+  (/) (() :~~+> x) (() :~~+> y)  = () :~~+> (x / y)
+  recip (() :~~+> x)    = () :~~+> recip x
+  fromRational x        = () :~~+> fromRational x
+
+instance (Fractional (RecurrentShape x), RecurrentUpdateLayer x, Fractional (RecurrentInputs ys)) => (Fractional (RecurrentInputs (Recurrent x ': ys))) where
+  (/) (x :~@+> x') (y :~@+> y') = (x / y) :~@+> (x' / y')
+  recip (x :~@+> x')    = recip x :~@+> recip x'
+  fromRational x        = fromRational x :~@+> fromRational x
+
+
+-- | Ultimate composition.
+--
+--   This allows a complete network to be treated as a layer in a larger network.
+instance CreatableRecurrent sublayers subshapes => UpdateLayer (RecurrentNetwork sublayers subshapes) where
+  type Gradient (RecurrentNetwork sublayers subshapes) = RecurrentGradient sublayers
+  runUpdate    = applyRecurrentUpdate
+  createRandom = randomRecurrent
+
+-- | Ultimate composition.
+--
+--   This allows a complete network to be treated as a layer in a larger network.
+instance CreatableRecurrent sublayers subshapes => RecurrentUpdateLayer (RecurrentNetwork sublayers subshapes) where
+  type RecurrentShape (RecurrentNetwork sublayers subshapes) = RecurrentInputs sublayers
+
+-- | Ultimate composition.
+--
+--   This allows a complete network to be treated as a layer in a larger network.
+instance ( CreatableRecurrent sublayers subshapes
+         , i ~ (Head subshapes), o ~ (Last subshapes)
+         , Num (RecurrentShape (RecurrentNetwork sublayers subshapes))
+         ) => RecurrentLayer (RecurrentNetwork sublayers subshapes) i o where
+  type RecTape (RecurrentNetwork sublayers subshapes) i o = RecurrentTape sublayers subshapes
+  runRecurrentForwards = runRecurrent
+  runRecurrentBackwards = runRecurrent'

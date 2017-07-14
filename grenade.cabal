@@ -48,7 +48,7 @@ library
                      , mtl                             >= 2.2.1       && < 2.3
                      , primitive                       >= 0.6         && < 0.7
                      , text                            == 1.2.*
-                     , singletons                      >= 2.1         && < 2.3
+                     , singletons                      >= 2.1         && < 2.4
                      , vector                          >= 0.11        && < 0.13
 
   ghc-options:
@@ -102,6 +102,7 @@ library
 
                        Grenade.Recurrent.Layers
                        Grenade.Recurrent.Layers.BasicRecurrent
+                       Grenade.Recurrent.Layers.ConcatRecurrent
                        Grenade.Recurrent.Layers.LSTM
 
                        Grenade.Utils.OneHot

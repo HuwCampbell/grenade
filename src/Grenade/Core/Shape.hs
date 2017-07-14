@@ -29,6 +29,7 @@ import           Control.DeepSeq (NFData (..))
 import           Control.Monad.Random ( MonadRandom, getRandom )
 
 import           Data.Proxy
+import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.TypeLits
 import           Data.Vector.Storable ( Vector )
@@ -170,6 +171,18 @@ fromStorable xs = case sing :: Sing x of
       in  if rows * columns == V.length v
              then H.create $ NLA.reshape columns v
              else Nothing
+
+
+instance SingI x => Serialize (S x) where
+  put i = (case i of
+            (S1D x) -> putListOf put . NLA.toList . H.extract $ x
+            (S2D x) -> putListOf put . NLA.toList . NLA.flatten . H.extract $ x
+            (S3D x) -> putListOf put . NLA.toList . NLA.flatten . H.extract $ x
+          ) :: PutM ()
+
+  get = do
+    Just i <- fromStorable . V.fromList <$> getListOf get
+    return i
 
 -- Helper function for creating the number instances
 n1 :: ( forall a. Floating a => a -> a ) -> S x -> S x

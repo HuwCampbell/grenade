@@ -9,30 +9,65 @@
 {-# LANGUAGE RecordWildCards       #-}
 
 module Grenade.Recurrent.Core.Runner (
-    trainRecurrent
-  , runRecurrent
+    runRecurrentExamples
+  , runRecurrentBackprop
   , backPropagateRecurrent
+  , trainRecurrent
+
+  , RecurrentGradients
   ) where
 
+import           Data.List ( foldl' )
 import           Data.Singletons.Prelude
 import           Grenade.Core
 
-import           Grenade.Recurrent.Core.Layer
 import           Grenade.Recurrent.Core.Network
 
+type RecurrentGradients layers = [RecurrentGradient layers]
+
+runRecurrentExamples  :: forall shapes layers.
+                         RecurrentNetwork layers shapes
+                      -> RecurrentInputs layers
+                      -> [S (Head shapes)]
+                      -> ([(RecurrentTape layers shapes, S (Last shapes))], RecurrentInputs layers)
+runRecurrentExamples net =
+  go
+    where
+  go !side [] = ([], side)
+  go !side (!x : xs) =
+    let (!tape, !side', !o) = runRecurrent net side x
+        (!res, !finalSide)  = go side' xs
+    in  (( tape, o ) : res, finalSide)
+
+runRecurrentBackprop  :: forall layers shapes.
+                         RecurrentNetwork layers shapes
+                      -> RecurrentInputs layers
+                      -> [(RecurrentTape layers shapes, S (Last shapes))]
+                      -> ([(RecurrentGradient layers, S (Head shapes))], RecurrentInputs layers)
+runRecurrentBackprop net =
+  go
+    where
+  go !side [] = ([], side)
+  go !side ((!tape,!x):xs) =
+    let (res, !side')            = go side xs
+        (!grad, !finalSide, !o)  = runRecurrent' net tape side' x
+    in  (( grad, o ) : res, finalSide)
+
+
 -- | Drive and network and collect its back propogated gradients.
-backPropagateRecurrent :: forall shapes layers. (SingI (Last shapes), Num (RecurrentInputs layers))
+backPropagateRecurrent :: forall shapes layers. (SingI (Last shapes), Fractional (RecurrentInputs layers))
                        => RecurrentNetwork layers shapes
                        -> RecurrentInputs layers
                        -> [(S (Head shapes), Maybe (S (Last shapes)))]
                        -> (RecurrentGradients layers, RecurrentInputs layers)
 backPropagateRecurrent network recinputs examples =
-  let (tapes, _, guesses)    = runRecurrentNetwork network recinputs inputs
+  let (outForwards, _)       = runRecurrentExamples network recinputs inputs
 
-      backPropagations       = zipWith makeError guesses targets
+      backPropagations       = zipWith makeError outForwards targets
 
-      (gradients, input', _) = runRecurrentGradient network tapes 0 backPropagations
+      (outBackwards, input') = runRecurrentBackprop network 0 backPropagations
 
+      gradients              = fmap fst outBackwards
   in (gradients, input')
 
     where
@@ -40,12 +75,12 @@ backPropagateRecurrent network recinputs examples =
   inputs  = fst <$> examples
   targets = snd <$> examples
 
-  makeError :: S (Last shapes) -> Maybe (S (Last shapes)) -> S (Last shapes)
-  makeError _ Nothing = 0
-  makeError y (Just t) = y - t
+  makeError :: (x, S (Last shapes)) -> Maybe (S (Last shapes)) -> (x, S (Last shapes))
+  makeError (x, _) Nothing = (x, 0)
+  makeError (x, y) (Just t) = (x, y - t)
 
 
-trainRecurrent :: forall shapes layers. (SingI (Last shapes), Num (RecurrentInputs layers))
+trainRecurrent :: forall shapes layers. (SingI (Last shapes), Fractional (RecurrentInputs layers))
                => LearningParameters
                -> RecurrentNetwork layers shapes
                -> RecurrentInputs layers
@@ -56,11 +91,12 @@ trainRecurrent rate network recinputs examples =
 
       newInputs               = updateRecInputs rate recinputs recinputs'
 
-      newNetwork              = applyRecurrentUpdate rate network gradients
+      newNetwork              = foldl' (applyRecurrentUpdate rate) network gradients
 
   in  (newNetwork, newInputs)
 
-updateRecInputs :: LearningParameters
+updateRecInputs :: Fractional (RecurrentInputs sublayers)
+                => LearningParameters
                 -> RecurrentInputs sublayers
                 -> RecurrentInputs sublayers
                 -> RecurrentInputs sublayers
@@ -73,18 +109,3 @@ updateRecInputs l@LearningParameters {..} (x :~@+> xs) (y :~@+> ys)
 
 updateRecInputs _ RINil RINil
   = RINil
-
--- | Just forwards propagation with no training.
-runRecurrent :: RecurrentNetwork layers shapes
-             -> RecurrentInputs layers -> S (Head shapes)
-             -> (RecurrentInputs layers, S (Last shapes))
-runRecurrent (layer :~~> n) (()    :~~+> nr) !x
-  = let (_, ys)  = runForwards layer x
-        (nr', o) = runRecurrent n nr ys
-    in  (() :~~+> nr', o)
-runRecurrent (layer :~@> n) (recin :~@+> nr) !x
-  = let (_, recin', y) = runRecurrentForwards layer recin x
-        (nr', o)       = runRecurrent n nr y
-    in  (recin' :~@+> nr', o)
-runRecurrent RNil RINil !x
-  = (RINil, x)
