@@ -49,10 +49,10 @@ data ConcatRecurrent :: Shape -> * -> Shape -> * -> * where
   ConcatRecRight :: x -> y -> ConcatRecurrent m (FeedForward x) n (Recurrent y)
   ConcatRecBoth  :: x -> y -> ConcatRecurrent m (Recurrent x) n   (Recurrent y)
 
--- instance (Show x, Show y) => Show (ConcatRecurrent m (p x) n (p y)) where
---   show (ConcatRecLeft x y)  = "ConcatRecLeft\n" ++ show x ++ "\n" ++ show y
---   show (ConcatRecRight x y) = "ConcatRecRight\n" ++ show x ++ "\n" ++ show y
---   show (ConcatRecBoth x y)  = "ConcatRecBoth\n" ++ show x ++ "\n" ++ show y
+instance (Show x, Show y) => Show (ConcatRecurrent m (p x) n (q y)) where
+  show (ConcatRecLeft x y)  = "ConcatRecLeft\n" ++ show x ++ "\n" ++ show y
+  show (ConcatRecRight x y) = "ConcatRecRight\n" ++ show x ++ "\n" ++ show y
+  show (ConcatRecBoth x y)  = "ConcatRecBoth\n" ++ show x ++ "\n" ++ show y
 
 instance (RecurrentUpdateLayer x, UpdateLayer y) => UpdateLayer (ConcatRecurrent m (Recurrent x) n (FeedForward y)) where
   type Gradient (ConcatRecurrent m (Recurrent x) n (FeedForward y)) = (Gradient x, Gradient y)
