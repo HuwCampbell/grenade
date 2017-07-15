@@ -66,7 +66,7 @@ instance (KnownNat i, KnownNat o, KnownNat (i + o)) => UpdateLayer (BasicRecurre
   createRandom = randomBasicRecurrent
 
 instance (KnownNat i, KnownNat o, KnownNat (i + o), i <= (i + o), o ~ ((i + o) - i)) => RecurrentUpdateLayer (BasicRecurrent i o) where
-  type RecurrentShape (BasicRecurrent i o) = 'D1 o
+  type RecurrentShape (BasicRecurrent i o) = S ('D1 o)
 
 instance (KnownNat i, KnownNat o, KnownNat (i + o), i <= (i + o), o ~ ((i + o) - i)) => RecurrentLayer (BasicRecurrent i o) ('D1 i) ('D1 o) where
 

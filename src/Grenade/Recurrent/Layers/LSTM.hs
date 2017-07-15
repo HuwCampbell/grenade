@@ -123,7 +123,7 @@ instance (KnownNat i, KnownNat o) => UpdateLayer (LSTM i o) where
 instance (KnownNat i, KnownNat o) => RecurrentUpdateLayer (LSTM i o) where
   -- The recurrent shape is the same size as the output.
   -- It's actually the cell state however, as this is a peephole variety LSTM.
-  type RecurrentShape (LSTM i o) = 'D1 o
+  type RecurrentShape (LSTM i o) = S ('D1 o)
 
 instance (KnownNat i, KnownNat o) => RecurrentLayer (LSTM i o) ('D1 i) ('D1 o) where
 

@@ -16,7 +16,7 @@ main = do
   input40  :: S ('D1 40)  <- randomOfShape
   rec60    :: S ('D1 60)  <- randomOfShape
   rec512   :: S ('D1 512) <- randomOfShape
-  (lstm, lstm')  :: (RecNet, RecInput) <- randomRecurrent
+  lstm     :: RecNet      <- randomRecurrent
 
   let upIn60   :: H.R 3600    = H.randomVector 1 H.Uniform * 2 - 1
   let upIn512  :: H.R 262144  = H.randomVector 1 H.Uniform * 2 - 1
@@ -30,9 +30,9 @@ main = do
     , bgroup "update" [ bench "matrix-60x60"      $ nf (uncurry3 (decendVector 1 1 1)) (upIn60, upIn60, upIn60)
                       , bench "matrix-512x512"    $ nf (uncurry3 (decendVector 1 1 1)) (upIn512, upIn512, upIn512)
                       ]
-    , bgroup "train"  [ bench "one-time-step"     $ whnf (nfT2 . trainRecurrent lp lstm lstm') [(input40, Just input40)]
-                      , bench "ten-time-steps"    $ whnf (nfT2 . trainRecurrent lp lstm lstm') $ replicate 10 (input40, Just input40)
-                      , bench "fifty-time-steps"  $ whnf (nfT2 . trainRecurrent lp lstm lstm') $ replicate 50 (input40, Just input40)
+    , bgroup "train"  [ bench "one-time-step"     $ whnf (nfT2 . trainRecurrent lp lstm 0) [(input40, Just input40)]
+                      , bench "ten-time-steps"    $ whnf (nfT2 . trainRecurrent lp lstm 0) $ replicate 10 (input40, Just input40)
+                      , bench "fifty-time-steps"  $ whnf (nfT2 . trainRecurrent lp lstm 0) $ replicate 50 (input40, Just input40)
                       ]
     ]
 
@@ -64,8 +64,6 @@ nfT3 (!_, !b, !c) = (b, c)
 type R = Recurrent
 type RecNet = RecurrentNetwork '[ R (LSTM 40 512), R (LSTM 512 40) ]
                                '[ 'D1 40, 'D1 512, 'D1 40 ]
-
-type RecInput = RecurrentInputs '[ R (LSTM 40 512), R (LSTM 512 40) ]
 
 lp :: LearningParameters
 lp = LearningParameters 0.1 0 0

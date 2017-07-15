@@ -36,7 +36,7 @@ type RecNet = RecurrentNetwork '[ R (LSTM 1 4), R (LSTM 4 1)]
 
 type RecInput = RecurrentInputs '[ R (LSTM 1 4), R (LSTM 4 1)]
 
-randomNet :: MonadRandom m => m (RecNet, RecInput)
+randomNet :: MonadRandom m => m RecNet
 randomNet = randomRecurrent
 
 netTest :: MonadRandom m => RecNet -> RecInput -> LearningParameters -> Int -> m (RecNet, RecInput)
@@ -69,8 +69,8 @@ generateRecurrent n s i =
   unfoldr go (s, i)
     where
   go (x, y) =
-    do let (ns, o) = runRecurrent n x y
-           o'      = heat o
+    do let (_, ns, o) = runRecurrent n x y
+           o'         = heat o
        Just (o', (ns, fromIntegral o'))
 
   heat :: S ('D1 1) -> Int
@@ -82,8 +82,8 @@ main = do
     FeedForwardOpts examples rate <- execParser (info (feedForward' <**> helper) idm)
     putStrLn "Training network..."
 
-    (net0, i0)              <- randomNet
-    (trained, bestInput)    <- netTest net0 i0 rate examples
+    net0                    <- randomNet
+    (trained, bestInput)    <- netTest net0 0 rate examples
 
     let results = generateRecurrent trained bestInput (c 1)
 
