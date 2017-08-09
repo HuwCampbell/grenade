@@ -143,6 +143,10 @@ elu, tanh, and fully connected.
 
 Build Instructions
 ------------------
+
+Mafia
+~~~~~
+
 Grenade is most easily built with the [mafia](https://github.com/ambiata/mafia)
 script that is located in the repository. You will also need the `lapack` and
 `blas` libraries and development tools. Once you have all that, Grenade can be
@@ -160,12 +164,34 @@ and the tests run using:
 
 Grenade builds with ghc 7.10 and 8.0.
 
+Stack
+~~~~~
+
+Grenade also supports [stack](https://docs.haskellstack.org). You can build
+the whole project with
+
+```
+stack build
+```
+
+and run the tests using:
+
+```
+stack test grenade
+```
+
+and run the benchmarkes using:
+
+```
+stack bench grenade
+```
+
 Windows build
 -------------
 
 This recipe is for Stack 1.4.0 - tested and working.
 
-1) 
+1)
 
 	> stack setup
 
