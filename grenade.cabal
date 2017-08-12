@@ -50,6 +50,7 @@ library
                      , text                            == 1.2.*
                      , singletons                      >= 2.1         && < 2.4
                      , vector                          >= 0.11        && < 0.13
+                     , accelerate                      == 1.0.*
 
   ghc-options:
                        -Wall
@@ -62,6 +63,7 @@ library
 
   exposed-modules:
                        Grenade
+                       Grenade.Accelerate
                        Grenade.Core
                        Grenade.Core.Layer
                        Grenade.Core.LearningParameters
@@ -89,8 +91,10 @@ library
                        Grenade.Layers.Trivial
 
                        Grenade.Layers.Internal.Convolution
+                       Grenade.Layers.Internal.Convolution.Accelerate
                        Grenade.Layers.Internal.Pad
                        Grenade.Layers.Internal.Pooling
+                       Grenade.Layers.Internal.Pooling.Accelerate
                        Grenade.Layers.Internal.Update
 
                        Grenade.Recurrent
@@ -138,6 +142,7 @@ test-suite test
                        Test.Grenade.Layers.PadCrop
                        Test.Grenade.Layers.Pooling
                        Test.Grenade.Layers.Internal.Convolution
+                       Test.Grenade.Layers.Internal.Convolution.Accelerate
                        Test.Grenade.Layers.Internal.Pooling
                        Test.Grenade.Layers.Internal.Reference
 
@@ -163,6 +168,7 @@ test-suite test
                      , ad
                      , reflection
                      , vector
+                     , accelerate
 
 
 benchmark bench
@@ -181,6 +187,9 @@ benchmark bench
                      , criterion                       == 1.1.*
                      , grenade
                      , hmatrix
+                     , accelerate
+                     , accelerate-llvm-native
+                     --, accelerate-llvm-ptx
 
 benchmark bench-lstm
   type:                exitcode-stdio-1.0
