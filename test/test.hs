@@ -5,6 +5,7 @@ import qualified Test.Grenade.Network
 import qualified Test.Grenade.Layers.Pooling
 import qualified Test.Grenade.Layers.Convolution
 import qualified Test.Grenade.Layers.FullyConnected
+import qualified Test.Grenade.Layers.FullyConnected.Accelerate
 import qualified Test.Grenade.Layers.Nonlinear
 import qualified Test.Grenade.Layers.PadCrop
 
@@ -25,6 +26,7 @@ main =
     , Test.Grenade.Layers.Pooling.tests
     , Test.Grenade.Layers.Convolution.tests
     , Test.Grenade.Layers.FullyConnected.tests
+    , Test.Grenade.Layers.FullyConnected.Accelerate.tests
     , Test.Grenade.Layers.Nonlinear.tests
     , Test.Grenade.Layers.PadCrop.tests
 
@@ -33,7 +35,6 @@ main =
     , Test.Grenade.Layers.Internal.Pooling.tests
 
     , Test.Grenade.Recurrent.Layers.LSTM.tests
-
     ]
 
 disorderMain :: [IO Bool] -> IO ()

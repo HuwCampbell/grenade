@@ -4,21 +4,19 @@ module Grenade.Layers.Internal.Update.Accelerate (
 
 import qualified Prelude as P
 import Data.Array.Accelerate
-import Grenade.Core.LearningParameters
+import Grenade.Core.LearningParameters.Accelerate
 
 descend
   :: Shape sh
-  => AccelLearningParameters
+  => Acc LearningParameters
   -> Acc (Array sh Double)
   -> Acc (Array sh Double)
   -> Acc (Array sh Double)
   -> Acc (Array sh Double, Array sh Double)
 descend params weights gradient lastUpdate =
   let
-    rate = params !! 0
-    momentum = params !! 1
-    regulariser = params !! 2
-    outMomentum = zipWith (-) (map (momentum *) lastUpdate) (map (rate *) gradient)
-    outWeights = zipWith (-) (zipWith (*) weights outMomentum) (map ((rate * regulariser) *) weights)
+    (rate, momentum, regulariser) = unlift params
+    outMomentum = zipWith (-) (map ((the momentum) *) lastUpdate) (map ((the rate) *) gradient)
+    outWeights = zipWith (-) (zipWith (*) weights outMomentum) (map (((the rate) * (the regulariser)) *) weights)
   in
     lift (outWeights, outMomentum)

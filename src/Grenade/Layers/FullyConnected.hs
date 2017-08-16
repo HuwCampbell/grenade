@@ -4,24 +4,30 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeSynonymInstances  #-}
+{-# LANGUAGE FlexibleInstances     #-}
 module Grenade.Layers.FullyConnected (
     FullyConnected (..)
   , FullyConnected' (..)
+  , AFullyConnected (..)
   , randomFullyConnected
   ) where
 
-import           Control.Monad.Random hiding (fromList)
+import           Control.Monad.Random hiding (fromList, lift)
 
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons.TypeLits
+import           Data.Array.Accelerate hiding (Shape, fromIntegral)
 
 import qualified Numeric.LinearAlgebra as LA
 import           Numeric.LinearAlgebra.Static
 
 import           Grenade.Core
+import qualified Grenade.Core.Accelerate as A
 
 import           Grenade.Layers.Internal.Update
+import           Grenade.Layers.Internal.Update.Accelerate
 
 -- | A basic fully connected (or inner product) neural network layer.
 data FullyConnected i o = FullyConnected
@@ -81,3 +87,42 @@ randomFullyConnected = do
         bm = konst 0
         mm = konst 0
     return $ FullyConnected (FullyConnected' wB wN) (FullyConnected' bm mm)
+
+data AFullyConnected (i :: Nat) (o :: Nat) = AFullyConnected
+  (Acc (Vector Double))
+  (Acc (Array DIM2 Double))
+  (Acc (Vector Double))
+  (Acc (Array DIM2 Double))
+
+instance (KnownNat i, KnownNat o) => A.Accelerable (FullyConnected i o) (AFullyConnected i o) where
+  toAccel (FullyConnected (FullyConnected' b a) (FullyConnected' bM m)) =
+    AFullyConnected
+      (use $ A.fromVector b)
+      (use $ A.fromMatrix a)
+      (use $ A.fromVector bM)
+      (use $ A.fromMatrix m)
+
+instance (KnownNat i, KnownNat o) => A.UpdateLayer (FullyConnected i o) (AFullyConnected i o) where
+
+  type Gradient (AFullyConnected i o) = (Acc (Vector Double), Acc (Array DIM2 Double))
+
+  runUpdate
+    params
+    (AFullyConnected oldBias oldActivations oldBiasMomentum oldMomentum)
+    (biasGradient, activationGradient) =
+    let (newBias, newBiasMomentum) :: (Acc (Array DIM1 Double), Acc (Array DIM1 Double)) = unlift $ descend params oldBias biasGradient oldBiasMomentum
+        (newActivations, newMomentum) :: (Acc (Array DIM2 Double), Acc (Array DIM2 Double)) = unlift $ descend params oldActivations activationGradient oldMomentum
+    in AFullyConnected newBias newActivations newBiasMomentum newMomentum
+
+
+instance (KnownNat i, KnownNat o) => A.Layer (FullyConnected i o) (AFullyConnected i o) DIM1 DIM1 where
+
+  type Tape (AFullyConnected i o) DIM1 DIM1 = Acc (Vector Double)
+
+  runForwards (AFullyConnected wB wN _ _) v = (v, Data.Array.Accelerate.zipWith (+) wB (wN A.#> v))
+  runBackwards (AFullyConnected _ wN _ _) x dEdy =
+    let wB'  = dEdy
+        mm'  = dEdy `A.outer` x
+        -- calcluate derivatives for next step
+        dWs  = transpose wN A.#> dEdy
+    in ((wB', mm'), dWs)

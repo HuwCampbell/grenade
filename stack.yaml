@@ -50,6 +50,7 @@ packages:
 # (e.g., acme-missiles-0.3)
 extra-deps:
 - accelerate-1.0.0.0
+- accelerate-io-1.0.0.0
 - accelerate-llvm-1.0.0.0
 - accelerate-llvm-native-1.0.0.0
 #- accelerate-llvm-ptx-1.0.0.1
