@@ -51,21 +51,15 @@ prop_fully_connected_forwards :: Property
 prop_fully_connected_forwards = property $ do
     OpaqueFullyConnected (fclayer :: FullyConnected i o) <- blindForAll genOpaqueFullyConnected
     input :: S DIM1 <- blindForAll (randomArray (Z :. (P.fromIntegral $ natVal (Proxy :: Proxy i))))
-    let (fclayer' :: AFullyConnected i o) = toAccel fclayer
-        (tape, output :: Acc (S DIM1)) = runForwards fclayer' (use input)
-        backed :: (Gradient (AFullyConnected i o), Acc (S DIM1))
-                                    = runBackwards fclayer' tape output
-    (run $ lift backed) `seq` success
-
-(~===) :: (P.Num (Exp e), P.Fractional (Exp e), RealFrac e, Monad m, P.Eq sh, P.Eq e, Elt e, Shape sh, FromIntegral Int e) => Array sh e -> Array sh e -> Test m ()
-a ~=== b = fuzzy a === fuzzy b
-  where
-    fuzzy :: (P.Num (Exp e), P.Fractional (Exp e), RealFrac e, Shape sh, Elt e, FromIntegral Int e) => Array sh e -> Array sh e
-    fuzzy = run1 $ map $ \x ->
-      let
-        scaledUp :: Exp Int
-        scaledUp = round $ x * 1e7
-      in (fromIntegral scaledUp) / 1e7
+    let fclayer' :: Accelerated (FullyConnected i o)
+        fclayer' = toAccel fclayer
+        tape :: Tape (FullyConnected i o) ('G.D1 i) ('G.D1 o)
+        output :: Accelerated (G.S ('G.D1 o))
+        (tape, output) = runForwards fclayer' (AS1D $ use input :: Accelerated (G.S ('G.D1 i)))
+        grad :: Gradient (FullyConnected i o)
+        inputGrad :: Acc (Vector Double)
+        (grad, AS1D inputGrad :: Accelerated (G.S ('G.D1 i))) = runBackwards fclayer' tape output
+    (run $ lift (grad, inputGrad)) `seq` success
 
 prop_fully_connected_forwards_equals_reference :: Property
 prop_fully_connected_forwards_equals_reference = property $ do
@@ -98,9 +92,11 @@ prop_fully_connected_forwards_equals_reference = property $ do
       (biasGradV, actGradV) = case gradient of
         FullyConnected' b a -> (fromVector b, fromMatrix a)
 
-      (fclayer' :: AFullyConnected i o) = toAccel fclayer
-      (tape', output') = runForwards fclayer' (use input')
-      (gradient', inputGrad') = runBackwards fclayer' tape' output'
+      fclayer' :: Accelerated (FullyConnected i o)
+      fclayer' = toAccel fclayer
+      tape' :: Tape (FullyConnected i o) ('G.D1 i) ('G.D1 o)
+      (tape', AS1D output' :: Accelerated (G.S ('G.D1 o))) = runForwards fclayer' (AS1D $ use input' :: Accelerated (G.S ('G.D1 i)))
+      (gradient', AS1D inputGrad' :: Accelerated (G.S ('G.D1 i))) = runBackwards fclayer' tape' (AS1D output' :: Accelerated (G.S ('G.D1 o)))
 
       (tapeV', outputV', (biasGradV', actGradV'), inputGradV') = run $ lift (tape', output', gradient', inputGrad')
     tapeV ~=== tapeV'

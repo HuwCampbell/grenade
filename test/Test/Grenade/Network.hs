@@ -49,6 +49,7 @@ data SomeNetwork :: * where
 instance Show SomeNetwork where
   show (SomeNetwork net) = show net
 
+
 -- | Generate a random network of a random type
 --
 -- This is slightly insane for a few reasons. Everything must be wrapped up

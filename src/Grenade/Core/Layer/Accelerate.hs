@@ -41,23 +41,23 @@ module Grenade.Core.Layer.Accelerate (
 import           Data.List ( foldl' )
 import           Data.Array.Accelerate
 
-import           Grenade.Core.Shape.Accelerate
+import qualified Grenade.Core.Shape as GS
 import           Grenade.Core.LearningParameters.Accelerate
 import           Grenade.Core.Matrix.Accelerate
 
 -- | Class for updating a layer. All layers implement this, as it
 --   describes how to create and update the layer.
 --
-class Accelerable l a => UpdateLayer l a | a -> l where
+class Accelerable l => UpdateLayer l where
   -- | The type for the gradient for this layer.
   --   Unit if there isn't a gradient to pass back.
-  type Gradient a :: *
+  type Gradient l :: *
 
   -- | Update a layer with its gradient and learning parameters
-  runUpdate       :: Acc LearningParameters -> a -> Gradient a -> a
+  runUpdate       :: Acc LearningParameters -> (Accelerated l) -> Gradient l -> (Accelerated l)
 
   -- | Update a layer with many Gradients
-  runUpdates      :: Acc LearningParameters -> a -> [Gradient a] -> a
+  runUpdates      :: Acc LearningParameters -> (Accelerated l) -> [Gradient l] -> (Accelerated l)
   runUpdates rate = foldl' (runUpdate rate)
 
   {-# MINIMAL runUpdate #-}
@@ -66,15 +66,15 @@ class Accelerable l a => UpdateLayer l a | a -> l where
 --   need to implement it for all shapes, only ones which are
 --   appropriate.
 --
-class UpdateLayer l a => Layer l a i o | a -> l i o where
+class UpdateLayer l => Layer l (i :: GS.Shape) (o :: GS.Shape) where
   -- | The Wengert tape for this layer. Includes all that is required
   --   to generate the back propagated gradients efficiently. As a
   --   default, `S i` is fine.
-  type Tape a i o :: *
+  type Tape l i o :: *
 
   -- | Used in training and scoring. Take the input from the previous
   --   layer, and give the output from this layer.
-  runForwards    :: a -> Acc (S i) -> (Tape a i o, Acc (S o))
+  runForwards    :: (Accelerated l) -> Accelerated (GS.S i) -> (Tape l i o, (Accelerated (GS.S o)))
 
   -- | Back propagate a step. Takes the current layer, the input that
   --   the layer gave from the input and the back propagated derivatives
@@ -82,4 +82,4 @@ class UpdateLayer l a => Layer l a i o | a -> l i o where
   --
   --   Returns the gradient layer and the derivatives to push back
   --   further.
-  runBackwards   :: a -> Tape a i o -> Acc (S o) -> (Gradient a, Acc (S i))
+  runBackwards   :: (Accelerated l) -> Tape l i o -> (Accelerated (GS.S o)) -> (Gradient l, Accelerated (GS.S i))

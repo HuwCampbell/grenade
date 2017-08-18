@@ -7,6 +7,7 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-|
 Module      : Grenade.Core.Shape
 Description : Dependently typed shapes of data which are passed between layers of a network
@@ -20,6 +21,7 @@ module Grenade.Core.Shape (
     Shape (..)
   , S (..)
   , Sing (..)
+  , Accelerated(..)
 
   , randomOfShape
   , fromStorable
@@ -40,6 +42,9 @@ import           GHC.TypeLits
 import qualified Numeric.LinearAlgebra.Static as H
 import           Numeric.LinearAlgebra.Static
 import qualified Numeric.LinearAlgebra as NLA
+
+import Grenade.Core.Matrix.Accelerate
+import Data.Array.Accelerate (DIM1, DIM2, Array, Acc, use)
 
 -- | The current shapes we accept.
 --   at the moment this is just one, two, and three dimensional
@@ -75,6 +80,18 @@ data S (n :: Shape) where
       -> S ('D3 rows columns depth)
 
 deriving instance Show (S n)
+
+instance Accelerable (S ('D1 len)) where
+  data Accelerated (S ('D1 len)) = AS1D (Acc (Array DIM1 Double))
+
+  toAccel v = case v of
+    S1D v' -> AS1D $ use $ fromVector v'
+
+instance Accelerable (S ('D2 w h)) where
+  data Accelerated (S ('D2 w h)) = AS2D (Acc (Array DIM2 Double))
+
+  toAccel v = case v of
+    S2D v' -> AS2D $ use $ fromMatrix v'
 
 -- Singleton instances.
 --

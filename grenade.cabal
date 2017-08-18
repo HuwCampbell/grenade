@@ -73,6 +73,7 @@ library
                        Grenade.Core.LearningParameters.Accelerate
                        Grenade.Core.Matrix.Accelerate
                        Grenade.Core.Network
+                       Grenade.Core.Network.Accelerate
                        Grenade.Core.Runner
                        Grenade.Core.Shape
                        Grenade.Core.Shape.Accelerate

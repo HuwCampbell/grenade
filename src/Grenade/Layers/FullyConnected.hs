@@ -9,7 +9,7 @@
 module Grenade.Layers.FullyConnected (
     FullyConnected (..)
   , FullyConnected' (..)
-  , AFullyConnected (..)
+  , Accelerated (..)
   , randomFullyConnected
   ) where
 
@@ -88,13 +88,13 @@ randomFullyConnected = do
         mm = konst 0
     return $ FullyConnected (FullyConnected' wB wN) (FullyConnected' bm mm)
 
-data AFullyConnected (i :: Nat) (o :: Nat) = AFullyConnected
-  (Acc (Vector Double))
-  (Acc (Array DIM2 Double))
-  (Acc (Vector Double))
-  (Acc (Array DIM2 Double))
+instance (KnownNat i, KnownNat o) => A.Accelerable (FullyConnected i o) where
+  data Accelerated (FullyConnected i o) = AFullyConnected
+    (Acc (Vector Double))
+    (Acc (Array DIM2 Double))
+    (Acc (Vector Double))
+    (Acc (Array DIM2 Double))
 
-instance (KnownNat i, KnownNat o) => A.Accelerable (FullyConnected i o) (AFullyConnected i o) where
   toAccel (FullyConnected (FullyConnected' b a) (FullyConnected' bM m)) =
     AFullyConnected
       (use $ A.fromVector b)
@@ -102,9 +102,9 @@ instance (KnownNat i, KnownNat o) => A.Accelerable (FullyConnected i o) (AFullyC
       (use $ A.fromVector bM)
       (use $ A.fromMatrix m)
 
-instance (KnownNat i, KnownNat o) => A.UpdateLayer (FullyConnected i o) (AFullyConnected i o) where
+instance (KnownNat i, KnownNat o) => A.UpdateLayer (FullyConnected i o) where
 
-  type Gradient (AFullyConnected i o) = (Acc (Vector Double), Acc (Array DIM2 Double))
+  type Gradient (FullyConnected i o) = (Acc (Vector Double), Acc (Array DIM2 Double))
 
   runUpdate
     params
@@ -115,14 +115,14 @@ instance (KnownNat i, KnownNat o) => A.UpdateLayer (FullyConnected i o) (AFullyC
     in AFullyConnected newBias newActivations newBiasMomentum newMomentum
 
 
-instance (KnownNat i, KnownNat o) => A.Layer (FullyConnected i o) (AFullyConnected i o) DIM1 DIM1 where
+instance (KnownNat i, KnownNat o) => A.Layer (FullyConnected i o) ('D1 i) ('D1 o) where
 
-  type Tape (AFullyConnected i o) DIM1 DIM1 = Acc (Vector Double)
+  type Tape (FullyConnected i o) ('D1 i) ('D1 o) = Acc (Vector Double)
 
-  runForwards (AFullyConnected wB wN _ _) v = (v, Data.Array.Accelerate.zipWith (+) wB (wN A.#> v))
-  runBackwards (AFullyConnected _ wN _ _) x dEdy =
+  runForwards (AFullyConnected wB wN _ _) (AS1D v) = (v, AS1D $ Data.Array.Accelerate.zipWith (+) wB (wN A.#> v))
+  runBackwards (AFullyConnected _ wN _ _) x (AS1D dEdy) =
     let wB'  = dEdy
         mm'  = dEdy `A.outer` x
         -- calcluate derivatives for next step
         dWs  = transpose wN A.#> dEdy
-    in ((wB', mm'), dWs)
+    in ((wB', mm'), AS1D dWs)

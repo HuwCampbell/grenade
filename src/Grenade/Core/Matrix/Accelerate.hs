@@ -8,7 +8,6 @@
 module Grenade.Core.Matrix.Accelerate where
 
 import qualified Prelude as P
-import           Data.Proxy
 import           GHC.TypeLits
 
 import           Data.Array.Accelerate hiding (flatten, size)
@@ -16,9 +15,10 @@ import           Data.Array.Accelerate.IO
 import           Numeric.LinearAlgebra.Static (R, L, unwrap, size)
 import           Numeric.LinearAlgebra (flatten)
 
-class Accelerable g a | a -> g where
+class Accelerable g where
+  data Accelerated g :: *
   -- | Accelerate a Grenade type
-  toAccel :: g -> a
+  toAccel :: g -> Accelerated g
 
 
 outer :: (P.Num (Exp e), Elt e) => Acc (Vector e) -> Acc (Vector e) -> Acc (Array DIM2 e)
@@ -32,8 +32,7 @@ outer a b = zipWith (*) aRepl bRepl
 (#>) :: (P.Num (Exp e), Elt e) => Acc (Array DIM2 e) -> Acc (Vector e) -> Acc (Vector e)
 m #> v = fold (+) 0 mul
   where
-    (Z :. vN) = unlift $ shape v :: Z :. Exp Int
-    (Z :. mN :. nN) = unlift $ shape m :: Z :. Exp Int :. Exp Int
+    (Z :. mN :. _) = unlift $ shape m :: Z :. Exp Int :. Exp Int
 
     vRepl = replicate (lift $ Z :. mN :. All) v
     mul = zipWith (*) m vRepl

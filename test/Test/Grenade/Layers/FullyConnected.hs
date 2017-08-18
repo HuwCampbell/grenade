@@ -33,12 +33,12 @@ genOpaqueFullyConnected = do
     let Just input'      = someNatVal input
     let Just output'     = someNatVal output
     case (input', output') of
-       (SomeNat (Proxy :: Proxy i'), SomeNat (Proxy :: Proxy o')) -> do
-            wB    <- randomVector
-            bM    <- randomVector
-            wN    <- uniformSample
-            kM    <- uniformSample
-            return . OpaqueFullyConnected $ (FullyConnected (FullyConnected' wB wN) (FullyConnected' bM kM) :: FullyConnected i' o')
+      (SomeNat (Proxy :: Proxy i'), SomeNat (Proxy :: Proxy o')) -> do
+        wB    <- randomVector
+        bM    <- randomVector
+        wN    <- uniformSample
+        kM    <- uniformSample
+        return . OpaqueFullyConnected $ (FullyConnected (FullyConnected' wB wN) (FullyConnected' bM kM) :: FullyConnected i' o')
 
 prop_fully_connected_forwards :: Property
 prop_fully_connected_forwards = property $ do
