@@ -1,5 +1,14 @@
 # NB: don't set `language: haskell` here
 
+dist: trusty
+
+addons:
+  apt:
+    sources:
+      - llvm-toolchain-trusty-4.0
+    packages:
+      - llvm-4.0
+
 # The following enables several GHC versions to be tested; often it's enough to test only against the last release in a major GHC version. Feel free to omit lines listings versions you don't need/want testing for.
 env:
  - CABALVER=1.22 GHCVER=7.10.3
