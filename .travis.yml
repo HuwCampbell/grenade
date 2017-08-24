@@ -7,7 +7,12 @@ addons:
     sources:
       - llvm-toolchain-trusty-4.0
     packages:
+      - libllvm4.0
+      - libllvm4.0-dbg
+      - lldb-4.0
       - llvm-4.0
+      - llvm-4.0-dev
+      - llvm-4.0-runtime
 
 # The following enables several GHC versions to be tested; often it's enough to test only against the last release in a major GHC version. Feel free to omit lines listings versions you don't need/want testing for.
 env:
