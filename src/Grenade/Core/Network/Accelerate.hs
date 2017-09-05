@@ -26,6 +26,7 @@ module Grenade.Core.Network.Accelerate (
     {-# Network (..)
   , #-} Gradients (..)
   , Tapes (..)
+  , Accelerated (..)
 
   , runNetwork
   , runGradient
@@ -52,41 +53,35 @@ import           Grenade.Core.Matrix.Accelerate
 --
 --   The @[Shape]@ type specifies the shapes of data passed between the layers.
 --
---   Can be considered to be a heterogeneous list of layers which are able to
---   transform the data shapes of the network.
--- data Network :: [*] -> [G.Shape] -> * where
---     NNil  :: SingI i
---           => Network '[] '[i]
+-- Can be considered to be a heterogeneous list of layers which are able to
+-- transform the data shapes of the network.
+data Network :: [*] -> [G.Shape] -> * where
+    NNil  :: SingI i
+          => Network '[] '[i]
 
---     (:~>) :: (SingI i, SingI h, G.Layer l i h, Accelerable l)
---           => !(Accelerated l)
---           -> !(Accelerated (G.Network ls (h ': hs)))
---           -> Accelerated (G.Network (l ': ls) (i ': h ': hs))
--- infixr 5 :~>
+    (:~>) :: (SingI i, SingI h, G.Layer l i h, Layer l i h, Accelerable l)
+          => !(Accelerated l)
+          -> !(Accelerated (G.Network ls (h ': hs)))
+          -> Network (l ': ls) (i ': h ': hs)
+infixr 5 :~>
 
 -- instance Show (Network n) where
 --   show NNil = "NNil"
 -- instance (Show x, Show (Network xs rs)) => Show (Network (x ': xs) (i ': rs)) where
 --   show (x :~> xs) = show x ++ "\n~>\n" ++ show xs
 
-
-instance Accelerable (G.Network '[] '[i]) where
-  data Accelerated (G.Network '[] '[i]) = ANil
-  toAccel G.NNil = ANil
-
 instance
-  ( Accelerable l
-  , Accelerable (G.S i)
-  , Accelerable (G.S h)
-  , Accelerable (G.Network ls (h ': hs))
-  )
-  => Accelerable
-    (G.Network (l ': ls) (i ': h ': hs)) where
+  ( Accelerable (Head layers)
+  , Accelerable (G.Network (Tail layers) (Tail shapes))
+  , Accelerable (G.S (Head (Tail shapes)))
+  , Layer (Head layers) (Head shapes) (Head (Tail shapes))
+  ) => Accelerable (G.Network layers shapes) where
 
-  data Accelerated (G.Network (l ': ls) (i ': h ': hs)) =
-    ANetwork (Accelerated l) (Accelerated (G.Network ls (h ': hs)))
+  data Accelerated (G.Network layers shapes) =
+    ANetwork (Network layers shapes)
 
-  toAccel (x G.:~> xs) = ANetwork (toAccel x) (toAccel xs)
+  toAccel (x G.:~> xs) = ANetwork ((toAccel x) :~> (toAccel xs))
+  toAccel G.NNil = ANetwork NNil
 
 
 -- | Gradient of a network.
@@ -117,27 +112,19 @@ data Tapes :: [*] -> [G.Shape] -> * where
 --
 --   This gives the output, and the Wengert tape required for back
 --   propagation.
-runNetwork :: forall layers shapes h l.
-              ( Accelerable (G.S (Head shapes))
-              , Accelerable (G.S (Last shapes))
+runNetwork :: forall layers shapes.
+              ( Accelerable (G.S (Last shapes))
               )
            => Accelerated (G.Network layers shapes)
            -> Accelerated (G.S (Head shapes))
            -> (Tapes layers shapes, Accelerated (G.S (Last shapes)))
-runNetwork = undefined
---   go
---     where
---   go  :: forall js ss. (Last js ~ Last shapes)
---       => Network ss js
---       -> S (Head js)
---       -> (Tapes ss js, S (Last js))
---   go (layer :~> n) !x =
---     let (tape, forward) = runForwards layer x
---         (tapes, answer) = go n forward
---     in  (tape :\> tapes, answer)
+runNetwork (ANetwork (layer :~> n)) !x =
+  let
+    (tape, forward) = runForwards layer x
+    (tapes, answer) = runNetwork n forward
+  in  (tape :\> tapes, answer)
 
---   go NNil !x
---       = (TNil, x)
+runNetwork (ANetwork NNil) !x = (TNil, x)
 
 
 -- | Running a loss gradient back through the network.

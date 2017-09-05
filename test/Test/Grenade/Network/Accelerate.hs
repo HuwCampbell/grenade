@@ -166,12 +166,9 @@ _results
   -> Acc (Double, Double)
 _results (AS1D backgradV) (AS1D testedV) (AS1D targetV) (AS1D outputV) (AS1D outputDiffV) =
       let
-        expectedA = maxVal' (zipWith (*) backgradV testedV)
-        resultA = maxVal' (zipWith (-) (zipWith (*) outputDiffV targetV) (zipWith (*) outputV targetV)) / 0.00001
+        expectedA = maximum (zipWith (*) backgradV testedV)
+        resultA = maximum (zipWith (-) (zipWith (*) outputDiffV targetV) (zipWith (*) outputV targetV)) / 0.00001
       in lift (resultA, expectedA)
-
-maxVal' :: Acc (Array sh Double) -> Exp Double
-maxVal' x = undefined
 
 tests :: IO Bool
 tests = checkParallel $$(discover)
