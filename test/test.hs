@@ -1,7 +1,7 @@
 import           Control.Monad
 
 import qualified Test.Grenade.Network
---import qualified Test.Grenade.Network.Accelerate
+import qualified Test.Grenade.Network.Accelerate
 
 import qualified Test.Grenade.Layers.Pooling
 import qualified Test.Grenade.Layers.Convolution
@@ -23,7 +23,7 @@ main :: IO ()
 main =
   disorderMain [
       Test.Grenade.Network.tests
-    --, Test.Grenade.Network.Accelerate.tests
+    , Test.Grenade.Network.Accelerate.tests
 
     , Test.Grenade.Layers.Pooling.tests
     , Test.Grenade.Layers.Convolution.tests

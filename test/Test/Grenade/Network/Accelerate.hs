@@ -12,7 +12,7 @@
 module Test.Grenade.Network.Accelerate where
 
 import qualified Prelude as P
-import Prelude hiding (zipWith, replicate, length)
+import Prelude hiding (zipWith, replicate, length, maximum)
 
 import           Data.Constraint
 #if __GLASGOW_HASKELL__ < 800
@@ -43,7 +43,8 @@ import           Unsafe.Coerce
 
 data SomeNetwork :: * where
   SomeNetwork ::
-    ( SingI shapes
+    (
+      SingI shapes
     , SingI (Head shapes)
     , SingI (Last shapes)
     , Show (G.Network layers shapes)
