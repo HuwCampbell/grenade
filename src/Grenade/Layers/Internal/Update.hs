@@ -1,7 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 module Grenade.Layers.Internal.Update (
-    decendMatrix
-  , decendVector
+    descendMatrix
+  , descendVector
   ) where
 
 import           Data.Maybe ( fromJust )
@@ -17,8 +17,8 @@ import qualified Numeric.LinearAlgebra.Devel as U
 
 import           System.IO.Unsafe ( unsafePerformIO )
 
-decendMatrix :: (KnownNat rows, KnownNat columns) => Double -> Double -> Double -> L rows columns -> L rows columns -> L rows columns -> (L rows columns, L rows columns)
-decendMatrix rate momentum regulariser weights gradient lastUpdate =
+descendMatrix :: (KnownNat rows, KnownNat columns) => Double -> Double -> Double -> L rows columns -> L rows columns -> L rows columns -> (L rows columns, L rows columns)
+descendMatrix rate momentum regulariser weights gradient lastUpdate =
   let (rows, cols) = size weights
       len          = rows * cols
       -- Most gradients come in in ColumnMajor,
@@ -29,7 +29,7 @@ decendMatrix rate momentum regulariser weights gradient lastUpdate =
       weights'     = flatten . tr . extract $ weights
       gradient'    = flatten . tr . extract $ gradient
       lastUpdate'  = flatten . tr . extract $ lastUpdate
-      (vw, vm)     = decendUnsafe len rate momentum regulariser weights' gradient' lastUpdate'
+      (vw, vm)     = descendUnsafe len rate momentum regulariser weights' gradient' lastUpdate'
 
       -- Note that it's ColumnMajor, as we did a transpose before
       -- using the internal vectors.
@@ -37,17 +37,17 @@ decendMatrix rate momentum regulariser weights gradient lastUpdate =
       mm           = U.matrixFromVector U.ColumnMajor rows cols vm
   in  (fromJust . create $ mw, fromJust . create $ mm)
 
-decendVector :: (KnownNat r) => Double -> Double -> Double -> R r -> R r -> R r -> (R r, R r)
-decendVector rate momentum regulariser weights gradient lastUpdate =
+descendVector :: (KnownNat r) => Double -> Double -> Double -> R r -> R r -> R r -> (R r, R r)
+descendVector rate momentum regulariser weights gradient lastUpdate =
   let len          = size weights
       weights'     = extract weights
       gradient'    = extract gradient
       lastUpdate'  = extract lastUpdate
-      (vw, vm)     = decendUnsafe len rate momentum regulariser weights' gradient' lastUpdate'
+      (vw, vm)     = descendUnsafe len rate momentum regulariser weights' gradient' lastUpdate'
   in  (fromJust $ create vw, fromJust $ create vm)
 
-decendUnsafe :: Int -> Double -> Double -> Double -> Vector Double -> Vector Double -> Vector Double -> (Vector Double, Vector Double)
-decendUnsafe len rate momentum regulariser weights gradient lastUpdate =
+descendUnsafe :: Int -> Double -> Double -> Double -> Vector Double -> Vector Double -> Vector Double -> (Vector Double, Vector Double)
+descendUnsafe len rate momentum regulariser weights gradient lastUpdate =
   unsafePerformIO $ do
     outWPtr <- mallocForeignPtrArray len
     outMPtr <- mallocForeignPtrArray len
@@ -60,11 +60,11 @@ decendUnsafe len rate momentum regulariser weights gradient lastUpdate =
         withForeignPtr lPtr $ \lPtr' ->
           withForeignPtr outWPtr $ \outWPtr' ->
             withForeignPtr outMPtr $ \outMPtr' ->
-              decend_cpu len rate momentum regulariser wPtr' gPtr' lPtr' outWPtr' outMPtr'
+              descend_cpu len rate momentum regulariser wPtr' gPtr' lPtr' outWPtr' outMPtr'
 
     return (U.unsafeFromForeignPtr0 outWPtr len, U.unsafeFromForeignPtr0 outMPtr len)
 
 foreign import ccall unsafe
-    decend_cpu
+    descend_cpu
       :: Int -> Double -> Double -> Double -> Ptr Double -> Ptr Double -> Ptr Double -> Ptr Double -> Ptr Double -> IO ()
 

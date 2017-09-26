@@ -27,8 +27,8 @@ main = do
                       , bench "backwards-60"      $ nf (nfT3 . uncurry4 (testRun60'  layer60))  (rec60, input40, rec60, rec60)
                       , bench "backwards-512"     $ nf (nfT3 . uncurry4 (testRun512' layer512)) (rec512, input40, rec512, rec512)
                       ]
-    , bgroup "update" [ bench "matrix-60x60"      $ nf (uncurry3 (decendVector 1 1 1)) (upIn60, upIn60, upIn60)
-                      , bench "matrix-512x512"    $ nf (uncurry3 (decendVector 1 1 1)) (upIn512, upIn512, upIn512)
+    , bgroup "update" [ bench "matrix-60x60"      $ nf (uncurry3 (descendVector 1 1 1)) (upIn60, upIn60, upIn60)
+                      , bench "matrix-512x512"    $ nf (uncurry3 (descendVector 1 1 1)) (upIn512, upIn512, upIn512)
                       ]
     , bgroup "train"  [ bench "one-time-step"     $ whnf (nfT2 . trainRecurrent lp lstm 0) [(input40, Just input40)]
                       , bench "ten-time-steps"    $ whnf (nfT2 . trainRecurrent lp lstm 0) $ replicate 10 (input40, Just input40)

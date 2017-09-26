@@ -17,7 +17,7 @@ description:
     Grenade provides an API for composing layers of a neural network
     into a sequence parallel graph in a type safe manner; running
     networks with reverse automatic differentiation to calculate their
-    gradients; and applying gradient decent for learning.
+    gradients; and applying gradient descent for learning.
     .
     Documentation and examples are available on github
     <https://github.com/HuwCampbell/grenade>.
@@ -26,8 +26,8 @@ extra-source-files:
   README.md
   cbits/im2col.h
   cbits/im2col.c
-  cbits/gradient_decent.h
-  cbits/gradient_decent.c
+  cbits/gradient_descent.h
+  cbits/gradient_descent.c
   cbits/pad.h
   cbits/pad.c
 
@@ -108,10 +108,10 @@ library
                        Grenade.Utils.OneHot
 
   includes:            cbits/im2col.h
-                       cbits/gradient_decent.h
+                       cbits/gradient_descent.h
                        cbits/pad.h
   c-sources:           cbits/im2col.c
-                       cbits/gradient_decent.c
+                       cbits/gradient_descent.c
                        cbits/pad.c
 
   cc-options:          -std=c99 -O3 -msse4.2 -Wall -Werror -DCABAL=1

@@ -139,7 +139,7 @@ runGradient net tapes o =
       = (GNil, o)
 
 
--- | Apply one step of stochastic gradient decent across the network.
+-- | Apply one step of stochastic gradient descent across the network.
 applyUpdate :: LearningParameters
             -> Network layers shapes
             -> Gradients layers

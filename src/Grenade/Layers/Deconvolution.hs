@@ -130,7 +130,7 @@ instance ( KnownNat channels
          ) => UpdateLayer (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) where
   type Gradient (Deconvolution channels filters kernelRows kernelCols strideRows strideCols) = (Deconvolution' channels filters kernelRows kernelCols strideRows strideCols)
   runUpdate LearningParameters {..} (Deconvolution oldKernel oldMomentum) (Deconvolution' kernelGradient) =
-    let (newKernel, newMomentum) = decendMatrix learningRate learningMomentum learningRegulariser oldKernel kernelGradient oldMomentum
+    let (newKernel, newMomentum) = descendMatrix learningRate learningMomentum learningRegulariser oldKernel kernelGradient oldMomentum
     in Deconvolution newKernel newMomentum
 
   createRandom = randomDeconvolution
