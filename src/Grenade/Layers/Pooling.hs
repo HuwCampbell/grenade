@@ -43,7 +43,7 @@ instance Show (Pooling k k' s s') where
   show Pooling = "Pooling"
 
 instance UpdateLayer (Pooling kernelRows kernelColumns strideRows strideColumns) where
-  type Gradient (Pooling kr kc sr sc) = ()
+  type Gradient (Pooling kernelRows kernelColumns strideRows strideColumns) = ()
   runUpdate _ Pooling _ = Pooling
   createRandom = return Pooling
 
