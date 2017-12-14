@@ -3,6 +3,7 @@ Grenade
 
 [![Build Status](https://api.travis-ci.org/HuwCampbell/grenade.svg?branch=master)](https://travis-ci.org/HuwCampbell/grenade)
 [![Hackage page (downloads and API reference)][hackage-png]][hackage]
+[![Hackage-Deps][hackage-deps-png]][hackage-deps]
 
 
 ```
@@ -187,4 +188,5 @@ Contributions are welcome.
 
  [hackage]: http://hackage.haskell.org/package/grenade
  [hackage-png]: http://img.shields.io/hackage/v/grenade.svg
-
+ [hackage-deps]: http://packdeps.haskellers.com/reverse/grenade
+ [hackage-deps-png]: https://img.shields.io/hackage-deps/v/grenade.svg
