@@ -150,7 +150,7 @@ test-suite test
   build-depends:
                        base                            >= 4.8         && < 5
                      , grenade
-                     , hedgehog                        >= 0.4         && < 0.5
+                     , hedgehog                        >= 0.5         && < 0.6
                      , hmatrix
                      , mtl
                      , singletons
@@ -178,7 +178,7 @@ benchmark bench
   build-depends:
                        base                            >= 3          && < 5
                      , bytestring                      == 0.10.*
-                     , criterion                       == 1.1.*
+                     , criterion                       >= 1.1        && < 1.3
                      , grenade
                      , hmatrix
 
