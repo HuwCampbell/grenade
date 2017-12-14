@@ -13,6 +13,7 @@ import           Data.Proxy
 #endif
 import           Data.Singletons
 
+import           Hedgehog (Gen)
 import qualified Hedgehog.Gen as Gen
 
 import           Grenade
@@ -21,7 +22,7 @@ import           GHC.TypeLits
 import           GHC.TypeLits.Witnesses
 import           Test.Hedgehog.Compat
 
-genNat :: Monad m => Gen.Gen m SomeNat
+genNat :: Gen SomeNat
 genNat = do
   Just n <- someNatVal <$> choose 1 10
   return n
@@ -32,7 +33,7 @@ type Shape' = ('KProxy :: KProxy Shape)
 type Shape' = Shape
 #endif
 
-genShape :: Monad m => Gen.Gen m (SomeSing Shape')
+genShape :: Gen (SomeSing Shape')
 genShape
   = Gen.choice [
       genD1
@@ -40,20 +41,20 @@ genShape
     , genD3
     ]
 
-genD1 :: Monad m => Gen.Gen m (SomeSing Shape')
+genD1 :: Gen (SomeSing Shape')
 genD1 = do
   n <- genNat
   return $ case n of
     SomeNat (_ :: Proxy x) -> SomeSing (sing :: Sing ('D1 x))
 
-genD2 :: Monad m => Gen.Gen m (SomeSing Shape')
+genD2 :: Gen (SomeSing Shape')
 genD2 = do
   n <- genNat
   m <- genNat
   return $ case (n, m) of
     (SomeNat (_ :: Proxy x), SomeNat (_ :: Proxy y)) -> SomeSing (sing :: Sing ('D2 x y))
 
-genD3 :: Monad m => Gen.Gen m (SomeSing Shape')
+genD3 :: Gen (SomeSing Shape')
 genD3 = do
   n <- genNat
   m <- genNat

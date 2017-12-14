@@ -53,7 +53,7 @@ instance Show SomeNetwork where
 --
 -- This is slightly insane for a few reasons. Everything must be wrapped up
 -- in a SomeNetwork.
-genNetwork :: Monad m => Gen.Gen m SomeNetwork
+genNetwork :: Gen SomeNetwork
 genNetwork =
   Gen.recursive Gen.choice [
       do SomeSing ( r :: Sing final ) <- genShape
@@ -438,7 +438,7 @@ prop_auto_diff = withDiscards 1000 . withTests 10000 . property $ do
   result ~~~ expected
 
 -- Make a shape where all are 0 except for 1 value, which is 1.
-oneUp :: forall shape m. ( Monad m, SingI shape ) => Gen.Gen m (S shape)
+oneUp :: forall shape. ( SingI shape ) => Gen (S shape)
 oneUp =
   case ( sing :: Sing shape ) of
     D1Sing SNat ->
@@ -482,7 +482,7 @@ maxVal ( S1D x ) = norm_Inf x
 maxVal ( S2D x ) = norm_Inf x
 maxVal ( S3D x ) = norm_Inf x
 
-(~~~) :: (Monad m, HasCallStack) => Double -> Double -> Test m ()
+(~~~) :: (Monad m, HasCallStack) => Double -> Double -> PropertyT m ()
 (~~~) x y =
   if abs (x - y) < 2e-5 then
     success

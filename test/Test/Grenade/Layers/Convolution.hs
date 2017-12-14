@@ -39,11 +39,10 @@ genConvolution :: ( KnownNat channels
                   , KnownNat strideColumns
                   , KnownNat kernelFlattened
                   , kernelFlattened ~ (kernelRows * kernelColumns * channels)
-                  , Monad m
-                  ) => Gen.Gen m (Convolution channels filters kernelRows kernelColumns strideRows strideColumns)
+                  ) => Gen (Convolution channels filters kernelRows kernelColumns strideRows strideColumns)
 genConvolution = Convolution <$> uniformSample <*> uniformSample
 
-genOpaqueOpaqueConvolution :: Monad m => Gen m OpaqueConvolution
+genOpaqueOpaqueConvolution :: Gen OpaqueConvolution
 genOpaqueOpaqueConvolution = do
     channels <- genNat
     filters  <- genNat
@@ -59,7 +58,7 @@ genOpaqueOpaqueConvolution = do
               p2 = natDict pkc
               p3 = natDict pch
           in  case p1 %* p2 %* p3 of
-            Dict -> OpaqueConvolution <$> (genConvolution :: Monad n => Gen n (Convolution ch fl kr kc sr sc))
+            Dict -> OpaqueConvolution <$> (genConvolution :: Gen (Convolution ch fl kr kc sr sc))
 
 prop_conv_net_witness = property $
   blindForAll genOpaqueOpaqueConvolution >>= \onet ->

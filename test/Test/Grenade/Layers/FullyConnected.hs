@@ -26,7 +26,7 @@ data OpaqueFullyConnected :: * where
 instance Show OpaqueFullyConnected where
     show (OpaqueFullyConnected n) = show n
 
-genOpaqueFullyConnected :: Monad m => Gen m OpaqueFullyConnected
+genOpaqueFullyConnected :: Gen OpaqueFullyConnected
 genOpaqueFullyConnected = do
     input   :: Integer  <- choose 2 100
     output  :: Integer  <- choose 1 100
