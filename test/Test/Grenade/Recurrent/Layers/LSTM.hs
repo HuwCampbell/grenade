@@ -65,7 +65,9 @@ prop_lstm_reference_backwards =
     input :: S.R 3                       <- forAll randomVector
     cell :: S.R 2                        <- forAll randomVector
     net@(LSTM lstmWeights _) :: LSTM 3 2 <- forAll genLSTM
-    let actualBacks     = runRecurrentBackwards net (S1D cell, S1D input) (S1D (S.konst 1) :: S ('D1 2)) (S1D (S.konst 1) :: S ('D1 2))
+    let (tape, _ :: S ('D1 2), _ :: S ('D1 2))
+                                          = runRecurrentForwards  net (S1D cell) (S1D input)
+        actualBacks                       = runRecurrentBackwards net tape (S1D (S.konst 1) :: S ('D1 2)) (S1D (S.konst 1) :: S ('D1 2))
     case actualBacks of
       (actualGradients, _, _ :: S ('D1 3)) ->
         let refNet          = Reference.lstmToReference lstmWeights
@@ -79,7 +81,9 @@ prop_lstm_reference_backwards_input =
     input :: S.R 3                       <- forAll randomVector
     cell :: S.R 2                        <- forAll randomVector
     net@(LSTM lstmWeights _) :: LSTM 3 2 <- forAll genLSTM
-    let actualBacks     = runRecurrentBackwards net (S1D cell, S1D input) (S1D (S.konst 1) :: S ('D1 2)) (S1D (S.konst 1) :: S ('D1 2))
+    let (tape, _ :: S ('D1 2), _ :: S ('D1 2))
+                                          = runRecurrentForwards  net (S1D cell) (S1D input)
+        actualBacks                       = runRecurrentBackwards net tape (S1D (S.konst 1) :: S ('D1 2)) (S1D (S.konst 1) :: S ('D1 2))
     case actualBacks of
       (_, _, S1D actualGradients :: S ('D1 3)) ->
         let refNet          = Reference.lstmToReference lstmWeights
@@ -93,7 +97,9 @@ prop_lstm_reference_backwards_cell =
     input :: S.R 3                       <- forAll randomVector
     cell :: S.R 2                        <- forAll randomVector
     net@(LSTM lstmWeights _) :: LSTM 3 2 <- forAll genLSTM
-    let actualBacks     = runRecurrentBackwards net (S1D cell, S1D input) (S1D (S.konst 1) :: S ('D1 2)) (S1D (S.konst 1) :: S ('D1 2))
+    let (tape, _ :: S ('D1 2), _ :: S ('D1 2))
+                                          = runRecurrentForwards  net (S1D cell) (S1D input)
+        actualBacks                       = runRecurrentBackwards net tape (S1D (S.konst 1) :: S ('D1 2)) (S1D (S.konst 1) :: S ('D1 2))
     case actualBacks of
       (_, S1D actualGradients, _ :: S ('D1 3)) ->
         let refNet          = Reference.lstmToReference lstmWeights

@@ -127,37 +127,12 @@ instance (KnownNat i, KnownNat o) => RecurrentUpdateLayer (LSTM i o) where
 
 instance (KnownNat i, KnownNat o) => RecurrentLayer (LSTM i o) ('D1 i) ('D1 o) where
 
-  type RecTape (LSTM i o) ('D1 i) ('D1 o) = (S ('D1 o), S ('D1 i))
+  -- The tape stores essentially every variable we calculate,
+  -- so we don't have to run any forwards component again.
+  type RecTape (LSTM i o) ('D1 i) ('D1 o) = (R o, R i, R o, R o, R o, R o, R o, R o, R o, R o, R o)
   -- Forward propagation for the LSTM layer.
   -- The size of the cell state is also the size of the output.
   runRecurrentForwards (LSTM (LSTMWeights {..}) _) (S1D cell) (S1D input) =
-    let -- Forget state vector
-        f_t = sigmoid $ lstmBf + lstmWf #> input + lstmUf #> cell
-        -- Input state vector
-        i_t = sigmoid $ lstmBi + lstmWi #> input + lstmUi #> cell
-        -- Output state vector
-        o_t = sigmoid $ lstmBo + lstmWo #> input + lstmUo #> cell
-        -- Cell input state vector
-        c_x = tanh    $ lstmBc + lstmWc #> input
-        -- Cell state
-        c_t = f_t * cell + i_t * c_x
-        -- Output (it's sometimes recommended to use tanh c_t)
-        h_t = o_t * c_t
-    in ((S1D cell, S1D input), S1D c_t, S1D h_t)
-
-  -- Run a backpropogation step for an LSTM layer.
-  -- We're doing all the derivatives by hand here, so one should
-  -- be extra careful when changing this.
-  --
-  -- There's a test version using the AD library without hmatrix in the test
-  -- suite. These should match always.
-  runRecurrentBackwards (LSTM (LSTMWeights {..}) _) (S1D cell, S1D input) (S1D cellGrad) (S1D h_t') =
-    -- We're not keeping the Wengert tape during the forward pass,
-    -- so we're duplicating some work here.
-    --
-    -- If I was being generous, I'd call it checkpointing.
-    --
-    -- Maybe think about better ways to store some intermediate states.
     let -- Forget state vector
         f_s = lstmBf + lstmWf #> input + lstmUf #> cell
         f_t = sigmoid f_s
@@ -172,8 +147,18 @@ instance (KnownNat i, KnownNat o) => RecurrentLayer (LSTM i o) ('D1 i) ('D1 o) w
         c_x = tanh c_s
         -- Cell state
         c_t = f_t * cell + i_t * c_x
+        -- Output (it's sometimes recommended to use tanh c_t)
+        h_t = o_t * c_t
+    in ((cell, input, f_s, f_t, i_s, i_t, o_s, o_t, c_s, c_x, c_t), S1D c_t, S1D h_t)
 
-        -- Reverse Mode AD Derivitives
+  -- Run a backpropogation step for an LSTM layer.
+  -- We're doing all the derivatives by hand here, so one should
+  -- be extra careful when changing this.
+  --
+  -- There's a test version using the AD library without hmatrix in the test
+  -- suite. These should match always.
+  runRecurrentBackwards (LSTM (LSTMWeights {..}) _) (cell, input, f_s, f_t, i_s, i_t, o_s, o_t, c_s, c_x, c_t) (S1D cellGrad) (S1D h_t') =
+    let -- Reverse Mode AD Derivitives
         c_t' = h_t' * o_t + cellGrad
 
         f_t' = c_t' * cell
@@ -235,7 +220,8 @@ randomLSTM = do
 
 -- | Maths
 --
--- TODO: move to not here
+-- TODO: Move to not here
+--       Optimise backwards derivative
 sigmoid :: Floating a => a -> a
 sigmoid x = 1 / (1 + exp (-x))
 
