@@ -46,12 +46,12 @@ instance (KnownNat i, KnownNat o) => UpdateLayer (FullyConnected i o) where
   createRandom = randomFullyConnected
 
 instance (KnownNat i, KnownNat o) => Layer (FullyConnected i o) ('D1 i) ('D1 o) where
-  type Tape (FullyConnected i o) ('D1 i) ('D1 o) = S ('D1 i)
+  type Tape (FullyConnected i o) ('D1 i) ('D1 o) = R i
   -- Do a matrix vector multiplication and return the result.
-  runForwards (FullyConnected (FullyConnected' wB wN) _) (S1D v) = (S1D v, S1D (wB + wN #> v))
+  runForwards (FullyConnected (FullyConnected' wB wN) _) (S1D v) = (v, S1D (wB + wN #> v))
 
   -- Run a backpropogation step for a full connected layer.
-  runBackwards (FullyConnected (FullyConnected' _ wN) _) (S1D x) (S1D dEdy) =
+  runBackwards (FullyConnected (FullyConnected' _ wN) _) x (S1D dEdy) =
           let wB'  = dEdy
               mm'  = dEdy `outer` x
               -- calcluate derivatives for next step

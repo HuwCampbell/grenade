@@ -34,18 +34,24 @@ instance UpdateLayer Logit where
   createRandom = return Logit
 
 instance (a ~ b, SingI a) => Layer Logit a b where
+  -- Wengert tape optimisation:
+  --
+  -- Derivative of the sigmoid function is
+  --    d σ(x) / dx  = σ(x) • (1 - σ(x))
+  -- but we have already calculated σ(x) in
+  -- the forward pass, so just store that
+  -- and use it in the backwards pass.
   type Tape Logit a b = S a
-  runForwards _ a = (a, logistic a)
-  runBackwards _ a g = ((), logistic' a * g)
+  runForwards _ a =
+    let l = sigmoid a
+    in  (l, l)
+  runBackwards _ l g =
+    let sigmoid' = l * (1 - l)
+    in  ((), sigmoid' * g)
 
 instance Serialize Logit where
   put _ = return ()
   get = return Logit
 
-logistic :: Floating a => a -> a
-logistic x = 1 / (1 + exp (-x))
-
-logistic' :: Floating a => a -> a
-logistic' x = logix * (1 - logix)
-  where
-    logix = logistic x
+sigmoid :: Floating a => a -> a
+sigmoid x = 1 / (1 + exp (-x))

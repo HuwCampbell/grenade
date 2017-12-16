@@ -36,12 +36,12 @@ instance Serialize Elu where
   get = return Elu
 
 instance ( KnownNat i) => Layer Elu ('D1 i) ('D1 i) where
-  type Tape Elu ('D1 i) ('D1 i) = S ('D1 i)
+  type Tape Elu ('D1 i) ('D1 i) = LAS.R i
 
-  runForwards _ (S1D y) = (S1D y, S1D (elu y))
+  runForwards _ (S1D y) = (y, S1D (elu y))
     where
       elu = LAS.dvmap (\a -> if a <= 0 then exp a - 1 else a)
-  runBackwards _ (S1D y) (S1D dEdy) = ((), S1D (elu' y * dEdy))
+  runBackwards _ y (S1D dEdy) = ((), S1D (elu' y * dEdy))
     where
       elu' = LAS.dvmap (\a -> if a <= 0 then exp a else 1)
 
