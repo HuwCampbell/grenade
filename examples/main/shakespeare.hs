@@ -41,6 +41,9 @@ import           System.IO.Unsafe ( unsafeInterleaveIO )
 -- This network is able to learn and generate simple words in
 -- about an hour.
 --
+-- Grab the input from
+-- https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
+--
 -- This is a first class recurrent net.
 --
 -- The F and R types are tagging types to ensure that the runner and
@@ -69,7 +72,7 @@ loadShakespeare :: FilePath -> ExceptT String IO (Vector Int, M.Map Char Int, Ve
 loadShakespeare path = do
   contents     <- lift $ readFile path
   let annotated = annotateCapitals contents
-  (m,cs)       <- ExceptT . return . note "Couldn't fit data in hotMap" $ hotMap (Proxy :: Proxy 40) annotated
+  (m,cs)       <- ExceptT . return $ hotMap (Proxy :: Proxy 40) annotated
   hot          <- ExceptT . return . note "Couldn't generate hot values" $ traverse (`M.lookup` m) annotated
   return (V.fromList hot, m, cs)
 

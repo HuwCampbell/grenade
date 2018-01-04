@@ -52,15 +52,16 @@ oneHot hot =
 
 -- | Create a one hot map from any enumerable.
 --   Returns a map, and the ordered list for the reverse transformation
-hotMap :: (Ord a, KnownNat n) => Proxy n -> [a] -> Maybe (Map a Int, Vector a)
+hotMap :: (Ord a, KnownNat n) => Proxy n -> [a] -> Either String (Map a Int, Vector a)
 hotMap n as =
   let len  = fromIntegral $ natVal n
       uniq = [ c | (c:_) <- group $ sort as]
       hotl = length uniq
-  in if hotl <= len
+  in if hotl == len
       then
-        Just (M.fromList $ zip uniq [0..], V.fromList uniq)
-      else Nothing
+        Right (M.fromList $ zip uniq [0..], V.fromList uniq)
+      else
+        Left ("Couldn't create hotMap of size " ++ show len ++ " from vector with " ++ show hotl ++ " unique characters")
 
 -- | From a map and value, create a 1D Shape
 --   with one index hot (1) with the rest 0.
