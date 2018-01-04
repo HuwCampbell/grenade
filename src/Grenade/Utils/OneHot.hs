@@ -57,7 +57,7 @@ hotMap n as =
   let len  = fromIntegral $ natVal n
       uniq = [ c | (c:_) <- group $ sort as]
       hotl = length uniq
-  in if hotl <= len
+  in if hotl == len
       then
         Just (M.fromList $ zip uniq [0..], V.fromList uniq)
       else Nothing

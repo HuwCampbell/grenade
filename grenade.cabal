@@ -42,12 +42,9 @@ library
                      , containers                      >= 0.5         && < 0.6
                      , cereal                          >= 0.5         && < 0.6
                      , deepseq                         >= 1.4         && < 1.5
-                     , exceptions                      == 0.8.*
                      , hmatrix                         == 0.18.*
                      , MonadRandom                     >= 0.4         && < 0.6
-                     , mtl                             >= 2.2.1       && < 2.3
                      , primitive                       >= 0.6         && < 0.7
-                     , text                            == 1.2.*
                      , singletons                      >= 2.1         && < 2.4
                      , vector                          >= 0.11        && < 0.13
 
