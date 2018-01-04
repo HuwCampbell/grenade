@@ -41,6 +41,9 @@ import           System.IO.Unsafe ( unsafeInterleaveIO )
 -- This network is able to learn and generate simple words in
 -- about an hour.
 --
+-- Grab the input from
+-- https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
+--
 -- This is a first class recurrent net.
 --
 -- The F and R types are tagging types to ensure that the runner and
