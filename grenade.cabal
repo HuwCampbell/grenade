@@ -81,6 +81,7 @@ library
                        Grenade.Layers.Pooling
                        Grenade.Layers.Relu
                        Grenade.Layers.Reshape
+                       Grenade.Layers.Sinusoid
                        Grenade.Layers.Softmax
                        Grenade.Layers.Tanh
                        Grenade.Layers.Trivial
