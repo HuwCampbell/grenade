@@ -4,7 +4,7 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-|
-Module      : Grenade.Layers.Tanh
+Module      : Grenade.Layers.Sinusoid
 Description : Sinusoid nonlinear layer
 Copyright   : (c) Manuel Schneckenreither, 2018
 License     : BSD2
