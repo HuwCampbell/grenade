@@ -1,8 +1,8 @@
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-|
 Module      : Grenade.Layers.Tanh
 Description : Hyperbolic tangent nonlinear layer
@@ -20,7 +20,7 @@ import           Data.Singletons
 import           Grenade.Core
 
 -- | A Tanh layer.
---   A layer which can act between any shape of the same dimension, perfoming a tanh function.
+--   A layer which can act between any shape of the same dimension, performing a tanh function.
 data Tanh = Tanh
   deriving Show
 
