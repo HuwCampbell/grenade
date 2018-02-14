@@ -66,4 +66,20 @@ instance (KnownNat i, KnownNat j, KnownNat k) => Layer Relu ('D3 i j k) ('D3 i j
     where
       relu' = LAS.dmmap (\a -> if a <= 0 then 0 else 1)
 
+-------------------- Num and Fractional instances --------------------
+
+instance Num Relu where
+  _ + _ = Relu
+  _ - _ = Relu
+  _ * _ = Relu
+  abs _ = Relu
+  signum _ = Relu
+  fromInteger _ = Relu
+
+instance Fractional Relu where
+  _ / _ = Relu
+  fromRational _ = Relu
+
+instance NMult Relu where
+  _ |* Relu = Relu
 

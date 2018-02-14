@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ed616ec9d8c156b05314ebfce8ac16366bb6af0ca2a86d3886a3af0912010eeb
+-- hash: 0b2680e69e0a2d8a5560f5860ec008b887f4892fb68aee5319f07ff4e11f99f5
 
 name:           grenade
 version:        0.1.0
@@ -177,13 +177,13 @@ benchmark bench
   build-depends:
       MonadRandom >=0.4 && <0.6
     , base >=4.7 && <5
-    , bytestring
+    , bytestring ==0.10.*
     , cereal >=0.5 && <0.6
     , containers >=0.5 && <0.7
     , criterion >=1.1 && <1.6
     , deepseq >=1.4 && <1.5
     , grenade
-    , hmatrix
+    , hmatrix >=0.18 && <0.21
     , primitive >=0.6 && <0.8
     , singletons
     , vector >=0.11 && <0.13
@@ -200,13 +200,13 @@ benchmark bench-lstm
   build-depends:
       MonadRandom >=0.4 && <0.6
     , base >=4.7 && <5
-    , bytestring
+    , bytestring ==0.10.*
     , cereal >=0.5 && <0.6
     , containers >=0.5 && <0.7
     , criterion >=1.1 && <1.6
     , deepseq >=1.4 && <1.5
     , grenade
-    , hmatrix
+    , hmatrix >=0.18 && <0.21
     , primitive >=0.6 && <0.8
     , singletons
     , vector >=0.11 && <0.13

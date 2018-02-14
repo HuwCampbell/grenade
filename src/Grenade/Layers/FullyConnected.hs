@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
@@ -47,18 +48,6 @@ instance (KnownNat i, KnownNat o) => UpdateLayer (FullyConnected i o) where
   createRandom = randomFullyConnected
 
 
-instance (KnownNat i, KnownNat o) => Num (FullyConnected' i o) where
-  (FullyConnected' i1 o1) + (FullyConnected' i2 o2) = FullyConnected' (i1+i2) (o1+o2)
-  (FullyConnected' i1 o1) * (FullyConnected' i2 o2) = FullyConnected' (i1*i2) (o1*o2)
-  (FullyConnected' i1 o1) - (FullyConnected' i2 o2) = FullyConnected' (i1-i2) (o1-o2)
-  abs (FullyConnected' i1 o1) = FullyConnected' (abs i1) (abs o1)
-  signum (FullyConnected' i1 o1) = FullyConnected' (signum i1) (signum o1)
-  fromInteger v = FullyConnected' (fromInteger v) (fromInteger v)
-
-instance (KnownNat i, KnownNat o) => Fractional (FullyConnected' i o) where
-  (FullyConnected' i1 o1) / (FullyConnected' i2 o2) = FullyConnected' (i1/i2) (o1/o2)
-  fromRational v = FullyConnected' (fromRational v) (fromRational v)
-
 instance (KnownNat i, KnownNat o) => Layer (FullyConnected i o) ('D1 i) ('D1 o) where
   type Tape (FullyConnected i o) ('D1 i) ('D1 o) = R i
   -- Do a matrix vector multiplication and return the result.
@@ -85,12 +74,6 @@ instance (KnownNat i, KnownNat o) => Serialize (FullyConnected i o) where
       let mm = konst 0
       return $ FullyConnected (FullyConnected' b k) (FullyConnected' bm mm)
 
-instance (KnownNat i, KnownNat o) => Num (FullyConnected i o) where
-  (FullyConnected (FullyConnected' b1 a1) (FullyConnected' bm1 m1)) +
-    (FullyConnected (FullyConnected' b2 a2) (FullyConnected' bm2 m2)) =
-    FullyConnected (FullyConnected' (b1+b2) (a1+a2)) (FullyConnected' (bm1+bm2) (m1+m2))
-
-
 randomFullyConnected :: (MonadRandom m, KnownNat i, KnownNat o)
                      => m (FullyConnected i o)
 randomFullyConnected = do
@@ -101,4 +84,42 @@ randomFullyConnected = do
         bm = konst 0
         mm = konst 0
     return $ FullyConnected (FullyConnected' wB wN) (FullyConnected' bm mm)
+
+
+-------------------- Num,Fractional,NMult instances --------------------
+
+-- | Num and Fractional instance of Layer data type for calculating with networks
+-- (slowly adapt target network, e.g. as in arXiv: 1509.02971)
+instance (KnownNat i,KnownNat o) => Num (FullyConnected i o) where
+  FullyConnected i1 o1 + FullyConnected i2 o2 = FullyConnected (i1+i2) (o1+o2)
+  FullyConnected i1 o1 * FullyConnected i2 o2 = FullyConnected (i1*i2) (o1*o2)
+  FullyConnected i1 o1 - FullyConnected i2 o2 = FullyConnected (i1-i2) (o1-o2)
+  abs (FullyConnected i o) = FullyConnected (abs i) (abs o)
+  signum (FullyConnected i o) = FullyConnected (signum i) (signum o)
+  fromInteger v = FullyConnected (fromInteger v) 0
+
+instance (KnownNat i, KnownNat o) => Fractional (FullyConnected i o) where
+  FullyConnected i1 o1 / FullyConnected i2 o2 = FullyConnected (i1/i2) (o1/o2)
+  fromRational v = FullyConnected (fromRational v) 0
+
+
+instance (KnownNat i, KnownNat o) => NMult (FullyConnected i o) where
+  s |* FullyConnected i o = FullyConnected (s |* i) o
+
+instance (KnownNat i, KnownNat o) => NMult (FullyConnected' i o) where
+  s |* FullyConnected' i o = FullyConnected' (fromRational s * i) (fromRational s * o)
+
+
+-- | Num and Fractional instance of gradient (for minibatches/batch upgrades)
+instance (KnownNat i, KnownNat o) => Num (FullyConnected' i o) where
+  FullyConnected' i1 o1 + FullyConnected' i2 o2 = FullyConnected' (i1+i2) (o1+o2)
+  FullyConnected' i1 o1 * FullyConnected' i2 o2 = FullyConnected' (i1*i2) (o1*o2)
+  FullyConnected' i1 o1 - FullyConnected' i2 o2 = FullyConnected' (i1-i2) (o1-o2)
+  abs (FullyConnected' i1 o1) = FullyConnected' (abs i1) (abs o1)
+  signum (FullyConnected' i1 o1) = FullyConnected' (signum i1) (signum o1)
+  fromInteger v = FullyConnected' (fromInteger v) 0
+
+instance (KnownNat i, KnownNat o) => Fractional (FullyConnected' i o) where
+  FullyConnected' i1 o1 / FullyConnected' i2 o2 = FullyConnected' (i1/i2) (o1/o2)
+  fromRational v = FullyConnected' (fromRational v) 0
 
