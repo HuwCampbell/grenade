@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-|
 Module      : Grenade.Layers.Relu
 Description : Rectifying linear unit layer
@@ -65,3 +65,5 @@ instance (KnownNat i, KnownNat j, KnownNat k) => Layer Relu ('D3 i j k) ('D3 i j
   runBackwards _ (S3D y) (S3D dEdy) = ((), S3D (relu' y * dEdy))
     where
       relu' = LAS.dmmap (\a -> if a <= 0 then 0 else 1)
+
+

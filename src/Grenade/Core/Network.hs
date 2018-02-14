@@ -1,12 +1,13 @@
-{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Core.Network
 Description : Core definition of a Neural Network
@@ -30,11 +31,11 @@ module Grenade.Core.Network (
   , randomNetwork
   ) where
 
-import           Control.Monad.Random ( MonadRandom )
+import           Control.Monad.Random            (MonadRandom)
 
+import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.Prelude
-import           Data.Serialize
 
 import           Grenade.Core.Layer
 import           Grenade.Core.LearningParameters
@@ -63,6 +64,19 @@ instance Show (Network '[] '[i]) where
 instance (Show x, Show (Network xs rs)) => Show (Network (x ': xs) (i ': rs)) where
   show (x :~> xs) = show x ++ "\n~>\n" ++ show xs
 
+-- instance (Num x, Num (Network xs rs)) => Num (Network (x ': xs) (i ': rs)) where
+--   (x :~> xs) + (y :~> ys) = (x+y) :~> (xs + ys)
+--   (x :~> xs) - (y :~> ys) = (x-y) :~> (xs - ys)
+--   (x :~> xs) * (y :~> ys) = (x*y) :~> (xs * ys)
+--   abs (x :~> xs) = abs x :~> abs xs
+--   signum (x :~> xs) = signum x :~> signum xs
+--   fromInteger _ = error "no fromInteger instance for Network"
+
+-- instance (Fractional x, Fractional (Network xs rs), Num x, Num (Network xs rs)) => Fractional (Network (x ': xs) (i ': rs)) where
+--   (x :~> xs) / (y :~> ys) = (x/y) :~> (xs / ys)
+--   fromRational _ = error "fromRational for Network not implemented"
+
+
 -- | Gradient of a network.
 --
 --   Parameterised on the layers of the network.
@@ -73,6 +87,44 @@ data Gradients :: [*] -> * where
          => Gradient x
          -> Gradients xs
          -> Gradients (x ': xs)
+
+instance Num (Gradients '[]) where
+  GNil + GNil = GNil
+  GNil * GNil = GNil
+  GNil - GNil = GNil
+  abs GNil = GNil
+  signum GNil = GNil
+  fromInteger _ = GNil
+
+instance (UpdateLayer x, Num (Gradient x), Num (Gradients xs)) => Num (Gradients (x ': xs)) where
+  (x :/> xs) + (y :/> ys) = (x+y) :/> (xs+ys)
+  (x :/> xs) * (y :/> ys) = (x*y) :/> (xs*ys)
+  (x :/> xs) - (y :/> ys) = (x-y) :/> (xs-ys)
+  abs (x :/> xs) = abs x :/> abs xs
+  signum (x :/> xs) = signum x :/> signum xs
+  fromInteger v = fromInteger v :/> fromInteger v
+
+-- these instances are needed but will normally not be evaluated
+instance Num () where
+  _ + _ = ()
+  _ - _ = ()
+  _ * _ = ()
+  abs () = ()
+  signum () = ()
+  fromInteger _ = ()
+
+instance Fractional () where
+  _ / _ = ()
+  fromRational _ = ()
+
+instance Fractional (Gradients '[]) where
+  GNil / GNil = GNil
+  fromRational _ = GNil
+
+instance (UpdateLayer x, Fractional (Gradient x), Fractional (Gradients xs)) => Fractional (Gradients (x ': xs)) where
+  (x :/> GNil) / (y :/> GNil) = (x / y) :/> GNil
+  (x :/> xs) / (y :/> ys) = (x / y) :/> (xs / ys)
+  fromRational v = fromRational v :/> fromRational v
 
 -- | Wegnert Tape of a network.
 --
