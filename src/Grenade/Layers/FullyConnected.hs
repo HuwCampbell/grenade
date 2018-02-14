@@ -1,22 +1,23 @@
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 module Grenade.Layers.FullyConnected (
     FullyConnected (..)
   , FullyConnected' (..)
   , randomFullyConnected
   ) where
 
-import           Control.Monad.Random hiding (fromList)
+import           Control.Monad.Random
 
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons.TypeLits
 
-import qualified Numeric.LinearAlgebra as LA
+import qualified Numeric.LinearAlgebra          as LA
 import           Numeric.LinearAlgebra.Static
 
 import           Grenade.Core
@@ -45,6 +46,19 @@ instance (KnownNat i, KnownNat o) => UpdateLayer (FullyConnected i o) where
 
   createRandom = randomFullyConnected
 
+
+instance (KnownNat i, KnownNat o) => Num (FullyConnected' i o) where
+  (FullyConnected' i1 o1) + (FullyConnected' i2 o2) = FullyConnected' (i1+i2) (o1+o2)
+  (FullyConnected' i1 o1) * (FullyConnected' i2 o2) = FullyConnected' (i1*i2) (o1*o2)
+  (FullyConnected' i1 o1) - (FullyConnected' i2 o2) = FullyConnected' (i1-i2) (o1-o2)
+  abs (FullyConnected' i1 o1) = FullyConnected' (abs i1) (abs o1)
+  signum (FullyConnected' i1 o1) = FullyConnected' (signum i1) (signum o1)
+  fromInteger v = FullyConnected' (fromInteger v) (fromInteger v)
+
+instance (KnownNat i, KnownNat o) => Fractional (FullyConnected' i o) where
+  (FullyConnected' i1 o1) / (FullyConnected' i2 o2) = FullyConnected' (i1/i2) (o1/o2)
+  fromRational v = FullyConnected' (fromRational v) (fromRational v)
+
 instance (KnownNat i, KnownNat o) => Layer (FullyConnected i o) ('D1 i) ('D1 o) where
   type Tape (FullyConnected i o) ('D1 i) ('D1 o) = R i
   -- Do a matrix vector multiplication and return the result.
@@ -71,13 +85,20 @@ instance (KnownNat i, KnownNat o) => Serialize (FullyConnected i o) where
       let mm = konst 0
       return $ FullyConnected (FullyConnected' b k) (FullyConnected' bm mm)
 
+instance (KnownNat i, KnownNat o) => Num (FullyConnected i o) where
+  (FullyConnected (FullyConnected' b1 a1) (FullyConnected' bm1 m1)) +
+    (FullyConnected (FullyConnected' b2 a2) (FullyConnected' bm2 m2)) =
+    FullyConnected (FullyConnected' (b1+b2) (a1+a2)) (FullyConnected' (bm1+bm2) (m1+m2))
+
+
 randomFullyConnected :: (MonadRandom m, KnownNat i, KnownNat o)
                      => m (FullyConnected i o)
 randomFullyConnected = do
     s1    <- getRandom
     s2    <- getRandom
-    let wB = randomVector  s1 Uniform * 2 - 1
-        wN = uniformSample s2 (-1) 1
+    let wB = 1/5000 * randomVector  s1 Uniform * 2 - 1
+        wN = 1/5000 * uniformSample s2 (-1) 1
         bm = konst 0
         mm = konst 0
     return $ FullyConnected (FullyConnected' wB wN) (FullyConnected' bm mm)
+

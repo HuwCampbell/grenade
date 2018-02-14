@@ -1,14 +1,14 @@
-{-# LANGUAGE CPP                   #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE KindSignatures        #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE StandaloneDeriving    #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE CPP                  #-}
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE GADTs                #-}
+{-# LANGUAGE NoStarIsType         #-}
+{-# LANGUAGE RankNTypes           #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE StandaloneDeriving   #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE TypeOperators        #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-|
 Module      : Grenade.Core.Shape
 Description : Dependently typed shapes of data which are passed between layers of a network
@@ -31,28 +31,28 @@ module Grenade.Core.Shape (
   , fromStorable
   ) where
 
-import           Control.DeepSeq (NFData (..))
-import           Control.Monad.Random ( MonadRandom, getRandom )
+import           Control.DeepSeq              (NFData (..))
+import           Control.Monad.Random         (MonadRandom, getRandom)
 
 #if MIN_VERSION_base(4,13,0)
-import           Data.Kind (Type)
+import           Data.Kind                    (Type)
 #endif
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.TypeLits
-import           Data.Vector.Storable ( Vector )
-import qualified Data.Vector.Storable as V
+import           Data.Vector.Storable         (Vector)
+import qualified Data.Vector.Storable         as V
 
 #if MIN_VERSION_base(4,11,0)
-import           GHC.TypeLits hiding (natVal)
+import           GHC.TypeLits                 hiding (natVal)
 #else
 import           GHC.TypeLits
 #endif
 
-import qualified Numeric.LinearAlgebra.Static as H
+import qualified Numeric.LinearAlgebra        as NLA
 import           Numeric.LinearAlgebra.Static
-import qualified Numeric.LinearAlgebra as NLA
+import qualified Numeric.LinearAlgebra.Static as H
 
 -- | The current shapes we accept.
 --   at the moment this is just one, two, and three dimensional
@@ -164,7 +164,7 @@ randomOfShape = do
   seed :: Int <- getRandom
   return $ case (sing :: Sing x) of
     D1Sing SNat ->
-        S1D (randomVector  seed Uniform * 2 - 1)
+        S1D (randomVector seed Uniform * 2 - 1)
 
     D2Sing SNat SNat ->
         S2D (uniformSample seed (-1) 1)

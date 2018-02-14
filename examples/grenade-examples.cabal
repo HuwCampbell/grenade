@@ -1,108 +1,156 @@
-name:                  grenade-examples
-version:               0.0.1
-license:               BSD2
-license-file:          LICENSE
-author:                Huw Campbell <huw.campbell@gmail.com>
-maintainer:            Huw Campbell <huw.campbell@gmail.com>
-copyright:             (c) 2016-2017 Huw Campbell.
-synopsis:              grenade-examples
-category:              System
-cabal-version:         >= 1.8
-build-type:            Simple
-description:           grenade-examples
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 3c02b8dc84cb2ed0c0802d81748819c3c227cc8c2fbeb23a69f5b3efa8c1dcc1
+
+name:           grenade-examples
+version:        0.0.1.0
+synopsis:       grenade-examples
+description:    greande-examples, see https://github.com/HuwCampbell/grenade.git
+category:       AI, Machine Learning
+homepage:       https://github.com/github.com/HuwCampbell#readme
+bug-reports:    https://github.com/github.com/HuwCampbell/issues
+author:         Huw Campbell <huw.campbell@gmail.com>, Manuel Schneckenreither <manuel.schnecki@gmail.com>
+maintainer:     Huw Campbell <huw.campbell@gmail.com>
+copyright:      (c) 2016-2020 Huw Campbell.
+license:        BSD2
+license-file:   LICENSE
+build-type:     Simple
 
 source-repository head
   type: git
-  location: https://github.com/HuwCampbell/grenade.git
+  location: https://github.com/github.com/HuwCampbell
+  subdir: grenade.git
 
-library
+flag debug
+  description: Turn on debug settings.
+  manual: False
+  default: False
 
-executable             feedforward
-    ghc-options:       -Wall -threaded -O2
-    main-is:           main/feedforward.hs
-    build-depends:     base
-                     , grenade
-                     , attoparsec
-                     , bytestring
-                     , cereal
-                     , either
-                     , optparse-applicative            >= 0.13       && < 0.16
-                     , text                            == 1.2.*
-                     , mtl                             >= 2.2.1      && < 2.3
-                     , hmatrix
-                     , transformers
-                     , singletons
-                     , semigroups
-                     , MonadRandom
+flag fast
+  description: Disables optimizations
+  manual: True
+  default: False
 
-executable             mnist
-    ghc-options:       -Wall -threaded -O2
-    main-is:           main/mnist.hs
-    build-depends:     base
-                     , grenade
-                     , attoparsec
-                     , either
-                     , optparse-applicative            >= 0.13       && < 0.16
-                     , text                            == 1.2.*
-                     , mtl                             >= 2.2.1      && < 2.3
-                     , hmatrix                         >= 0.18       && < 0.21
-                     , transformers
-                     , semigroups
-                     , singletons
-                     , MonadRandom
-                     , vector
+executable feedforward
+  main-is: main/feedforward.hs
+  other-modules:
+      Paths_grenade_examples
+  ghc-options: -Wall -threaded -O2
+  build-depends:
+      MonadRandom
+    , attoparsec
+    , base
+    , bytestring
+    , cereal
+    , containers
+    , either
+    , grenade
+    , hmatrix >=0.18 && <0.21
+    , mtl >=2.2.1 && <2.3
+    , optparse-applicative >=0.13 && <0.16
+    , semigroups
+    , singletons
+    , text ==1.2.*
+    , transformers
+    , vector
+  default-language: Haskell2010
 
-executable             gan-mnist
-    ghc-options:       -Wall -threaded -O2
-    main-is:           main/gan-mnist.hs
-    build-depends:     base
-                     , grenade
-                     , attoparsec
-                     , bytestring
-                     , cereal
-                     , either
-                     , optparse-applicative            >= 0.13       && < 0.16
-                     , text                            == 1.2.*
-                     , mtl                             >= 2.2.1      && < 2.3
-                     , hmatrix                         >= 0.18       && < 0.21
-                     , transformers
-                     , semigroups
-                     , singletons
-                     , MonadRandom
-                     , vector
+executable gan-mnist
+  main-is: main/gan-mnist.hs
+  other-modules:
+      Paths_grenade_examples
+  ghc-options: -Wall -threaded -O2
+  build-depends:
+      MonadRandom
+    , attoparsec
+    , base
+    , bytestring
+    , cereal
+    , containers
+    , either
+    , grenade
+    , hmatrix >=0.18 && <0.21
+    , mtl >=2.2.1 && <2.3
+    , optparse-applicative >=0.13 && <0.16
+    , semigroups
+    , singletons
+    , text ==1.2.*
+    , transformers
+    , vector
+  default-language: Haskell2010
 
-executable             recurrent
-    ghc-options:       -Wall -threaded -O2
-    main-is:           main/recurrent.hs
-    build-depends:     base
-                     , grenade
-                     , attoparsec
-                     , either
-                     , optparse-applicative            >= 0.13       && < 0.16
-                     , text                            == 1.2.*
-                     , mtl                             >= 2.2.1      && < 2.3
-                     , hmatrix                         >= 0.18       && < 0.21
-                     , transformers
-                     , semigroups
-                     , singletons
-                     , MonadRandom
+executable mnist
+  main-is: main/mnist.hs
+  other-modules:
+      Paths_grenade_examples
+  ghc-options: -Wall -threaded -O2
+  build-depends:
+      MonadRandom
+    , attoparsec
+    , base
+    , bytestring
+    , cereal
+    , containers
+    , either
+    , grenade
+    , hmatrix >=0.18 && <0.21
+    , mtl >=2.2.1 && <2.3
+    , optparse-applicative >=0.13 && <0.16
+    , semigroups
+    , singletons
+    , text ==1.2.*
+    , transformers
+    , vector
+  default-language: Haskell2010
 
-executable             shakespeare
-    ghc-options:       -Wall -threaded -O2
-    main-is:           main/shakespeare.hs
-    build-depends:     base
-                     , grenade
-                     , attoparsec
-                     , bytestring
-                     , cereal
-                     , either
-                     , optparse-applicative            >= 0.13       && < 0.16
-                     , text                            == 1.2.*
-                     , mtl                             >= 2.2.1      && < 2.3
-                     , hmatrix                         >= 0.18       && < 0.21
-                     , transformers
-                     , semigroups
-                     , singletons
-                     , vector
-                     , MonadRandom
-                     , containers
+executable recurrent
+  main-is: main/recurrent.hs
+  other-modules:
+      Paths_grenade_examples
+  ghc-options: -Wall -threaded -O2
+  build-depends:
+      MonadRandom
+    , attoparsec
+    , base
+    , bytestring
+    , cereal
+    , containers
+    , either
+    , grenade
+    , hmatrix >=0.18 && <0.21
+    , mtl >=2.2.1 && <2.3
+    , optparse-applicative >=0.13 && <0.16
+    , semigroups
+    , singletons
+    , text ==1.2.*
+    , transformers
+    , vector
+  default-language: Haskell2010
+
+executable shakespeare
+  main-is: main/shakespeare.hs
+  other-modules:
+      Paths_grenade_examples
+  ghc-options: -Wall -threaded -O2
+  build-depends:
+      MonadRandom
+    , attoparsec
+    , base
+    , bytestring
+    , cereal
+    , containers
+    , either
+    , grenade
+    , hmatrix >=0.18 && <0.21
+    , mtl >=2.2.1 && <2.3
+    , optparse-applicative >=0.13 && <0.16
+    , semigroups
+    , singletons
+    , text ==1.2.*
+    , transformers
+    , vector
+  default-language: Haskell2010

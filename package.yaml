@@ -1,0 +1,130 @@
+name:                grenade
+version:             0.1.0
+github:              "github.com/HuwCampbell/grenade.git"
+license:             BSD2
+author:              "Huw Campbell <huw.campbell@gmail.com>, Manuel Schneckenreither <manuel.schnecki@gmail.com>"
+maintainer:          "Huw Campbell <huw.campbell@gmail.com>"
+copyright:           "(c) 2016-2020 Huw Campbell."
+
+extra-source-files:
+- README.md
+- cbits/im2col.h
+- cbits/im2col.c
+- cbits/gradient_descent.h
+- cbits/gradient_descent.c
+- cbits/pad.h
+- cbits/pad.c
+
+# Metadata used when publishing your package
+synopsis:            Practical Deep Learning in Haskell
+category:            AI, Machine Learning
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:
+  "Grenade is a composable, dependently typed, practical, and fast
+  recurrent neural network library for precise specifications and
+  complex deep neural networks in Haskell.
+
+  Grenade provides an API for composing layers of a neural network
+  into a sequence parallel graph in a type safe manner; running
+  networks with reverse automatic differentiation to calculate their
+  gradients; and applying gradient descent for learning.
+
+  Documentation and examples are available on github
+  <https://github.com/HuwCampbell/grenade>."
+
+flags:
+  fast:
+    description: Disables optimizations
+    manual: true
+    default: false
+  debug:
+    description: Turn on debug settings.
+    manual: false
+    default: false
+
+dependencies:
+ - base                            >= 4.8         && < 5
+ - bytestring                      == 0.10.*
+ - containers                      >= 0.5         && < 0.7
+ - cereal                          >= 0.5         && < 0.6
+ - deepseq                         >= 1.4         && < 1.5
+ - hmatrix                         >= 0.18        && < 0.21
+ - MonadRandom                     >= 0.4         && < 0.6
+ - primitive                       >= 0.6         && < 0.8
+ # Versions of singletons are *tightly* coupled with the
+ # GHC version so its fine to drop version bounds.
+ - singletons
+ - vector                          >= 0.11        && < 0.13
+ - base >= 4.7 && < 5
+
+library:
+  source-dirs:
+    - src
+  ghc-options:
+    -Wall
+    -Wcompat
+    -Wincomplete-record-updates
+    -Wincomplete-uni-patterns
+    -Wredundant-constraints
+    -fwarn-tabs
+  when:
+    - condition: impl(ghc < 8.0)
+      ghc-options:       -fno-warn-incomplete-patterns
+      cpp-options:       -DType=*
+
+    - condition: impl(ghc >= 8.6)
+      default-extensions: NoStarIsType
+
+    - condition: (flag(debug)) || (flag(fast))
+      then:
+        ghc-options: -O0 # -fprof-auto
+        cpp-options: -DDEBUG
+      else:
+        ghc-options: -O2
+  c-sources:
+    - cbits/im2col.c
+    - cbits/gradient_descent.c
+    - cbits/pad.c
+  cc-options:
+    - -std=c99 -O3 -msse4.2 -Wall -Werror -DCABAL=1
+
+tests:
+  test:
+    main:                test.hs
+    source-dirs:         test
+    ghc-options:         -Wall -threaded -O2
+    when:
+      - condition: impl(ghc < 8.0)
+        ghc-options:       -fno-warn-incomplete-patterns
+        cpp-options:       -DType=*
+
+      - condition: impl(ghc >= 8.6)
+        default-extensions: NoStarIsType
+    dependencies:
+    - grenade
+    - ad
+    - reflection
+    - hedgehog
+    - constraints
+    - typelits-witnesses
+
+benchmarks:
+  bench:
+    main:                bench.hs
+    ghc-options:         -Wall -threaded -O2
+    source-dirs:         bench
+    dependencies:
+      - grenade
+      - criterion                       >= 1.1        && < 1.6
+
+  bench-lstm:
+    main:                bench-lstm.hs
+    ghc-options:         -Wall -threaded -O2
+    source-dirs:         bench
+    dependencies:
+      - grenade
+      - criterion                       >= 1.1        && < 1.6
+

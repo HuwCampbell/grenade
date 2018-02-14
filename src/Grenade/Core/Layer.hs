@@ -1,12 +1,13 @@
 {-# LANGUAGE CPP                   #-}
+{-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-|
 Module      : Grenade.Core.Layer
 Description : Defines the Layer Classes
@@ -38,16 +39,17 @@ module Grenade.Core.Layer (
   , UpdateLayer (..)
   ) where
 
-import           Control.Monad.Random ( MonadRandom )
+import           Control.Monad.Random            (MonadRandom)
 
-import           Data.List ( foldl' )
+import           Data.List                       (foldl')
 
 #if MIN_VERSION_base(4,9,0)
-import           Data.Kind (Type)
+import           Data.Kind                       (Type)
 #endif
 
-import           Grenade.Core.Shape
 import           Grenade.Core.LearningParameters
+import           Grenade.Core.Shape
+import           Grenade.Core.Shape
 
 -- | Class for updating a layer. All layers implement this, as it
 --   describes how to create and update the layer.
@@ -68,6 +70,7 @@ class UpdateLayer x where
   runUpdates rate = foldl' (runUpdate rate)
 
   {-# MINIMAL runUpdate, createRandom #-}
+
 
 -- | Class for a layer. All layers implement this, however, they don't
 --   need to implement it for all shapes, only ones which are
@@ -90,3 +93,5 @@ class UpdateLayer x => Layer x (i :: Shape) (o :: Shape) where
   --   Returns the gradient layer and the derivatives to push back
   --   further.
   runBackwards   :: x -> Tape x i o -> S o -> (Gradient x, S i)
+
+

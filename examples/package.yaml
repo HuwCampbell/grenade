@@ -1,0 +1,66 @@
+name:                grenade-examples
+version:             0.0.1.0
+github:              "github.com/HuwCampbell/grenade.git"
+license:             BSD2
+author:              "Huw Campbell <huw.campbell@gmail.com>, Manuel Schneckenreither <manuel.schnecki@gmail.com>"
+maintainer:          "Huw Campbell <huw.campbell@gmail.com>"
+copyright:           "(c) 2016-2020 Huw Campbell."
+
+# Metadata used when publishing your package
+synopsis:            grenade-examples
+category:            AI, Machine Learning
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:          "greande-examples, see https://github.com/HuwCampbell/grenade.git"
+
+flags:
+  fast:
+    description: Disables optimizations
+    manual: true
+    default: false
+  debug:
+    description: Turn on debug settings.
+    manual: false
+    default: false
+
+dependencies:
+  - grenade
+  - base
+  - grenade
+  - attoparsec
+  - bytestring
+  - cereal
+  - either
+  - optparse-applicative            >= 0.13       && < 0.16
+  - text                            == 1.2.*
+  - mtl                             >= 2.2.1      && < 2.3
+  - hmatrix                         >= 0.18       && < 0.21
+  - transformers
+  - semigroups
+  - singletons
+  - vector
+  - MonadRandom
+  - containers
+
+executables:
+  feedforward:
+    ghc-options:       -Wall -threaded -O2
+    main:              main/feedforward.hs
+
+  mnist:
+    ghc-options:       -Wall -threaded -O2
+    main:              main/mnist.hs
+
+  gan-mnist:
+    ghc-options:       -Wall -threaded -O2
+    main:              main/gan-mnist.hs
+
+  recurrent:
+    ghc-options:       -Wall -threaded -O2
+    main:              main/recurrent.hs
+
+  shakespeare:
+    ghc-options:       -Wall -threaded -O2
+    main:             main/shakespeare.hs

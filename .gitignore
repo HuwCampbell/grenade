@@ -4,3 +4,5 @@ cabal.sandbox.config
 dist/
 dist-newstyle/
 .stack-work/
+/.dir-locals.el
+/TAGS
