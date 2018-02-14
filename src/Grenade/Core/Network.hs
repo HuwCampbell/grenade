@@ -23,6 +23,7 @@ module Grenade.Core.Network (
     Network (..)
   , Gradients (..)
   , Tapes (..)
+  , NMult (..)
 
   , runNetwork
   , runGradient
@@ -64,17 +65,32 @@ instance Show (Network '[] '[i]) where
 instance (Show x, Show (Network xs rs)) => Show (Network (x ': xs) (i ': rs)) where
   show (x :~> xs) = show x ++ "\n~>\n" ++ show xs
 
--- instance (Num x, Num (Network xs rs)) => Num (Network (x ': xs) (i ': rs)) where
---   (x :~> xs) + (y :~> ys) = (x+y) :~> (xs + ys)
---   (x :~> xs) - (y :~> ys) = (x-y) :~> (xs - ys)
---   (x :~> xs) * (y :~> ys) = (x*y) :~> (xs * ys)
---   abs (x :~> xs) = abs x :~> abs xs
---   signum (x :~> xs) = signum x :~> signum xs
---   fromInteger _ = error "no fromInteger instance for Network"
 
--- instance (Fractional x, Fractional (Network xs rs), Num x, Num (Network xs rs)) => Fractional (Network (x ': xs) (i ': rs)) where
---   (x :~> xs) / (y :~> ys) = (x/y) :~> (xs / ys)
---   fromRational _ = error "fromRational for Network not implemented"
+instance (SingI i) => Num (Network '[] '[i]) where
+  NNil + NNil = NNil
+  NNil * NNil = NNil
+  NNil - NNil = NNil
+  abs NNil = NNil
+  signum NNil = NNil
+  fromInteger _ = NNil
+
+
+instance (Num x, Num (Network xs rs)) => Num (Network (x ': xs) (i ': rs)) where
+  (x :~> xs) + (y :~> ys) = (x+y) :~> (xs + ys)
+  (x :~> xs) - (y :~> ys) = (x-y) :~> (xs - ys)
+  (x :~> xs) * (y :~> ys) = (x*y) :~> (xs * ys)
+  abs (x :~> xs) = abs x :~> abs xs
+  signum (x :~> xs) = signum x :~> signum xs
+  fromInteger _ = error "no fromInteger instance for Network"
+
+instance (SingI i) => Fractional (Network '[] '[i]) where
+  NNil / NNil = NNil
+  fromRational _ = NNil
+
+
+instance (Fractional x, Fractional (Network xs rs), Num x, Num (Network xs rs)) => Fractional (Network (x ': xs) (i ': rs)) where
+  (x :~> xs) / (y :~> ys) = (x/y) :~> (xs / ys)
+  fromRational _ = error "fromRational for Network not implemented"
 
 
 -- | Gradient of a network.
@@ -242,3 +258,20 @@ instance (CreatableNetwork sublayers subshapes, i ~ (Head subshapes), o ~ (Last 
   type Tape (Network sublayers subshapes) i o = Tapes sublayers subshapes
   runForwards  = runNetwork
   runBackwards = runGradient
+
+
+-- | Scalar Multiplication.
+--
+-- This allows scalar multiplication of the weights. Use useful for slowly adapting
+-- networks, e.g. NN' <- \tau * NN + (1-\tau) * NN'.
+
+class NMult a where
+  (|*) :: Rational -> a -> a
+
+infixl 7 |*
+
+instance NMult (Network '[] '[i]) where
+  _ |* NNil = NNil
+
+instance (NMult x, NMult (Network xs (o ': rs))) => NMult (Network (x ': xs) (i ': o ': rs)) where
+  s |* (x :~> xs) = (s |* x) :~> (s |* xs)

@@ -40,3 +40,21 @@ instance (a ~ b, SingI a) => Layer Tanh a b where
 
 tanh' :: (Floating a) => a -> a
 tanh' t = 1 - s ^ (2 :: Int)  where s = tanh t
+
+-------------------- Num and Fractional instances --------------------
+
+instance Num Tanh where
+  _ + _ = Tanh
+  _ - _ = Tanh
+  _ * _ = Tanh
+  abs _ = Tanh
+  signum _ = Tanh
+  fromInteger _ = Tanh
+
+instance Fractional Tanh where
+  _ / _ = Tanh
+  fromRational _ = Tanh
+
+instance NMult Tanh where
+  _ |* Tanh = Tanh
+

@@ -37,3 +37,22 @@ instance (a ~ b, SingI a) => Layer Sinusoid a b where
   type Tape Sinusoid a b = S a
   runForwards _ a = (a, sin a)
   runBackwards _ a g = ((), cos a * g)
+
+
+-------------------- Num and Fractional instances --------------------
+
+instance Num Sinusoid where
+  _ + _ = Sinusoid
+  _ - _ = Sinusoid
+  _ * _ = Sinusoid
+  abs _ = Sinusoid
+  signum _ = Sinusoid
+  fromInteger _ = Sinusoid
+
+instance Fractional Sinusoid where
+  _ / _ = Sinusoid
+  fromRational _ = Sinusoid
+
+instance NMult Sinusoid where
+  _ |* Sinusoid = Sinusoid
+

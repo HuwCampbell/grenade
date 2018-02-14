@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-|
 Module      : Grenade.Layers.Logit
 Description : Exponential linear unit layer
@@ -65,3 +65,22 @@ instance (KnownNat i, KnownNat j, KnownNat k) => Layer Elu ('D3 i j k) ('D3 i j 
   runBackwards _ (S3D y) (S3D dEdy) = ((), S3D (elu' y * dEdy))
     where
       elu' = LAS.dmmap (\a -> if a <= 0 then exp a else 1)
+
+
+-------------------- Num and Fractional instances --------------------
+
+instance Num Elu where
+  _ + _ = Elu
+  _ - _ = Elu
+  _ * _ = Elu
+  abs _ = Elu
+  signum _ = Elu
+  fromInteger _ = Elu
+
+instance Fractional Elu where
+  _ / _ = Elu
+  fromRational _ = Elu
+
+instance NMult Elu where
+  _ |* Elu = Elu
+
