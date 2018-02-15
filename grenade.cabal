@@ -47,6 +47,7 @@ flag fast
 
 library
   exposed-modules:
+<<<<<<< HEAD
       Grenade
       Grenade.Core
       Grenade.Core.Layer
@@ -89,6 +90,72 @@ library
       Grenade.Utils.OneHot
   other-modules:
       Paths_grenade
+=======
+                       Grenade
+                       Grenade.Core
+                       Grenade.Core.Layer
+                       Grenade.Core.LearningParameters
+                       Grenade.Core.Network
+                       Grenade.Core.Runner
+                       Grenade.Core.Shape
+
+                       Grenade.Layers
+                       Grenade.Layers.BatchNorm
+                       Grenade.Layers.Concat
+                       Grenade.Layers.Convolution
+                       Grenade.Layers.Crop
+                       Grenade.Layers.Deconvolution
+                       Grenade.Layers.Dropout
+                       Grenade.Layers.Elu
+                       Grenade.Layers.FullyConnected
+                       Grenade.Layers.Inception
+                       Grenade.Layers.Logit
+                       Grenade.Layers.Merge
+                       Grenade.Layers.Pad
+                       Grenade.Layers.Pooling
+                       Grenade.Layers.Relu
+                       Grenade.Layers.Reshape
+                       Grenade.Layers.Sinusoid
+                       Grenade.Layers.Softmax
+                       Grenade.Layers.Tanh
+                       Grenade.Layers.Trivial
+
+                       Grenade.Layers.Internal.Convolution
+                       Grenade.Layers.Internal.Pad
+                       Grenade.Layers.Internal.Pooling
+                       Grenade.Layers.Internal.Update
+
+                       Grenade.Recurrent
+
+                       Grenade.Recurrent.Core
+                       Grenade.Recurrent.Core.Layer
+                       Grenade.Recurrent.Core.Network
+                       Grenade.Recurrent.Core.Runner
+
+                       Grenade.Recurrent.Layers
+                       Grenade.Recurrent.Layers.BasicRecurrent
+                       Grenade.Recurrent.Layers.ConcatRecurrent
+                       Grenade.Recurrent.Layers.LSTM
+
+                       Grenade.Utils.OneHot
+
+  includes:            cbits/im2col.h
+                       cbits/gradient_descent.h
+                       cbits/pad.h
+  c-sources:           cbits/im2col.c
+                       cbits/gradient_descent.c
+                       cbits/pad.c
+
+  cc-options:          -std=c99 -O3 -msse4.2 -Wall -Werror -DCABAL=1
+
+test-suite test
+  type:                exitcode-stdio-1.0
+
+  main-is:             test.hs
+
+  ghc-options:         -Wall -threaded -O2
+
+>>>>>>> started BatchNorm layer
   hs-source-dirs:
       src
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -fwarn-tabs
