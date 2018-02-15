@@ -13,6 +13,7 @@ module Grenade.Layers (
   , module Grenade.Layers.Reshape
   , module Grenade.Layers.Relu
   , module Grenade.Layers.Softmax
+  , module Grenade.Layers.Sinusoid
   , module Grenade.Layers.Tanh
   , module Grenade.Layers.Trivial
   ) where
@@ -22,14 +23,15 @@ import           Grenade.Layers.Convolution
 import           Grenade.Layers.Crop
 import           Grenade.Layers.Deconvolution
 import           Grenade.Layers.Elu
-import           Grenade.Layers.Pad
 import           Grenade.Layers.FullyConnected
 import           Grenade.Layers.Inception
 import           Grenade.Layers.Logit
 import           Grenade.Layers.Merge
+import           Grenade.Layers.Pad
 import           Grenade.Layers.Pooling
-import           Grenade.Layers.Reshape
 import           Grenade.Layers.Relu
+import           Grenade.Layers.Reshape
+import           Grenade.Layers.Sinusoid
 import           Grenade.Layers.Softmax
 import           Grenade.Layers.Tanh
 import           Grenade.Layers.Trivial
