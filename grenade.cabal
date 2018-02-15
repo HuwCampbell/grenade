@@ -67,6 +67,7 @@ library
                        Grenade.Core.Shape
 
                        Grenade.Layers
+                       Grenade.Layers.BatchNorm
                        Grenade.Layers.Concat
                        Grenade.Layers.Convolution
                        Grenade.Layers.Crop

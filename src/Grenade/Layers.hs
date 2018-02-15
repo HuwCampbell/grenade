@@ -1,5 +1,6 @@
 module Grenade.Layers (
-    module Grenade.Layers.Concat
+    module Grenade.Layers.BatchNorm
+  , module Grenade.Layers.Concat
   , module Grenade.Layers.Convolution
   , module Grenade.Layers.Crop
   , module Grenade.Layers.Deconvolution
@@ -18,6 +19,7 @@ module Grenade.Layers (
   , module Grenade.Layers.Trivial
   ) where
 
+import           Grenade.Layers.BatchNorm
 import           Grenade.Layers.Concat
 import           Grenade.Layers.Convolution
 import           Grenade.Layers.Crop

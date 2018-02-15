@@ -1,16 +1,16 @@
-{-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TupleSections         #-}
-{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections       #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeOperators       #-}
 import           Control.Monad
 import           Control.Monad.Random
-import           Data.List ( foldl' )
+import           Data.List                    (foldl')
 
-import qualified Data.ByteString as B
+import qualified Data.ByteString              as B
+import           Data.Semigroup               ((<>))
 import           Data.Serialize
-import           Data.Semigroup ( (<>) )
 
 import           GHC.TypeLits
 
@@ -27,8 +27,8 @@ import           Grenade
 -- units, which can be easily subsituted for each other in and out.
 --
 -- With around 100000 examples, this should show two clear circles which have been learned by the network.
-type FFNet = Network '[ FullyConnected 2 40, Tanh, FullyConnected 40 10, Relu, FullyConnected 10 1, Logit ]
-                     '[ 'D1 2, 'D1 40, 'D1 40, 'D1 10, 'D1 10, 'D1 1, 'D1 1]
+type FFNet = Network '[ FullyConnected 2 40, BatchNorm 40, Tanh, FullyConnected 40 10, Relu, FullyConnected 10 1, Logit ]
+                     '[ 'D1 2, 'D1 40, 'D1 40, 'D1 40, 'D1 10, 'D1 10, 'D1 1, 'D1 1]
 
 randomNet :: MonadRandom m => m FFNet
 randomNet = randomNetwork
@@ -91,11 +91,11 @@ main = do
     FeedForwardOpts examples rate load save <- execParser (info (feedForward' <**> helper) idm)
     net0 <- case load of
       Just loadFile -> netLoad loadFile
-      Nothing -> randomNet
+      Nothing       -> randomNet
 
     net <- netTrain net0 rate examples
     netScore net
 
     case save of
       Just saveFile -> B.writeFile saveFile $ runPut (put net)
-      Nothing -> return ()
+      Nothing       -> return ()
