@@ -79,8 +79,8 @@ randomFullyConnected :: (MonadRandom m, KnownNat i, KnownNat o)
 randomFullyConnected = do
     s1    <- getRandom
     s2    <- getRandom
-    let wB = 1/5000 * randomVector  s1 Uniform * 2 - 1
-        wN = 1/5000 * uniformSample s2 (-1) 1
+    let wB = 1/50000 * randomVector  s1 Uniform * 2 - 1
+        wN = 1/50000 * uniformSample s2 (-1) 1
         bm = konst 0
         mm = konst 0
     return $ FullyConnected (FullyConnected' wB wN) (FullyConnected' bm mm)
@@ -117,9 +117,19 @@ instance (KnownNat i, KnownNat o) => Num (FullyConnected' i o) where
   FullyConnected' i1 o1 - FullyConnected' i2 o2 = FullyConnected' (i1-i2) (o1-o2)
   abs (FullyConnected' i1 o1) = FullyConnected' (abs i1) (abs o1)
   signum (FullyConnected' i1 o1) = FullyConnected' (signum i1) (signum o1)
-  fromInteger v = FullyConnected' (fromInteger v) 0
+  fromInteger v = error "fromInteger instance of Gradient must not be used (e.g. instead of sum use foldl1)"
 
 instance (KnownNat i, KnownNat o) => Fractional (FullyConnected' i o) where
   FullyConnected' i1 o1 / FullyConnected' i2 o2 = FullyConnected' (i1/i2) (o1/o2)
   fromRational v = FullyConnected' (fromRational v) 0
 
+
+-- v :: (KnownNat x, x~4) => R x
+-- v = fromRational nr
+--   where nr = fromRational $ toRational (0.001 :: Double)
+
+
+-- m :: (KnownNat x, KnownNat y, x~4, y~2) => L x y
+-- m = matrix [1..8]
+
+-- m2 = fromRational (toRational (2.0 :: Double)) * m

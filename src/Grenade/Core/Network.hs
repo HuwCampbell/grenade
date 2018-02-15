@@ -118,7 +118,8 @@ instance (UpdateLayer x, Num (Gradient x), Num (Gradients xs)) => Num (Gradients
   (x :/> xs) - (y :/> ys) = (x-y) :/> (xs-ys)
   abs (x :/> xs) = abs x :/> abs xs
   signum (x :/> xs) = signum x :/> signum xs
-  fromInteger v = fromInteger v :/> fromInteger v
+  fromInteger _ = error "fromInteger of Gradients must not be used, e.g. use `foldl1` instead of `sum`"
+-- fromInteger v :/> fromInteger v
 
 -- these instances are needed but will normally not be evaluated
 instance Num () where
@@ -140,7 +141,8 @@ instance Fractional (Gradients '[]) where
 instance (UpdateLayer x, Fractional (Gradient x), Fractional (Gradients xs)) => Fractional (Gradients (x ': xs)) where
   (x :/> GNil) / (y :/> GNil) = (x / y) :/> GNil
   (x :/> xs) / (y :/> ys) = (x / y) :/> (xs / ys)
-  fromRational v = fromRational v :/> fromRational v
+  fromRational v = error "fromRational of Gradients not supported. Use |* from NMult for scalar multiplication "
+      -- fromRational v :/> fromRational v
 
 -- | Wegnert Tape of a network.
 --
@@ -275,3 +277,11 @@ instance NMult (Network '[] '[i]) where
 
 instance (NMult x, NMult (Network xs (o ': rs))) => NMult (Network (x ': xs) (i ': o ': rs)) where
   s |* (x :~> xs) = (s |* x) :~> (s |* xs)
+
+instance NMult (Gradients '[]) where
+  _ |* GNil = GNil
+instance (NMult (Gradient x), NMult (Gradients xs)) => NMult (Gradients (x ': xs)) where
+  s |* (x :/> xs) = (s |* x) :/> (s |* xs)
+
+instance NMult () where
+  _ |* () = ()
