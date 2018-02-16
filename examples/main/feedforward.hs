@@ -27,7 +27,7 @@ import           Grenade
 -- units, which can be easily subsituted for each other in and out.
 --
 -- With around 100000 examples, this should show two clear circles which have been learned by the network.
-type FFNet = Network '[ FullyConnected 2 40, BatchNorm 40, Tanh, FullyConnected 40 10, Relu, FullyConnected 10 1, Logit ]
+type FFNet = Network '[ FullyConnected 2 40, Tanh, BatchNorm 40, FullyConnected 40 10, Relu, FullyConnected 10 1, Logit ]
                      '[ 'D1 2, 'D1 40, 'D1 40, 'D1 40, 'D1 10, 'D1 10, 'D1 1, 'D1 1]
 
 randomNet :: MonadRandom m => m FFNet
