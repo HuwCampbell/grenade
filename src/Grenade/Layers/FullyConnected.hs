@@ -80,7 +80,7 @@ randomFullyConnected = do
     s1    <- getRandom
     s2    <- getRandom
     let wB = randomVector  s1 Uniform * 2 - 1
-        wN = uniformSample s2 (-1) 1
+        wN = 1/5000 * uniformSample s2 (-1) 1
         bm = konst 0
         mm = konst 0
     return $ FullyConnected (FullyConnected' wB wN) (FullyConnected' bm mm)
