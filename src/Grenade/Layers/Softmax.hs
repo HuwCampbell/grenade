@@ -1,8 +1,8 @@
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-|
 Module      : Grenade.Core.Softmax
 Description : Softmax loss layer
@@ -62,3 +62,22 @@ softmax' x grad =
   in  g #> grad
     where
   sm = softmax x
+
+
+-------------------- Num and Fractional instances --------------------
+
+instance Num Softmax where
+  _ + _ = Softmax
+  _ - _ = Softmax
+  _ * _ = Softmax
+  abs _ = Softmax
+  signum _ = Softmax
+  fromInteger _ = Softmax
+
+instance Fractional Softmax where
+  _ / _ = Softmax
+  fromRational _ = Softmax
+
+instance NMult Softmax where
+  _ |* Softmax = Softmax
+
