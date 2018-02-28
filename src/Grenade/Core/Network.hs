@@ -123,8 +123,8 @@ instance (UpdateLayer x, Num (Gradient x), Num (Gradients xs)) => Num (Gradients
   (x :/> xs) - (y :/> ys) = (x-y) :/> (xs-ys)
   abs (x :/> xs) = abs x :/> abs xs
   signum (x :/> xs) = signum x :/> signum xs
-  fromInteger _ = error "fromInteger of Gradients must not be used, e.g. use `foldl1` instead of `sum`"
--- fromInteger v :/> fromInteger v
+  fromInteger v = -- error "fromInteger of Gradients must not be used, e.g. use `foldl1` instead of `sum`"
+    fromInteger v :/> fromInteger v
 
 -- these instances are needed but will normally not be evaluated
 instance Num () where
