@@ -74,16 +74,17 @@ instance (KnownNat i, KnownNat o) => Serialize (FullyConnected i o) where
       let mm = konst 0
       return $ FullyConnected (FullyConnected' b k) (FullyConnected' bm mm)
 
-randomFullyConnected :: (MonadRandom m, KnownNat i, KnownNat o)
+randomFullyConnected :: forall m i o . (MonadRandom m, KnownNat i, KnownNat o)
                      => m (FullyConnected i o)
 randomFullyConnected = do
     s1    <- getRandom
     s2    <- getRandom
     let wB = randomVector  s1 Uniform * 2 - 1
-        wN = 1/5000 * uniformSample s2 (-1) 1
+        wN = sqrt (fromIntegral i) * uniformSample s2 (-1) 1
         bm = konst 0
         mm = konst 0
     return $ FullyConnected (FullyConnected' wB wN) (FullyConnected' bm mm)
+  where i = natVal (Proxy :: Proxy i)
 
 
 -------------------- Num,Fractional,NMult instances --------------------
