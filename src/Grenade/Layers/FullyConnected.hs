@@ -117,7 +117,7 @@ instance (KnownNat i, KnownNat o) => Num (FullyConnected' i o) where
   FullyConnected' i1 o1 - FullyConnected' i2 o2 = FullyConnected' (i1-i2) (o1-o2)
   abs (FullyConnected' i1 o1) = FullyConnected' (abs i1) (abs o1)
   signum (FullyConnected' i1 o1) = FullyConnected' (signum i1) (signum o1)
-  fromInteger v = error "fromInteger instance of Gradient must not be used (e.g. instead of sum use foldl1)"
+  fromInteger v = FullyConnected' (fromInteger v) 0
 
 instance (KnownNat i, KnownNat o) => Fractional (FullyConnected' i o) where
   FullyConnected' i1 o1 / FullyConnected' i2 o2 = FullyConnected' (i1/i2) (o1/o2)
