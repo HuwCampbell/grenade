@@ -87,39 +87,13 @@ randomFullyConnected = do
   where i = natVal (Proxy :: Proxy i)
 
 
--------------------- Num,Fractional,NMult instances --------------------
+-------------------- GNum instances --------------------
 
--- | Num and Fractional instance of Layer data type for calculating with networks
--- (for instance to slowly adapt the target network, e.g. as in arXiv: 1509.02971)
-instance (KnownNat i,KnownNat o) => Num (FullyConnected i o) where
-  FullyConnected i1 o1 + FullyConnected i2 o2 = FullyConnected (i1+i2) (o1+o2)
-  FullyConnected i1 o1 * FullyConnected i2 o2 = FullyConnected (i1*i2) (o1*o2)
-  FullyConnected i1 o1 - FullyConnected i2 o2 = FullyConnected (i1-i2) (o1-o2)
-  abs (FullyConnected i o) = FullyConnected (abs i) (abs o)
-  signum (FullyConnected i o) = FullyConnected (signum i) (signum o)
-  fromInteger v = FullyConnected (fromInteger v) 0
+instance (KnownNat i, KnownNat o) => GNum (FullyConnected i o) where
+  s |* FullyConnected i o = FullyConnected (s |* i) (s |* o)
+  FullyConnected i o |+ FullyConnected i2 o2 = FullyConnected (i |+ i2) (o |+ o2)
 
-instance (KnownNat i, KnownNat o) => Fractional (FullyConnected i o) where
-  FullyConnected i1 o1 / FullyConnected i2 o2 = FullyConnected (i1/i2) (o1/o2)
-  fromRational v = FullyConnected (fromRational v) 0
-
-
-instance (KnownNat i, KnownNat o) => NMult (FullyConnected i o) where
-  s |* FullyConnected i o = FullyConnected (s |* i) o
-
-instance (KnownNat i, KnownNat o) => NMult (FullyConnected' i o) where
+instance (KnownNat i, KnownNat o) => GNum (FullyConnected' i o) where
   s |* FullyConnected' i o = FullyConnected' (fromRational s * i) (fromRational s * o)
+  FullyConnected' i o |+ FullyConnected' i2 o2 = FullyConnected' (i + i2) (o + o2)
 
-
--- | Num and Fractional instance of gradient (for minibatches/batch upgrades)
-instance (KnownNat i, KnownNat o) => Num (FullyConnected' i o) where
-  FullyConnected' i1 o1 + FullyConnected' i2 o2 = FullyConnected' (i1+i2) (o1+o2)
-  FullyConnected' i1 o1 * FullyConnected' i2 o2 = FullyConnected' (i1*i2) (o1*o2)
-  FullyConnected' i1 o1 - FullyConnected' i2 o2 = FullyConnected' (i1-i2) (o1-o2)
-  abs (FullyConnected' i1 o1) = FullyConnected' (abs i1) (abs o1)
-  signum (FullyConnected' i1 o1) = FullyConnected' (signum i1) (signum o1)
-  fromInteger v = FullyConnected' (fromInteger v) 0
-
-instance (KnownNat i, KnownNat o) => Fractional (FullyConnected' i o) where
-  FullyConnected' i1 o1 / FullyConnected' i2 o2 = FullyConnected' (i1/i2) (o1/o2)
-  fromRational v = FullyConnected' (fromRational v) 0

@@ -47,15 +47,17 @@ instance (KnownNat i) => Layer (BatchNorm i) ('D1 i) ('D1 i) where
 
   -- Do a matrix vector multiplication and return the result.
   runForwards (BatchNorm _ mean _ var ga be _) (S1D v) =
+
     let -- xHat = (v-mean)* sqrt (stdDev+eps)
         y = ga*xHat+be
         xmu = v - mean
         stdDev = sqrt (var + eps)
         ivar = 1 / stdDev
         xHat = xmu * ivar
-    in ((v,xmu,stdDev,ivar,xHat)
-        --v
-       , S1D y)
+    in error "BatchNorm not yet implemented"
+       -- ((v,xmu,stdDev,ivar,xHat)
+       --  --v
+       -- , S1D y)
 
   -- Run a backpropogation step for a full connected layer.
   runBackwards (BatchNorm nr mean m2 var ga be divar) (v,xmu,stdDev,ivar,xHat) (S1D dEdy) =
@@ -144,7 +146,7 @@ instance (KnownNat i) => Serialize (BatchNorm i) where
       divar <- maybe (fail "Vector of incorrect size") return . create . LA.fromList =<< getListOf get
       return $ BatchNorm nr mean m2 var ga be divar
 
--------------------- Num,Fractional,NMult instances --------------------
+-------------------- Num,Fractional,GNum instances --------------------
 
 -- | Num and Fractional instance of Layer data type for calculating with networks
 -- (slowly adapt target network, e.g. as in arXiv: 1509.02971)
@@ -161,6 +163,6 @@ instance (KnownNat i) => Fractional (BatchNorm i) where
   fromRational _ = BatchNorm 0 0 0 0 1 0 0
 
 
-instance (KnownNat i) => NMult (BatchNorm i) where
+instance (KnownNat i) => GNum (BatchNorm i) where
   _ |* BatchNorm nr mean m2 var ga be divar = BatchNorm nr mean m2 var ga be divar
-
+  _ |+ _ = error "Batchnorm not yet implemented"

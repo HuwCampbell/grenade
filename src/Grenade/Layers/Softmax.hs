@@ -66,18 +66,8 @@ softmax' x grad =
 
 -------------------- Num and Fractional instances --------------------
 
-instance Num Softmax where
-  _ + _ = Softmax
-  _ - _ = Softmax
-  _ * _ = Softmax
-  abs _ = Softmax
-  signum _ = Softmax
-  fromInteger _ = Softmax
 
-instance Fractional Softmax where
-  _ / _ = Softmax
-  fromRational _ = Softmax
-
-instance NMult Softmax where
+instance GNum Softmax where
   _ |* Softmax = Softmax
+  _ |+ Softmax = Softmax
 
