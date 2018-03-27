@@ -21,15 +21,15 @@ for non-recurrent neural networks.
 
 module Grenade.Core.Network (
     Network (..)
+  , CreatableNetwork (..)
   , Gradients (..)
   , Tapes (..)
-  , NMult (..)
+  , GNum (..)
 
   , runNetwork
   , runGradient
   , applyUpdate
 
-  , randomNetwork
   ) where
 
 import           Control.Monad.Random            (MonadRandom)
@@ -66,31 +66,31 @@ instance (Show x, Show (Network xs rs)) => Show (Network (x ': xs) (i ': rs)) wh
   show (x :~> xs) = show x ++ "\n~>\n" ++ show xs
 
 
-instance (SingI i) => Num (Network '[] '[i]) where
-  NNil + NNil = NNil
-  NNil * NNil = NNil
-  NNil - NNil = NNil
-  abs NNil = NNil
-  signum NNil = NNil
-  fromInteger _ = NNil
+-- instance (SingI i) => Num (Network '[] '[i]) where
+--   NNil + NNil = NNil
+--   NNil * NNil = NNil
+--   NNil - NNil = NNil
+--   abs NNil = NNil
+--   signum NNil = NNil
+--   fromInteger _ = NNil
 
 
-instance (Num x, Num (Network xs rs)) => Num (Network (x ': xs) (i ': rs)) where
-  (x :~> xs) + (y :~> ys) = (x+y) :~> (xs + ys)
-  (x :~> xs) - (y :~> ys) = (x-y) :~> (xs - ys)
-  (x :~> xs) * (y :~> ys) = (x*y) :~> (xs * ys)
-  abs (x :~> xs) = abs x :~> abs xs
-  signum (x :~> xs) = signum x :~> signum xs
-  fromInteger _ = error "no fromInteger instance for Network"
+-- instance (Num x, Num (Network xs rs)) => Num (Network (x ': xs) (i ': rs)) where
+--   (x :~> xs) + (y :~> ys) = (x+y) :~> (xs + ys)
+--   (x :~> xs) - (y :~> ys) = (x-y) :~> (xs - ys)
+--   (x :~> xs) * (y :~> ys) = (x*y) :~> (xs * ys)
+--   abs (x :~> xs) = abs x :~> abs xs
+--   signum (x :~> xs) = signum x :~> signum xs
+--   fromInteger _ = error "no fromInteger instance for Network"
 
-instance (SingI i) => Fractional (Network '[] '[i]) where
-  NNil / NNil = NNil
-  fromRational _ = NNil
+-- instance (SingI i) => Fractional (Network '[] '[i]) where
+--   NNil / NNil = NNil
+--   fromRational _ = NNil
 
 
-instance (Fractional x, Fractional (Network xs rs), Num x, Num (Network xs rs)) => Fractional (Network (x ': xs) (i ': rs)) where
-  (x :~> xs) / (y :~> ys) = (x/y) :~> (xs / ys)
-  fromRational _ = error "fromRational for Network not implemented"
+-- instance (Fractional x, Fractional (Network xs rs), Num x, Num (Network xs rs)) => Fractional (Network (x ': xs) (i ': rs)) where
+--   (x :~> xs) / (y :~> ys) = (x/y) :~> (xs / ys)
+--   fromRational _ = error "fromRational for Network not implemented"
 
 
 -- | Gradient of a network.
@@ -104,45 +104,45 @@ data Gradients :: [*] -> * where
          -> Gradients xs
          -> Gradients (x ': xs)
 
-instance Num (Gradients '[]) where
-  GNil + GNil = GNil
-  GNil * GNil = GNil
-  GNil - GNil = GNil
-  abs GNil = GNil
-  signum GNil = GNil
-  fromInteger _ = GNil
+-- instance Num (Gradients '[]) where
+--   GNil + GNil = GNil
+--   GNil * GNil = GNil
+--   GNil - GNil = GNil
+--   abs GNil = GNil
+--   signum GNil = GNil
+--   fromInteger _ = GNil
 
-instance (UpdateLayer x, Num (Gradient x), Num (Gradients xs)) => Num (Gradients (x ': xs)) where
-  (x :/> xs) + (y :/> ys) = (x+y) :/> (xs+ys)
-  (x :/> xs) * (y :/> ys) = (x*y) :/> (xs*ys)
-  (x :/> xs) - (y :/> ys) = (x-y) :/> (xs-ys)
-  abs (x :/> xs) = abs x :/> abs xs
-  signum (x :/> xs) = signum x :/> signum xs
-  fromInteger v = -- error "fromInteger of Gradients must not be used, e.g. use `foldl1` instead of `sum`"
-    fromInteger v :/> fromInteger v
+-- instance (UpdateLayer x, Num (Gradient x), Num (Gradients xs)) => Num (Gradients (x ': xs)) where
+--   (x :/> xs) + (y :/> ys) = (x+y) :/> (xs+ys)
+--   (x :/> xs) * (y :/> ys) = (x*y) :/> (xs*ys)
+--   (x :/> xs) - (y :/> ys) = (x-y) :/> (xs-ys)
+--   abs (x :/> xs) = abs x :/> abs xs
+--   signum (x :/> xs) = signum x :/> signum xs
+--   fromInteger v = -- error "fromInteger of Gradients must not be used, e.g. use `foldl1` instead of `sum`"
+--     fromInteger v :/> fromInteger v
 
--- these instances are needed but will normally not be evaluated
-instance Num () where
-  _ + _ = ()
-  _ - _ = ()
-  _ * _ = ()
-  abs () = ()
-  signum () = ()
-  fromInteger _ = ()
+-- -- these instances are needed but will normally not be evaluated
+-- instance Num () where
+--   _ + _ = ()
+--   _ - _ = ()
+--   _ * _ = ()
+--   abs () = ()
+--   signum () = ()
+--   fromInteger _ = ()
 
-instance Fractional () where
-  _ / _ = ()
-  fromRational _ = ()
+-- instance Fractional () where
+--   _ / _ = ()
+--   fromRational _ = ()
 
-instance Fractional (Gradients '[]) where
-  GNil / GNil = GNil
-  fromRational _ = GNil
+-- instance Fractional (Gradients '[]) where
+--   GNil / GNil = GNil
+--   fromRational _ = GNil
 
-instance (UpdateLayer x, Fractional (Gradient x), Fractional (Gradients xs)) => Fractional (Gradients (x ': xs)) where
-  (x :/> GNil) / (y :/> GNil) = (x / y) :/> GNil
-  (x :/> xs) / (y :/> ys) = (x / y) :/> (xs / ys)
-  fromRational v = error "fromRational of Gradients not supported. Use |* from NMult for scalar multiplication "
-      -- fromRational v :/> fromRational v
+-- instance (UpdateLayer x, Fractional (Gradient x), Fractional (Gradients xs)) => Fractional (Gradients (x ': xs)) where
+--   (x :/> GNil) / (y :/> GNil) = (x / y) :/> GNil
+--   (x :/> xs) / (y :/> ys) = (x / y) :/> (xs / ys)
+--   fromRational v = error "fromRational of Gradients not supported. Use |* from GNum for scalar multiplication "
+--       -- fromRational v :/> fromRational v
 
 -- | Wegnert Tape of a network.
 --
@@ -262,26 +262,35 @@ instance (CreatableNetwork sublayers subshapes, i ~ (Head subshapes), o ~ (Last 
   runBackwards = runGradient
 
 
--- | Scalar Multiplication.
+-- | Grenade Num class.
 --
--- This allows scalar multiplication of the weights. Use useful for slowly adapting
--- networks, e.g. NN' <- \tau * NN + (1-\tau) * NN'.
-
-class NMult a where
+-- This allows for instance scalar multiplication of the weights, which is useful for slowly adapting networks, e.g. NN'
+-- <- \tau * NN' + (1-\tau) * NN. Or one could sum up some gradients and apply them at once after normalizing.
+class GNum a where
   (|*) :: Rational -> a -> a
+  (|+) :: a -> a -> a
 
 infixl 7 |*
+infixr 5 |+
 
-instance NMult (Network '[] '[i]) where
+instance GNum (Network '[] '[i]) where
   _ |* NNil = NNil
+  _ |+ NNil = NNil
 
-instance (NMult x, NMult (Network xs (o ': rs))) => NMult (Network (x ': xs) (i ': o ': rs)) where
+instance (GNum x, GNum (Network xs (o ': rs))) => GNum (Network (x ': xs) (i ': o ': rs)) where
   s |* (x :~> xs) = (s |* x) :~> (s |* xs)
+  (x :~> xs) |+ (y :~> ys) = (x |+ y) :~> (xs |+ ys)
 
-instance NMult (Gradients '[]) where
+instance GNum (Gradients '[]) where
   _ |* GNil = GNil
-instance (NMult (Gradient x), NMult (Gradients xs)) => NMult (Gradients (x ': xs)) where
-  s |* (x :/> xs) = (s |* x) :/> (s |* xs)
+  _ |+ GNil = GNil
 
-instance NMult () where
-  _ |* () = ()
+
+instance (GNum (Gradient x), GNum (Gradients xs)) => GNum (Gradients (x ': xs)) where
+  s |* (x :/> xs) = (s |* x) :/> (s |* xs)
+  (x :/> xs) |+ (y :/> ys) = (x |+ y) :/> (xs |+ ys)
+
+-- Needed?
+-- instance GNum () where
+--   _ |* () = ()
+--   _ |+ () = ()

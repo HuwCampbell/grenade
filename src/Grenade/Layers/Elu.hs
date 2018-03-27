@@ -69,18 +69,8 @@ instance (KnownNat i, KnownNat j, KnownNat k) => Layer Elu ('D3 i j k) ('D3 i j 
 
 -------------------- Num and Fractional instances --------------------
 
-instance Num Elu where
-  _ + _ = Elu
-  _ - _ = Elu
-  _ * _ = Elu
-  abs _ = Elu
-  signum _ = Elu
-  fromInteger _ = Elu
 
-instance Fractional Elu where
-  _ / _ = Elu
-  fromRational _ = Elu
-
-instance NMult Elu where
+instance GNum Elu where
   _ |* Elu = Elu
+  _ |+ Elu = Elu
 

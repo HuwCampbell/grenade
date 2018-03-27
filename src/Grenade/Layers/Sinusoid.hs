@@ -41,18 +41,7 @@ instance (a ~ b, SingI a) => Layer Sinusoid a b where
 
 -------------------- Num and Fractional instances --------------------
 
-instance Num Sinusoid where
-  _ + _ = Sinusoid
-  _ - _ = Sinusoid
-  _ * _ = Sinusoid
-  abs _ = Sinusoid
-  signum _ = Sinusoid
-  fromInteger _ = Sinusoid
-
-instance Fractional Sinusoid where
-  _ / _ = Sinusoid
-  fromRational _ = Sinusoid
-
-instance NMult Sinusoid where
+instance GNum Sinusoid where
   _ |* Sinusoid = Sinusoid
+  _ |+ Sinusoid = Sinusoid
 

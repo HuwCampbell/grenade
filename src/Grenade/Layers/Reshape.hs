@@ -82,18 +82,7 @@ fromJust' Nothing  = error $ "Reshape error: data shape couldn't be converted."
 
 -------------------- Num and Fractional instances --------------------
 
-instance Num Reshape where
-  _ + _ = Reshape
-  _ - _ = Reshape
-  _ * _ = Reshape
-  abs _ = Reshape
-  signum _ = Reshape
-  fromInteger _ = Reshape
 
-instance Fractional Reshape where
-  _ / _ = Reshape
-  fromRational _ = Reshape
-
-
-instance NMult Reshape where
+instance GNum Reshape where
   _ |* Reshape = Reshape
+  _ |+ Reshape = Reshape
