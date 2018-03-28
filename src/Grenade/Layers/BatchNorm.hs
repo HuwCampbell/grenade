@@ -166,3 +166,4 @@ instance (KnownNat i) => Fractional (BatchNorm i) where
 instance (KnownNat i) => GNum (BatchNorm i) where
   _ |* BatchNorm nr mean m2 var ga be divar = BatchNorm nr mean m2 var ga be divar
   _ |+ _ = error "Batchnorm not yet implemented"
+  gFromRational _ = error "Batchnorm not yet implemented"

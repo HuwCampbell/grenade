@@ -70,4 +70,5 @@ softmax' x grad =
 instance GNum Softmax where
   _ |* Softmax = Softmax
   _ |+ Softmax = Softmax
+  gFromRational _ = Softmax
 
