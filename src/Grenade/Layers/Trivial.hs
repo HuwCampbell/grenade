@@ -1,8 +1,8 @@
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+nnnnpp{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-|
 Module      : Grenade.Core.Trivial
 Description : Trivial layer which perfoms no operations on the data
@@ -38,3 +38,12 @@ instance (a ~ b) => Layer Trivial a b where
   type Tape Trivial a b = ()
   runForwards _ a = ((), a)
   runBackwards _ _ y = ((), y)
+
+
+-------------------- GNum instances --------------------
+
+instance GNum Trivial where
+  _ |* Trivial = Trivial
+  _ |+ Trivial  = Trivial
+  gFromRational _ = Trivial
+

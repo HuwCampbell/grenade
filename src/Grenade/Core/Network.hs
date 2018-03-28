@@ -66,33 +66,6 @@ instance (Show x, Show (Network xs rs)) => Show (Network (x ': xs) (i ': rs)) wh
   show (x :~> xs) = show x ++ "\n~>\n" ++ show xs
 
 
--- instance (SingI i) => Num (Network '[] '[i]) where
---   NNil + NNil = NNil
---   NNil * NNil = NNil
---   NNil - NNil = NNil
---   abs NNil = NNil
---   signum NNil = NNil
---   fromInteger _ = NNil
-
-
--- instance (Num x, Num (Network xs rs)) => Num (Network (x ': xs) (i ': rs)) where
---   (x :~> xs) + (y :~> ys) = (x+y) :~> (xs + ys)
---   (x :~> xs) - (y :~> ys) = (x-y) :~> (xs - ys)
---   (x :~> xs) * (y :~> ys) = (x*y) :~> (xs * ys)
---   abs (x :~> xs) = abs x :~> abs xs
---   signum (x :~> xs) = signum x :~> signum xs
---   fromInteger _ = error "no fromInteger instance for Network"
-
--- instance (SingI i) => Fractional (Network '[] '[i]) where
---   NNil / NNil = NNil
---   fromRational _ = NNil
-
-
--- instance (Fractional x, Fractional (Network xs rs), Num x, Num (Network xs rs)) => Fractional (Network (x ': xs) (i ': rs)) where
---   (x :~> xs) / (y :~> ys) = (x/y) :~> (xs / ys)
---   fromRational _ = error "fromRational for Network not implemented"
-
-
 -- | Gradient of a network.
 --
 --   Parameterised on the layers of the network.
@@ -104,45 +77,6 @@ data Gradients :: [*] -> * where
          -> Gradients xs
          -> Gradients (x ': xs)
 
--- instance Num (Gradients '[]) where
---   GNil + GNil = GNil
---   GNil * GNil = GNil
---   GNil - GNil = GNil
---   abs GNil = GNil
---   signum GNil = GNil
---   fromInteger _ = GNil
-
--- instance (UpdateLayer x, Num (Gradient x), Num (Gradients xs)) => Num (Gradients (x ': xs)) where
---   (x :/> xs) + (y :/> ys) = (x+y) :/> (xs+ys)
---   (x :/> xs) * (y :/> ys) = (x*y) :/> (xs*ys)
---   (x :/> xs) - (y :/> ys) = (x-y) :/> (xs-ys)
---   abs (x :/> xs) = abs x :/> abs xs
---   signum (x :/> xs) = signum x :/> signum xs
---   fromInteger v = -- error "fromInteger of Gradients must not be used, e.g. use `foldl1` instead of `sum`"
---     fromInteger v :/> fromInteger v
-
--- -- these instances are needed but will normally not be evaluated
--- instance Num () where
---   _ + _ = ()
---   _ - _ = ()
---   _ * _ = ()
---   abs () = ()
---   signum () = ()
---   fromInteger _ = ()
-
--- instance Fractional () where
---   _ / _ = ()
---   fromRational _ = ()
-
--- instance Fractional (Gradients '[]) where
---   GNil / GNil = GNil
---   fromRational _ = GNil
-
--- instance (UpdateLayer x, Fractional (Gradient x), Fractional (Gradients xs)) => Fractional (Gradients (x ': xs)) where
---   (x :/> GNil) / (y :/> GNil) = (x / y) :/> GNil
---   (x :/> xs) / (y :/> ys) = (x / y) :/> (xs / ys)
---   fromRational v = error "fromRational of Gradients not supported. Use |* from GNum for scalar multiplication "
---       -- fromRational v :/> fromRational v
 
 -- | Wegnert Tape of a network.
 --
@@ -293,5 +227,15 @@ instance (UpdateLayer x, GNum (Gradient x), GNum (Gradients xs)) => GNum (Gradie
   s |* (x :/> xs) = (s |* x) :/> (s |* xs)
   (x :/> xs) |+ (y :/> ys) = (x |+ y) :/> (xs |+ ys)
   gFromRational r = gFromRational r :/> gFromRational r
+
+instance GNum () where
+  _ |* () = ()
+  _ |+ () = ()
+  gFromRational _ = ()
+
+instance (GNum a, GNum b) => GNum (a,b) where
+  s |* (a,b) = (s|*a,s|*b)
+  (a1,b1) |+ (a2,b2) = (a1|+a2,b1|+b2)
+  gFromRational v = (gFromRational v, gFromRational v)
 
 
