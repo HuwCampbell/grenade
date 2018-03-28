@@ -139,7 +139,7 @@ instance (Serialize a, Serialize b) => Serialize (Concat sa a sb b) where
   get = Concat <$> get <*> get
 
 
--------------------- Num and Fractional instances --------------------
+-------------------- GNum instances --------------------
 
 
 instance (GNum x, GNum y) => GNum (Concat m x n y) where

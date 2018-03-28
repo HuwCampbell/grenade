@@ -64,7 +64,7 @@ softmax' x grad =
   sm = softmax x
 
 
--------------------- Num and Fractional instances --------------------
+-------------------- GNum instances --------------------
 
 
 instance GNum Softmax where

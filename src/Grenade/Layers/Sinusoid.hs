@@ -39,7 +39,7 @@ instance (a ~ b, SingI a) => Layer Sinusoid a b where
   runBackwards _ a g = ((), cos a * g)
 
 
--------------------- Num and Fractional instances --------------------
+-------------------- GNum instances --------------------
 
 instance GNum Sinusoid where
   _ |* Sinusoid = Sinusoid

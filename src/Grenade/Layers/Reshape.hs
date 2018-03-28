@@ -81,7 +81,7 @@ fromJust' (Just x) = x
 fromJust' Nothing  = error $ "Reshape error: data shape couldn't be converted."
 
 
--------------------- Num and Fractional instances --------------------
+-------------------- GNum instances --------------------
 
 
 instance GNum Reshape where
