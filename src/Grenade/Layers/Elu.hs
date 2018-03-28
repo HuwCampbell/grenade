@@ -67,7 +67,7 @@ instance (KnownNat i, KnownNat j, KnownNat k) => Layer Elu ('D3 i j k) ('D3 i j 
       elu' = LAS.dmmap (\a -> if a <= 0 then exp a else 1)
 
 
--------------------- Num and Fractional instances --------------------
+-------------------- GNum instances --------------------
 
 
 instance GNum Elu where

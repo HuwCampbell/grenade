@@ -41,7 +41,7 @@ instance (a ~ b, SingI a) => Layer Tanh a b where
 tanh' :: (Floating a) => a -> a
 tanh' t = 1 - s ^ (2 :: Int)  where s = tanh t
 
--------------------- Num and Fractional instances --------------------
+-------------------- GNum instances --------------------
 
 instance GNum Tanh where
   _ |* Tanh = Tanh

@@ -146,7 +146,7 @@ instance (KnownNat i) => Serialize (BatchNorm i) where
       divar <- maybe (fail "Vector of incorrect size") return . create . LA.fromList =<< getListOf get
       return $ BatchNorm nr mean m2 var ga be divar
 
--------------------- Num,Fractional,GNum instances --------------------
+-------------------- GNum instances --------------------
 
 -- | Num and Fractional instance of Layer data type for calculating with networks
 -- (slowly adapt target network, e.g. as in arXiv: 1509.02971)
