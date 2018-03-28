@@ -1,4 +1,4 @@
-nnnnpp{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies          #-}
