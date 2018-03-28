@@ -44,4 +44,4 @@ instance (a ~ b, SingI a) => Layer Sinusoid a b where
 instance GNum Sinusoid where
   _ |* Sinusoid = Sinusoid
   _ |+ Sinusoid = Sinusoid
-
+  gFromRational _ = Sinusoid

@@ -71,4 +71,5 @@ instance (KnownNat i, KnownNat j, KnownNat k) => Layer Relu ('D3 i j k) ('D3 i j
 instance GNum Relu where
   _ |* Relu = Relu
   _ |+ Relu = Relu
+  gFromRational _ = Relu
 

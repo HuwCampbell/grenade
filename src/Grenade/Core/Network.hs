@@ -274,28 +274,29 @@ instance (CreatableNetwork sublayers subshapes, i ~ (Head subshapes), o ~ (Last 
 class GNum a where
   (|*) :: Rational -> a -> a
   (|+) :: a -> a -> a
+  gFromRational :: Rational -> a
 
 infixl 7 |*
 infixr 5 |+
 
-instance GNum (Network '[] '[i]) where
+instance (SingI i) => GNum (Network '[] '[i]) where
   _ |* NNil = NNil
   _ |+ NNil = NNil
+  gFromRational _ = NNil
 
-instance (GNum x, GNum (Network xs (o ': rs))) => GNum (Network (x ': xs) (i ': o ': rs)) where
+instance (SingI i, SingI o, Layer x i o, GNum x, GNum (Network xs (o ': rs))) => GNum (Network (x ': xs) (i ': o ': rs)) where
   s |* (x :~> xs) = (s |* x) :~> (s |* xs)
   (x :~> xs) |+ (y :~> ys) = (x |+ y) :~> (xs |+ ys)
+  gFromRational r = gFromRational r :~> gFromRational r
 
 instance GNum (Gradients '[]) where
   _ |* GNil = GNil
   _ |+ GNil = GNil
+  gFromRational _ = GNil
 
-
-instance (GNum (Gradient x), GNum (Gradients xs)) => GNum (Gradients (x ': xs)) where
+instance (UpdateLayer x, GNum (Gradient x), GNum (Gradients xs)) => GNum (Gradients (x ': xs)) where
   s |* (x :/> xs) = (s |* x) :/> (s |* xs)
   (x :/> xs) |+ (y :/> ys) = (x |+ y) :/> (xs |+ ys)
+  gFromRational r = gFromRational r :/> gFromRational r
 
--- Needed?
--- instance GNum () where
---   _ |* () = ()
---   _ |+ () = ()
+

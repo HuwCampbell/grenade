@@ -145,5 +145,5 @@ instance (Serialize a, Serialize b) => Serialize (Concat sa a sb b) where
 instance (GNum x, GNum y) => GNum (Concat m x n y) where
   n |* (Concat x y) = Concat (n |* x) (n |* y)
   (Concat x1 y1) |+ (Concat x2 y2)  = Concat (x1|+x2) (y1|+y2)
-
+  gFromRational r = Concat (gFromRational r) (gFromRational r)
 

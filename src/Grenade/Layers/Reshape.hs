@@ -87,3 +87,4 @@ fromJust' Nothing  = error $ "Reshape error: data shape couldn't be converted."
 instance GNum Reshape where
   _ |* Reshape = Reshape
   _ |+ Reshape = Reshape
+  gFromRational _ = Reshape
