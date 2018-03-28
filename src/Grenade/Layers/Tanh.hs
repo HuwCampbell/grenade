@@ -46,4 +46,4 @@ tanh' t = 1 - s ^ (2 :: Int)  where s = tanh t
 instance GNum Tanh where
   _ |* Tanh = Tanh
   _ |+ Tanh = Tanh
-
+  gFromRational _ = Tanh

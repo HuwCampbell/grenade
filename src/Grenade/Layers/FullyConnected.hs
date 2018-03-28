@@ -92,8 +92,10 @@ randomFullyConnected = do
 instance (KnownNat i, KnownNat o) => GNum (FullyConnected i o) where
   s |* FullyConnected i o = FullyConnected (s |* i) (s |* o)
   FullyConnected i o |+ FullyConnected i2 o2 = FullyConnected (i |+ i2) (o |+ o2)
+  gFromRational r = FullyConnected (gFromRational r) (gFromRational 0)
 
 instance (KnownNat i, KnownNat o) => GNum (FullyConnected' i o) where
   s |* FullyConnected' i o = FullyConnected' (fromRational s * i) (fromRational s * o)
   FullyConnected' i o |+ FullyConnected' i2 o2 = FullyConnected' (i + i2) (o + o2)
+  gFromRational r = FullyConnected' (fromRational r) (fromRational r)
 
