@@ -18,6 +18,7 @@ module Grenade.Layers.Crop (
 
 import           Data.Maybe
 import           Data.Proxy
+import           Data.Serialize
 import           Data.Singletons.TypeLits
 import           GHC.TypeLits
 
@@ -41,6 +42,10 @@ instance UpdateLayer (Crop l t r b) where
   type Gradient (Crop l t r b) = ()
   runUpdate _ x _ = x
   createRandom = return Crop
+
+instance Serialize (Crop l t r b) where
+  put _ = return ()
+  get = return Crop
 
 -- | A two dimentional image can be cropped.
 instance ( KnownNat cropLeft
