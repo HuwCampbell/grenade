@@ -43,6 +43,7 @@ library
                      , containers                      >= 0.5         && < 0.6
                      , cereal                          >= 0.5         && < 0.6
                      , deepseq                         >= 1.4         && < 1.5
+                     , exceptions
                      , hmatrix                         == 0.18.*
                      , MonadRandom                     >= 0.4         && < 0.6
                      , primitive                       >= 0.6         && < 0.7
@@ -106,6 +107,8 @@ library
                        Grenade.Recurrent.Layers.LSTM
 
                        Grenade.Utils.OneHot
+                       Grenade.Utils.Accuracy
+                       Grenade.Utils.Accuracy.Internal
 
   includes:            cbits/im2col.h
                        cbits/gradient_descent.h

@@ -8,6 +8,7 @@ import Test.Hspec
 import Test.Grenade.Gen ()
 
 import Grenade.Core.LearningParameters
+import Grenade.Utils.Accuracy
 
 import Test.Validity
 import Test.Validity.Aeson
@@ -19,3 +20,7 @@ spec :: Spec
 spec = do
     genValidSpec @LearningParameters
     jsonSpecOnValid @LearningParameters
+    genValidSpec @Accuracy
+    jsonSpecOnValid @Accuracy
+    genValidSpec @HyperParamAccuracy
+    jsonSpecOnValid @HyperParamAccuracy
