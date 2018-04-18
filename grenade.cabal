@@ -37,15 +37,18 @@ source-repository head
 
 library
   build-depends:
-                       base                            >= 4.8         && < 5
+                       aeson
+                     , base                            >= 4.8         && < 5
                      , bytestring                      == 0.10.*
                      , containers                      >= 0.5         && < 0.6
                      , cereal                          >= 0.5         && < 0.6
                      , deepseq                         >= 1.4         && < 1.5
+                     , exceptions
                      , hmatrix                         == 0.18.*
                      , MonadRandom                     >= 0.4         && < 0.6
                      , primitive                       >= 0.6         && < 0.7
                      , singletons                      >= 2.1         && < 2.4
+                     , validity                        >= 0.4.0.4     && < 5.0
                      , vector                          >= 0.11        && < 0.13
 
   ghc-options:
@@ -104,6 +107,8 @@ library
                        Grenade.Recurrent.Layers.LSTM
 
                        Grenade.Utils.OneHot
+                       Grenade.Utils.Accuracy
+                       Grenade.Utils.Accuracy.Internal
 
   includes:            cbits/im2col.h
                        cbits/gradient_descent.h
@@ -130,6 +135,8 @@ test-suite test
                        Test.Hedgehog.TypeLits
 
                        Test.Grenade.Network
+                       Test.Grenade.Gen
+                       Test.Grenade.InstanceSpec
                        Test.Grenade.Layers.Convolution
                        Test.Grenade.Layers.FullyConnected
                        Test.Grenade.Layers.Nonlinear
@@ -148,6 +155,9 @@ test-suite test
   build-depends:
                        base                            >= 4.8         && < 5
                      , grenade
+                     , genvalidity                     >= 0.4.0.4     && < 0.5
+                     , genvalidity-hspec
+                     , genvalidity-hspec-aeson
                      , hedgehog                        >= 0.5         && < 0.6
                      , hmatrix
                      , mtl
@@ -161,6 +171,8 @@ test-suite test
                      , ad
                      , reflection
                      , vector
+                     , QuickCheck
+                     , hspec
 
 
 benchmark bench
