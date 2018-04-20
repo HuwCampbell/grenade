@@ -105,6 +105,8 @@ library
 
                        Grenade.Utils.OneHot
 
+                       Grenade.Train.DataSet
+
   includes:            cbits/im2col.h
                        cbits/gradient_descent.h
                        cbits/pad.h
