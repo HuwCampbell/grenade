@@ -1,14 +1,16 @@
 {-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-|
 Module      : Grenade.Core.Network
 Description : Merging layer for parallel network composition
@@ -22,7 +24,9 @@ module Grenade.Layers.Merge (
 
 import           Data.Serialize
 
+import           Control.DeepSeq
 import           Data.Singletons
+import           GHC.Generics
 
 #if MIN_VERSION_base(4,9,0)
 import           Data.Kind (Type)
@@ -30,12 +34,14 @@ import           Data.Kind (Type)
 
 import           Grenade.Core
 
+
 -- | A Merging layer.
 --
 -- Similar to Concat layer, except sums the activations instead of creating a larger
 -- shape.
 data Merge :: Type -> Type -> Type where
   Merge :: x -> y -> Merge x y
+  deriving (NFData, Generic)
 
 instance (Show x, Show y) => Show (Merge x y) where
   show (Merge x y) = "Merge\n" ++ show x ++ "\n" ++ show y

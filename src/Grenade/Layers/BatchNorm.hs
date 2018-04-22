@@ -1,4 +1,6 @@
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -10,7 +12,9 @@ module Grenade.Layers.BatchNorm (
     BatchNorm (..)
   ) where
 
+import           Control.DeepSeq                (NFData (..))
 import           Control.Monad.Random
+import           GHC.Generics                   (Generic)
 
 import           Data.Proxy
 import           Data.Serialize
@@ -26,6 +30,7 @@ import           Grenade.Layers.Internal.Update
 
 -- | A data type for holding mean and variance.
 data BatchNorm i = BatchNorm Integer (R i) (R i) (R i) (R i) (R i) (R i)-- Counter, Mean and M2, variance, gamma, beta, divar
+  deriving (Generic, NFData)
 
 -- data BatchGrads i = BatchGrads (BatchNorm i)
 

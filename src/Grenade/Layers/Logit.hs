@@ -1,8 +1,10 @@
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-|
 Module      : Grenade.Layers.Logit
 Description : Sigmoid nonlinear layer
@@ -18,6 +20,10 @@ module Grenade.Layers.Logit (
 import           Data.Serialize
 import           Data.Singletons
 
+import           Control.DeepSeq (NFData)
+import           GHC.Generics    (Generic)
+
+
 import           Grenade.Core
 
 -- | A Logit layer.
@@ -26,7 +32,7 @@ import           Grenade.Core
 --   This layer should be used as the output layer of a network for logistic regression (classification)
 --   problems.
 data Logit = Logit
-  deriving Show
+  deriving (Generic,NFData,Show)
 
 instance UpdateLayer Logit where
   type Gradient Logit = ()

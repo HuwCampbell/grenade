@@ -1,4 +1,6 @@
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -13,7 +15,9 @@ module Grenade.Layers.Elu (
     Elu (..)
   ) where
 
+import           Control.DeepSeq              (NFData)
 import           Data.Serialize
+import           GHC.Generics                 (Generic)
 
 import           GHC.TypeLits
 import           Grenade.Core
@@ -24,7 +28,7 @@ import qualified Numeric.LinearAlgebra.Static as LAS
 --   A layer which can act between any shape of the same dimension, acting as a
 --   diode on every neuron individually.
 data Elu = Elu
-  deriving Show
+  deriving (Generic, NFData, Show)
 
 instance UpdateLayer Elu where
   type Gradient Elu = ()

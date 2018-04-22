@@ -1,4 +1,6 @@
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -14,16 +16,19 @@ module Grenade.Layers.Trivial (
     Trivial (..)
   ) where
 
+import           Control.DeepSeq (NFData (..))
 import           Data.Serialize
+import           GHC.Generics    (Generic)
 
 import           Grenade.Core
+
 
 -- | A Trivial layer.
 --
 --   This can be used to pass an unchanged value up one side of a
 --   graph, for a Residual network for example.
 data Trivial = Trivial
-  deriving Show
+  deriving (Generic,NFData,Show)
 
 instance Serialize Trivial where
   put _ = return ()

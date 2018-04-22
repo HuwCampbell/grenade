@@ -1,12 +1,14 @@
 {-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Core.Pooling
@@ -25,18 +27,21 @@ import           Data.Serialize
 import           Data.Singletons.TypeLits
 
 #if MIN_VERSION_base(4,11,0)
-import           GHC.TypeLits hiding (natVal)
+import           GHC.TypeLits                    hiding (natVal)
 #else
 import           GHC.TypeLits
 #endif
 #if MIN_VERSION_base(4,9,0)
-import           Data.Kind (Type)
+import           Data.Kind                       (Type)
 #endif
+import           Control.DeepSeq                 (NFData)
+import           GHC.Generics                    (Generic)
+
 
 import           Grenade.Core
 import           Grenade.Layers.Internal.Pooling
 
-import           Numeric.LinearAlgebra.Static as LAS hiding ((|||), build, toRows)
+import           Numeric.LinearAlgebra.Static    as LAS hiding (build, toRows, (|||))
 
 -- | A pooling layer for a neural network.
 --
@@ -48,6 +53,7 @@ import           Numeric.LinearAlgebra.Static as LAS hiding ((|||), build, toRow
 --
 data Pooling :: Nat -> Nat -> Nat -> Nat -> Type where
   Pooling :: Pooling kernelRows kernelColumns strideRows strideColumns
+  deriving (NFData, Generic)
 
 instance Show (Pooling k k' s s') where
   show Pooling = "Pooling"

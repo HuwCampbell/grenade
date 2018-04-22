@@ -1,4 +1,6 @@
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -14,15 +16,17 @@ module Grenade.Layers.Tanh (
     Tanh (..)
   ) where
 
+import           Control.DeepSeq (NFData (..))
 import           Data.Serialize
 import           Data.Singletons
+import           GHC.Generics    (Generic)
 
 import           Grenade.Core
 
 -- | A Tanh layer.
 --   A layer which can act between any shape of the same dimension, performing a tanh function.
 data Tanh = Tanh
-  deriving Show
+  deriving (Generic,NFData,Show)
 
 instance UpdateLayer Tanh where
   type Gradient Tanh = ()

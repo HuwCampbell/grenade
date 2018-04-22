@@ -1,14 +1,16 @@
 {-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Layers.Concat
@@ -25,18 +27,21 @@ module Grenade.Layers.Concat (
 
 import           Data.Serialize
 
+import           Control.DeepSeq              (NFData (..))
 import           Data.Singletons
+import           GHC.Generics                 (Generic)
 import           GHC.TypeLits
 
 #if MIN_VERSION_base(4,9,0)
-import           Data.Kind (Type)
+import           Data.Kind                    (Type)
 #endif
 
 import           Grenade.Core
 
-import           Numeric.LinearAlgebra.Static ( row, (===), splitRows, unrow, (#), split, R )
+import           Numeric.LinearAlgebra.Static (R, row, split, splitRows, unrow, ( # ),
+                                               (===))
 
--- | A Concatentating Layer.
+-- | A Concatenating Layer.
 --
 -- This layer shares it's input state between two sublayers, and concatenates their output.
 --
@@ -51,6 +56,7 @@ import           Numeric.LinearAlgebra.Static ( row, (===), splitRows, unrow, (#
 -- and Crop layers to ensure this is the case.
 data Concat :: Shape -> Type -> Shape -> Type -> Type where
   Concat :: x -> y -> Concat m x n y
+  deriving (Generic, NFData)
 
 instance (Show x, Show y) => Show (Concat m x n y) where
   show (Concat x y) = "Concat\n" ++ show x ++ "\n" ++ show y

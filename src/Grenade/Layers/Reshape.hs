@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -19,6 +21,8 @@ import           Data.Serialize
 
 import           Data.Singletons.TypeLits
 import           GHC.TypeLits
+import           Control.DeepSeq              (NFData (..))
+import           GHC.Generics                 (Generic)
 
 import           Numeric.LinearAlgebra.Static
 import           Numeric.LinearAlgebra.Data as LA ( flatten )
@@ -34,7 +38,7 @@ import           Grenade.Core
 -- Can also be used to turn a 3D image with only one channel into a 2D image
 -- or vice versa.
 data Reshape = Reshape
-  deriving Show
+  deriving (Show,Generic,NFData)
 
 instance UpdateLayer Reshape where
   type Gradient Reshape = ()

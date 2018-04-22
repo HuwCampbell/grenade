@@ -1,13 +1,15 @@
 {-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Layers.Convolution
@@ -25,24 +27,26 @@ module Grenade.Layers.Convolution (
   , randomConvolution
   ) where
 
-import           Control.Monad.Random hiding ( fromList )
+import           Control.Monad.Random                hiding (fromList)
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons.TypeLits
 
 #if MIN_VERSION_base(4,11,0)
-import           GHC.TypeLits hiding (natVal)
+import           GHC.TypeLits                        hiding (natVal)
 #else
 import           GHC.TypeLits
 #endif
 #if MIN_VERSION_base(4,9,0)
-import           Data.Kind (Type)
+import           Data.Kind                           (Type)
 #endif
+import           Control.DeepSeq                     (NFData (..))
+import           GHC.Generics                        (Generic)
 
-import           Numeric.LinearAlgebra hiding ( uniformSample, konst )
-import qualified Numeric.LinearAlgebra as LA
-import           Numeric.LinearAlgebra.Static hiding ((|||), build, toRows)
+import           Numeric.LinearAlgebra               hiding (konst, uniformSample)
+import qualified Numeric.LinearAlgebra               as LA
+import           Numeric.LinearAlgebra.Static        hiding (build, toRows, (|||))
 
 import           Grenade.Core
 import           Grenade.Layers.Internal.Convolution
@@ -78,6 +82,10 @@ data Convolution :: Nat -- Number of channels, for the first layer this could be
               -> !(L kernelFlattened filters) -- The last kernel update (or momentum)
               -> Convolution channels filters kernelRows kernelColumns strideRows strideColumns
 
+instance NFData (Convolution c f k k' s s') where
+  rnf (Convolution a b) = rnf a `seq` rnf b
+
+
 data Convolution' :: Nat -- Number of channels, for the first layer this could be RGB for instance.
                   -> Nat -- Number of filters, this is the number of channels output by the layer.
                   -> Nat -- The number of rows in the kernel filter
@@ -95,6 +103,10 @@ data Convolution' :: Nat -- Number of channels, for the first layer this could b
                   , kernelFlattened ~ (kernelRows * kernelColumns * channels))
                => !(L kernelFlattened filters) -- The kernel filter gradient
                -> Convolution' channels filters kernelRows kernelColumns strideRows strideColumns
+
+instance NFData (Convolution' c f k k' s s') where
+  rnf (Convolution' a) = rnf a
+
 
 instance Show (Convolution c f k k' s s') where
   show (Convolution a _) = renderConv a

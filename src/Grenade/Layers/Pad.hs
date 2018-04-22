@@ -1,11 +1,13 @@
 {-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Core.Pad
@@ -24,19 +26,22 @@ import           Data.Serialize
 import           Data.Singletons.TypeLits
 
 #if MIN_VERSION_base(4,11,0)
-import           GHC.TypeLits hiding (natVal)
+import           GHC.TypeLits                 hiding (natVal)
 #else
 import           GHC.TypeLits
 #endif
 #if MIN_VERSION_base(4,9,0)
-import           Data.Kind (Type)
+import           Data.Kind                    (Type)
 #endif
+import           Control.DeepSeq
+import           GHC.Generics
+
 
 import           Grenade.Core
 import           Grenade.Layers.Internal.Pad
 
-import           Numeric.LinearAlgebra (konst, subMatrix, diagBlock)
-import           Numeric.LinearAlgebra.Static (extract, create)
+import           Numeric.LinearAlgebra        (diagBlock, konst, subMatrix)
+import           Numeric.LinearAlgebra.Static (create, extract)
 
 -- | A padding layer for a neural network.
 --
@@ -46,6 +51,7 @@ data Pad  :: Nat
           -> Nat
           -> Nat -> Type where
   Pad  :: Pad padLeft padTop padRight padBottom
+  deriving (NFData, Generic)
 
 instance Show (Pad padLeft padTop padRight padBottom) where
   show Pad = "Pad"
