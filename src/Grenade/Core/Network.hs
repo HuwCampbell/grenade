@@ -32,6 +32,7 @@ module Grenade.Core.Network (
 
   ) where
 
+import           Control.DeepSeq
 import           Control.Monad.Random            (MonadRandom)
 
 import           Data.Serialize
@@ -65,6 +66,11 @@ instance Show (Network '[] '[i]) where
 instance (Show x, Show (Network xs rs)) => Show (Network (x ': xs) (i ': rs)) where
   show (x :~> xs) = show x ++ "\n~>\n" ++ show xs
 
+instance NFData (Network '[] '[i]) where
+  rnf NNil = ()
+instance (NFData x, NFData (Network xs rs)) => NFData (Network (x ': xs) (i ': rs)) where
+  rnf (x :~> xs) = rnf x `seq` rnf xs
+
 
 -- | Gradient of a network.
 --
@@ -77,6 +83,10 @@ data Gradients :: [*] -> * where
          -> Gradients xs
          -> Gradients (x ': xs)
 
+instance NFData (Gradients '[]) where
+  rnf GNil = ()
+instance (NFData (Gradient x), NFData (Gradients xs)) => NFData (Gradients (x ': xs)) where
+  rnf (g :/> gs) = rnf g `seq` rnf gs
 
 -- | Wegnert Tape of a network.
 --
@@ -199,7 +209,8 @@ instance (CreatableNetwork sublayers subshapes, i ~ (Head subshapes), o ~ (Last 
 -- | Grenade Num class.
 --
 -- This allows for instance scalar multiplication of the weights, which is useful for slowly adapting networks, e.g. NN'
--- <- \tau * NN' + (1-\tau) * NN. Or one could sum up some gradients and apply them at once after normalizing.
+-- <- \tau * NN' + (1-\tau) * NN. Or one could sum up some gradients in parallel and apply them at once after
+-- normalizing.
 class GNum a where
   (|*) :: Rational -> a -> a
   (|+) :: a -> a -> a

@@ -1,4 +1,6 @@
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -21,6 +23,9 @@ import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons.TypeLits
 import           GHC.TypeLits
+import GHC.Generics
+import Control.DeepSeq
+
 
 import           Grenade.Core
 import           Grenade.Layers.Internal.Pad
@@ -36,6 +41,7 @@ data Pad  :: Nat
           -> Nat
           -> Nat -> * where
   Pad  :: Pad padLeft padTop padRight padBottom
+  deriving (NFData, Generic)
 
 instance Show (Pad padLeft padTop padRight padBottom) where
   show Pad = "Pad"

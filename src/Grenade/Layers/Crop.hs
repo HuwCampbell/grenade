@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE GADTs                 #-}
@@ -20,6 +22,8 @@ import           Data.Maybe
 import           Data.Proxy
 import           Data.Singletons.TypeLits
 import           GHC.TypeLits
+import           GHC.Generics (Generic)
+import           Control.DeepSeq (NFData)
 
 import           Grenade.Core
 import           Grenade.Layers.Internal.Pad
@@ -33,6 +37,7 @@ data Crop :: Nat
           -> Nat
           -> Nat -> * where
   Crop :: Crop cropLeft cropTop cropRight cropBottom
+  deriving (Generic,NFData)
 
 instance Show (Crop cropLeft cropTop cropRight cropBottom) where
   show Crop = "Crop"

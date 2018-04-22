@@ -1,4 +1,6 @@
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -15,6 +17,8 @@ module Grenade.Layers.Relu (
 
 import           Data.Serialize
 
+import           Control.DeepSeq              (NFData (..))
+import           GHC.Generics                 (Generic)
 import           GHC.TypeLits
 import           Grenade.Core
 
@@ -24,7 +28,7 @@ import qualified Numeric.LinearAlgebra.Static as LAS
 --   A layer which can act between any shape of the same dimension, acting as a
 --   diode on every neuron individually.
 data Relu = Relu
-  deriving Show
+  deriving (Generic, NFData, Show)
 
 instance UpdateLayer Relu where
   type Gradient Relu = ()

@@ -6,6 +6,8 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-|
 Module      : Grenade.Core.Pooling
 Description : Max Pooling layer for 2D and 3D images
@@ -22,6 +24,9 @@ import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons.TypeLits
 import           GHC.TypeLits
+import           Control.DeepSeq (NFData)
+import           GHC.Generics    (Generic)
+
 
 import           Grenade.Core
 import           Grenade.Layers.Internal.Pooling
@@ -38,6 +43,7 @@ import           Numeric.LinearAlgebra.Static as LAS hiding ((|||), build, toRow
 --
 data Pooling :: Nat -> Nat -> Nat -> Nat -> * where
   Pooling :: Pooling kernelRows kernelColumns strideRows strideColumns
+  deriving (NFData, Generic)
 
 instance Show (Pooling k k' s s') where
   show Pooling = "Pooling"

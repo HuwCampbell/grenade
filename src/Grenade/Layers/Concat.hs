@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -23,6 +25,8 @@ module Grenade.Layers.Concat (
 
 import           Data.Serialize
 
+import           GHC.Generics     (Generic) 
+import           Control.DeepSeq  (NFData (..))
 import           Data.Singletons
 import           GHC.TypeLits
 
@@ -30,7 +34,7 @@ import           Grenade.Core
 
 import           Numeric.LinearAlgebra.Static ( row, (===), splitRows, unrow, (#), split, R )
 
--- | A Concatentating Layer.
+-- | A Concatenating Layer.
 --
 -- This layer shares it's input state between two sublayers, and concatenates their output.
 --
@@ -45,6 +49,7 @@ import           Numeric.LinearAlgebra.Static ( row, (===), splitRows, unrow, (#
 -- and Crop layers to ensure this is the case.
 data Concat :: Shape -> * -> Shape -> * -> * where
   Concat :: x -> y -> Concat m x n y
+  deriving (Generic, NFData)
 
 instance (Show x, Show y) => Show (Concat m x n y) where
   show (Concat x y) = "Concat\n" ++ show x ++ "\n" ++ show y

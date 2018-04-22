@@ -1,4 +1,6 @@
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -17,12 +19,15 @@ module Grenade.Layers.Sinusoid (
 import           Data.Serialize
 import           Data.Singletons
 
+import           Control.DeepSeq (NFData)
+import           GHC.Generics    (Generic)
 import           Grenade.Core
+
 
 -- | A Sinusoid layer.
 --   A layer which can act between any shape of the same dimension, performing a sin function.
 data Sinusoid = Sinusoid
-  deriving Show
+  deriving (NFData, Generic, Show)
 
 instance UpdateLayer Sinusoid where
   type Gradient Sinusoid  = ()

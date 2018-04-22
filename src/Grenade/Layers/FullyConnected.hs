@@ -1,4 +1,6 @@
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -12,7 +14,9 @@ module Grenade.Layers.FullyConnected (
   , randomFullyConnected
   ) where
 
+import           Control.DeepSeq
 import           Control.Monad.Random
+import           GHC.Generics                   (Generic)
 
 import           Data.Proxy
 import           Data.Serialize
@@ -29,13 +33,16 @@ import           Grenade.Layers.Internal.Update
 data FullyConnected i o = FullyConnected
                         !(FullyConnected' i o)   -- Neuron weights
                         !(FullyConnected' i o)   -- Neuron momentum
+                        deriving (Generic, NFData)
 
 data FullyConnected' i o = FullyConnected'
                          !(R o)   -- Bias
                          !(L o i) -- Activations
+                        deriving (Generic, NFData)
 
 instance Show (FullyConnected i o) where
   show FullyConnected {} = "FullyConnected"
+
 
 instance (KnownNat i, KnownNat o) => UpdateLayer (FullyConnected i o) where
   type Gradient (FullyConnected i o) = (FullyConnected' i o)

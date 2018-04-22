@@ -1,3 +1,5 @@
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE RecordWildCards       #-}
@@ -30,6 +32,9 @@ import           Data.Serialize
 import           Data.Singletons.TypeLits
 
 import           GHC.TypeLits
+import           Control.DeepSeq              (NFData (..))
+import           GHC.Generics                 (Generic)
+
 
 import           Numeric.LinearAlgebra hiding ( uniformSample, konst )
 import qualified Numeric.LinearAlgebra as LA
@@ -69,6 +74,10 @@ data Convolution :: Nat -- Number of channels, for the first layer this could be
               -> !(L kernelFlattened filters) -- The last kernel update (or momentum)
               -> Convolution channels filters kernelRows kernelColumns strideRows strideColumns
 
+instance NFData (Convolution c f k k' s s') where
+  rnf (Convolution a b) = rnf a `seq` rnf b
+
+
 data Convolution' :: Nat -- Number of channels, for the first layer this could be RGB for instance.
                   -> Nat -- Number of filters, this is the number of channels output by the layer.
                   -> Nat -- The number of rows in the kernel filter
@@ -86,6 +95,10 @@ data Convolution' :: Nat -- Number of channels, for the first layer this could b
                   , kernelFlattened ~ (kernelRows * kernelColumns * channels))
                => !(L kernelFlattened filters) -- The kernel filter gradient
                -> Convolution' channels filters kernelRows kernelColumns strideRows strideColumns
+
+instance NFData (Convolution' c f k k' s s') where
+  rnf (Convolution' a) = rnf a 
+
 
 instance Show (Convolution c f k k' s s') where
   show (Convolution a _) = renderConv a

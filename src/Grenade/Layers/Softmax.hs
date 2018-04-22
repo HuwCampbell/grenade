@@ -1,4 +1,6 @@
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -18,6 +20,8 @@ module Grenade.Layers.Softmax (
 
 import           Data.Serialize
 
+import           Control.DeepSeq              (NFData (..))
+import           GHC.Generics                 (Generic)
 import           GHC.TypeLits
 import           Grenade.Core
 
@@ -31,7 +35,7 @@ import           Numeric.LinearAlgebra.Static as LAS
 --   One can use this layer as the last layer in a network
 --   if they need normalised probabilities.
 data Softmax = Softmax
-  deriving Show
+  deriving (Show, Generic, NFData)
 
 instance UpdateLayer Softmax where
   type Gradient Softmax = ()

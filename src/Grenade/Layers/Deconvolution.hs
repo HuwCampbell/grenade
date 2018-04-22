@@ -34,6 +34,9 @@ import           Data.Serialize
 import           Data.Singletons.TypeLits
 
 import           GHC.TypeLits
+import GHC.Generics (Generic)
+import Control.DeepSeq (NFData (..))
+
 
 import           Numeric.LinearAlgebra hiding ( uniformSample, konst )
 import qualified Numeric.LinearAlgebra as LA
@@ -68,6 +71,10 @@ data Deconvolution :: Nat -- Number of channels, for the first layer this could 
                  -> !(L kernelFlattened channels) -- The last kernel update (or momentum)
                  -> Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns
 
+instance NFData (Deconvolution c f k k' s s') where 
+  rnf (Deconvolution a b) = rnf a `seq` rnf b `seq` ()
+
+
 data Deconvolution' :: Nat -- Number of channels, for the first layer this could be RGB for instance.
                     -> Nat -- Number of filters, this is the number of channels output by the layer.
                     -> Nat -- The number of rows in the kernel filter
@@ -85,6 +92,10 @@ data Deconvolution' :: Nat -- Number of channels, for the first layer this could
                   , kernelFlattened ~ (kernelRows * kernelColumns * filters))
                => !(L kernelFlattened channels) -- The kernel filter gradient
                -> Deconvolution' channels filters kernelRows kernelColumns strideRows strideColumns
+
+instance NFData (Deconvolution' c f k k' s s') where 
+  rnf (Deconvolution' a) = rnf a `seq` ()
+
 
 instance Show (Deconvolution c f k k' s s') where
   show (Deconvolution a _) = renderConv a
