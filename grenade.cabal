@@ -106,10 +106,13 @@ library
                        Grenade.Recurrent.Layers.ConcatRecurrent
                        Grenade.Recurrent.Layers.LSTM
 
+                       Grenade.Run
+
                        Grenade.Utils.OneHot
                        Grenade.Utils.ProperFraction
                        Grenade.Utils.Accuracy
 
+                       Grenade.Train
                        Grenade.Train.DataSet
                        Grenade.Train.Test
                        Grenade.Train.Network
