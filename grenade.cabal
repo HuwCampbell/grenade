@@ -112,6 +112,7 @@ library
 
                        Grenade.Train.DataSet
                        Grenade.Train.Test
+                       Grenade.Train.Network
 
   includes:            cbits/im2col.h
                        cbits/gradient_descent.h
