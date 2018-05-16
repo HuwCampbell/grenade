@@ -37,8 +37,8 @@ source-repository head
 
 library
   build-depends:
-                       aeson
-                     , base                            >= 4.8         && < 5
+                       base                            >= 4.8         && < 5
+                     , aeson
                      , bytestring                      == 0.10.*
                      , containers                      >= 0.5         && < 0.6
                      , cereal                          >= 0.5         && < 0.6
@@ -107,6 +107,7 @@ library
                        Grenade.Recurrent.Layers.LSTM
 
                        Grenade.Utils.OneHot
+                       Grenade.Utils.ProperFraction
                        Grenade.Utils.Accuracy
 
                        Grenade.Train.DataSet
