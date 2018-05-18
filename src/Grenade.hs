@@ -9,6 +9,7 @@ module Grenade (
 
   -- | The neural network layer zoo
   , module Grenade.Layers
+  , module Grenade.Train
 
 
     -- * Overview of the library
@@ -21,6 +22,7 @@ module Grenade (
 
 import           Grenade.Core
 import           Grenade.Layers
+import           Grenade.Train
 
 {- $library
 Grenade is a purely functional deep learning library.
