@@ -26,9 +26,9 @@ prop_sigmoid_grad = property $
         (SomeSing (r :: Sing s)) ->
             withSingI r $
                 blindForAll genOfShape >>= \(ds :: S s) ->
-                    let (tape, f  :: S s)  = runForwards Logit ds
-                        ((), ret  :: S s)  = runBackwards Logit tape (1 :: S s)
-                        (_, numer :: S s)  = runForwards Logit (ds + 0.0001)
+                    let (tape, f  :: S s)  = runForwards Sigmoid ds
+                        ((), ret  :: S s)  = runBackwards Sigmoid tape (1 :: S s)
+                        (_, numer :: S s)  = runForwards Sigmoid (ds + 0.0001)
                         numericalGradient  = (numer - f) * 10000
                     in assert ((case numericalGradient - ret of
                            (S1D x) -> norm_Inf x < 0.0001

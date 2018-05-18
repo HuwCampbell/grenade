@@ -78,7 +78,7 @@ library
                        Grenade.Layers.Elu
                        Grenade.Layers.FullyConnected
                        Grenade.Layers.Inception
-                       Grenade.Layers.Logit
+                       Grenade.Layers.Sigmoid
                        Grenade.Layers.Merge
                        Grenade.Layers.Pad
                        Grenade.Layers.Pooling
