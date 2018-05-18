@@ -69,7 +69,7 @@ genNetwork =
                  D1Sing l@SNat ->
                    Gen.choice [
                      pure (SomeNetwork (Tanh    :~> rest :: Network ( Tanh    ': layers ) ( h ': h ': hs )))
-                   , pure (SomeNetwork (Logit   :~> rest :: Network ( Logit   ': layers ) ( h ': h ': hs )))
+                   , pure (SomeNetwork (Sigmoid :~> rest :: Network ( Sigmoid ': layers ) ( h ': h ': hs )))
                    , pure (SomeNetwork (Relu    :~> rest :: Network ( Relu    ': layers ) ( h ': h ': hs )))
                    , pure (SomeNetwork (Elu     :~> rest :: Network ( Elu     ': layers ) ( h ': h ': hs )))
                    , pure (SomeNetwork (Softmax :~> rest :: Network ( Softmax ': layers ) ( h ': h ': hs )))
@@ -90,7 +90,7 @@ genNetwork =
                  D2Sing r@SNat c@SNat ->
                    Gen.choice [
                      pure (SomeNetwork (Tanh    :~> rest :: Network ( Tanh    ': layers ) ( h ': h ': hs )))
-                   , pure (SomeNetwork (Logit   :~> rest :: Network ( Logit   ': layers ) ( h ': h ': hs )))
+                   , pure (SomeNetwork (Sigmoid :~> rest :: Network ( Sigmoid ': layers ) ( h ': h ': hs )))
                    , pure (SomeNetwork (Relu    :~> rest :: Network ( Relu    ': layers ) ( h ': h ': hs )))
                    , pure (SomeNetwork (Elu     :~> rest :: Network ( Elu     ': layers ) ( h ': h ': hs )))
                    , do -- Build a convolution layer with one filter output
@@ -269,7 +269,7 @@ genNetwork =
                  D3Sing r@SNat c@SNat f@SNat ->
                    Gen.choice [
                      pure (SomeNetwork (Tanh    :~> rest :: Network ( Tanh    ': layers ) ( h ': h ': hs )))
-                   , pure (SomeNetwork (Logit   :~> rest :: Network ( Logit   ': layers ) ( h ': h ': hs )))
+                   , pure (SomeNetwork (Sigmoid :~> rest :: Network ( Sigmoid ': layers ) ( h ': h ': hs )))
                    , pure (SomeNetwork (Relu    :~> rest :: Network ( Relu    ': layers ) ( h ': h ': hs )))
                    , pure (SomeNetwork (Elu     :~> rest :: Network ( Elu     ': layers ) ( h ': h ': hs )))
                    , do -- Build a convolution layer with one filter output
