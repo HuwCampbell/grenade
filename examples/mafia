@@ -1,0 +1,62 @@
+#!/bin/sh -eu
+
+: ${MAFIA_HOME:=$HOME/.mafia}
+: ${MAFIA_VERSIONS:=$MAFIA_HOME/versions}
+
+latest_version () {
+    git ls-remote https://github.com/haskell-mafia/mafia | grep refs/heads/master | cut -f 1
+}
+
+build_version() {
+    MAFIA_VERSION="$1"
+    MAFIA_TEMP=$(mktemp -d 2>/dev/null || mktemp -d -t 'exec_mafia')
+    MAFIA_FILE=mafia-$MAFIA_VERSION
+    MAFIA_PATH=$MAFIA_VERSIONS/$MAFIA_FILE
+    mkdir -p $MAFIA_VERSIONS
+    echo "Building $MAFIA_FILE in $MAFIA_TEMP"
+    git clone https://github.com/haskell-mafia/mafia $MAFIA_TEMP
+    git --git-dir="$MAFIA_TEMP/.git" --work-tree="$MAFIA_TEMP" reset --hard $MAFIA_VERSION || {
+        echo "mafia version ($MAFIA_VERSION) could not be found." >&2
+        exit 1
+    }
+    (cd "$MAFIA_TEMP" && ./bin/bootstrap) || {
+        got=$?
+        echo "mafia version ($MAFIA_VERSION) could not be built." >&2
+        exit "$got"
+    }
+    chmod +x "$MAFIA_TEMP/.cabal-sandbox/bin/mafia"
+    # Ensure executable is on same file-system so final mv is atomic.
+    mv -f "$MAFIA_TEMP/.cabal-sandbox/bin/mafia" "$MAFIA_PATH.$$"
+    mv "$MAFIA_PATH.$$" "$MAFIA_PATH" || {
+        rm -f "$MAFIA_PATH.$$"
+        echo "INFO: mafia version ($MAFIA_VERSION) already exists not overiding," >&2
+        echo "INFO: this is expected if parallel builds of the same version of" >&2
+        echo "INFO: mafia occur, we are playing by first in, wins." >&2
+        exit 0
+    }
+}
+
+enable_version() {
+    if [ $# -eq 0 ]; then
+        MAFIA_VERSION="$(latest_version)"
+        echo "INFO: No explicit mafia version requested installing latest ($MAFIA_VERSION)." >&2
+    else
+        MAFIA_VERSION="$1"
+    fi
+    [ -x "$MAFIA_HOME/versions/mafia-$MAFIA_VERSION" ] || build_version "$MAFIA_VERSION"
+    ln -sf "$MAFIA_HOME/versions/mafia-$MAFIA_VERSION" "$MAFIA_HOME/versions/mafia"
+}
+
+exec_mafia () {
+    [ -x "$MAFIA_HOME/versions/mafia" ] || enable_version
+    "$MAFIA_HOME/versions/mafia" "$@"
+}
+
+#
+# The actual start of the script.....
+#
+
+case "${1:-}" in
+upgrade) shift; enable_version "$@" ;;
+*) exec_mafia "$@"
+esac
