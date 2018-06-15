@@ -30,7 +30,9 @@ data Dropout = Dropout {
 instance UpdateLayer Dropout where
   type Gradient Dropout = ()
   runUpdate _ x _ = x
-  createRandom = randomDropout 0.95
+
+instance RandomLayer Dropout where
+  createRandomWith _ = randomDropout 0.95
 
 randomDropout :: MonadRandom m
               => Double -> m Dropout

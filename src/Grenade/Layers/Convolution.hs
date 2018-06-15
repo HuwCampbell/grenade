@@ -24,7 +24,6 @@ This module provides the Convolution layer, which is critical in many computer v
 module Grenade.Layers.Convolution (
     Convolution (..)
   , Convolution' (..)
-  , randomConvolution
   ) where
 
 import           Control.Monad.Random                hiding (fromList)
@@ -126,21 +125,20 @@ instance Show (Convolution c f k k' s s') where
             px = (fmap . fmap . fmap) render ms
         in unlines $ foldl1 (zipWith (\a' b' -> a' ++ "   |   " ++ b')) $ px
 
-randomConvolution :: ( MonadRandom m
-                     , KnownNat channels
-                     , KnownNat filters
-                     , KnownNat kernelRows
-                     , KnownNat kernelColumns
-                     , KnownNat strideRows
-                     , KnownNat strideColumns
-                     , KnownNat kernelFlattened
-                     , kernelFlattened ~ (kernelRows * kernelColumns * channels))
-                  => m (Convolution channels filters kernelRows kernelColumns strideRows strideColumns)
-randomConvolution = do
-    s     <- getRandom
-    let wN = uniformSample s (-1) 1
-        mm = konst 0
+
+instance ( KnownNat c
+         , KnownNat f
+         , KnownNat k
+         , KnownNat k'
+         , KnownNat s
+         , KnownNat s'
+         , KnownNat ((k * k') * c)) => RandomLayer (Convolution c f k k' s s') where
+  createRandomWith m = do
+    wN <- getRandomMatrix i i m
+    let mm = konst 0
     return $ Convolution wN mm
+    where i = natVal (Proxy :: Proxy ((k * k') * c))
+
 
 instance ( KnownNat channels
          , KnownNat filters
@@ -155,7 +153,6 @@ instance ( KnownNat channels
     let (newKernel, newMomentum) = descendMatrix learningRate learningMomentum learningRegulariser oldKernel kernelGradient oldMomentum
     in Convolution newKernel newMomentum
 
-  createRandom = randomConvolution
 
 instance ( KnownNat channels
          , KnownNat filters

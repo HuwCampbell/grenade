@@ -61,7 +61,9 @@ instance Show (Pooling k k' s s') where
 instance UpdateLayer (Pooling kernelRows kernelColumns strideRows strideColumns) where
   type Gradient (Pooling kernelRows kernelColumns strideRows strideColumns) = ()
   runUpdate _ Pooling _ = Pooling
-  createRandom = return Pooling
+
+instance RandomLayer (Pooling k k' s s') where
+  createRandomWith _ = return Pooling
 
 instance Serialize (Pooling kernelRows kernelColumns strideRows strideColumns) where
   put _ = return ()

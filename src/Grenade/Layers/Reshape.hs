@@ -43,7 +43,9 @@ data Reshape = Reshape
 instance UpdateLayer Reshape where
   type Gradient Reshape = ()
   runUpdate _ _ _ = Reshape
-  createRandom = return Reshape
+
+instance RandomLayer Reshape where
+  createRandomWith _ = return Reshape
 
 instance (KnownNat a, KnownNat x, KnownNat y, a ~ (x * y)) => Layer Reshape ('D2 x y) ('D1 a) where
   type Tape Reshape ('D2 x y) ('D1 a) = ()

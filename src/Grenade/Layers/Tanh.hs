@@ -31,7 +31,9 @@ data Tanh = Tanh
 instance UpdateLayer Tanh where
   type Gradient Tanh = ()
   runUpdate _ _ _ = Tanh
-  createRandom = return Tanh
+
+instance RandomLayer Tanh where
+  createRandomWith _ = return Tanh
 
 instance Serialize Tanh where
   put _ = return ()

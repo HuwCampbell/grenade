@@ -98,9 +98,9 @@ library
                        Grenade.Core.Network
                        Grenade.Core.Runner
                        Grenade.Core.Shape
+                       Grenade.Core.WeightInitialization
 
                        Grenade.Layers
-                       Grenade.Layers.BatchNorm
                        Grenade.Layers.Concat
                        Grenade.Layers.Convolution
                        Grenade.Layers.Crop

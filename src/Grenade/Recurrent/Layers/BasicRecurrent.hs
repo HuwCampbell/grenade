@@ -1,22 +1,23 @@
 {-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE InstanceSigs          #-}
+{-# LANGUAGE KindSignatures        #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PolyKinds             #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
 
 module Grenade.Recurrent.Layers.BasicRecurrent (
     BasicRecurrent (..)
-  , randomBasicRecurrent
   ) where
 
 
-
-import           Control.Monad.Random ( MonadRandom, getRandom )
-
+import           Data.Proxy
 import           Data.Singletons.TypeLits
 
 #if MIN_VERSION_base(4,9,0)
@@ -68,7 +69,16 @@ instance (KnownNat i, KnownNat o, KnownNat (i + o)) => UpdateLayer (BasicRecurre
         newActivations  = oldActivations + newMomentum - regulariser
     in BasicRecurrent newBias newBiasMomentum newActivations newMomentum
 
-  createRandom = randomBasicRecurrent
+instance (KnownNat i, KnownNat o, KnownNat x, x ~ (i+o)) => RandomLayer (BasicRecurrent i o) where
+  createRandomWith m = do
+    wB <- getRandomVector i o m
+    wN <- getRandomMatrix i o m
+    let bm = konst 0
+        mm = konst 0
+    return $ BasicRecurrent wB bm wN mm
+      where i = natVal (Proxy :: Proxy i)
+            o = natVal (Proxy :: Proxy o)
+
 
 instance (KnownNat i, KnownNat o, KnownNat (i + o), i <= (i + o), o ~ ((i + o) - i)) => RecurrentUpdateLayer (BasicRecurrent i o) where
   type RecurrentShape (BasicRecurrent i o) = S ('D1 o)
@@ -89,13 +99,3 @@ instance (KnownNat i, KnownNat o, KnownNat (i + o), i <= (i + o), o ~ ((i + o) -
         (backGrad, recGrad) = split $ tr wN #> (dRec + dEdy)
     in  (BasicRecurrent' biasGradient layerGrad, S1D recGrad, S1D backGrad)
 
-randomBasicRecurrent :: (MonadRandom m, KnownNat i, KnownNat o, KnownNat x, x ~ (i + o))
-                     => m (BasicRecurrent i o)
-randomBasicRecurrent = do
-    seed1 <- getRandom
-    seed2 <- getRandom
-    let wB = randomVector seed1 Uniform * 2 - 1
-        wN = uniformSample seed2 (-1) 1
-        bm = konst 0
-        mm = konst 0
-    return $ BasicRecurrent wB bm wN mm

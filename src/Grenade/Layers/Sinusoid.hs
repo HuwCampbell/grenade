@@ -32,7 +32,9 @@ data Sinusoid = Sinusoid
 instance UpdateLayer Sinusoid where
   type Gradient Sinusoid  = ()
   runUpdate _ _ _ = Sinusoid
-  createRandom = return Sinusoid
+
+instance RandomLayer Sinusoid where
+  createRandomWith _ = return Sinusoid
 
 instance Serialize Sinusoid where
   put _ = return ()

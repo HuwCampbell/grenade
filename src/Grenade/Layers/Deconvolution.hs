@@ -26,7 +26,6 @@ images.
 module Grenade.Layers.Deconvolution (
     Deconvolution (..)
   , Deconvolution' (..)
-  , randomDeconvolution
   ) where
 
 import           Control.Monad.Random                hiding (fromList)
@@ -124,21 +123,19 @@ instance Show (Deconvolution c f k k' s s') where
             px = (fmap . fmap . fmap) render ms
         in unlines $ foldl1 (zipWith (\a' b' -> a' ++ "   |   " ++ b')) $ px
 
-randomDeconvolution :: ( MonadRandom m
-                     , KnownNat channels
-                     , KnownNat filters
-                     , KnownNat kernelRows
-                     , KnownNat kernelColumns
-                     , KnownNat strideRows
-                     , KnownNat strideColumns
-                     , KnownNat kernelFlattened
-                     , kernelFlattened ~ (kernelRows * kernelColumns * filters))
-                  => m (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns)
-randomDeconvolution = do
-    s     <- getRandom
-    let wN = uniformSample s (-1) 1
-        mm = konst 0
+instance ( KnownNat c
+         , KnownNat f
+         , KnownNat k
+         , KnownNat k'
+         , KnownNat s
+         , KnownNat s'
+         , KnownNat ((k * k') * f)
+         , KnownNat ((k * k') * c)) => RandomLayer (Deconvolution c f k k' s s') where
+  createRandomWith m = do
+    wN <- getRandomMatrix i i m
+    let mm = konst 0
     return $ Deconvolution wN mm
+    where i = natVal (Proxy :: Proxy ((k * k') * c))
 
 instance ( KnownNat channels
          , KnownNat filters
@@ -153,7 +150,6 @@ instance ( KnownNat channels
     let (newKernel, newMomentum) = descendMatrix learningRate learningMomentum learningRegulariser oldKernel kernelGradient oldMomentum
     in Deconvolution newKernel newMomentum
 
-  createRandom = randomDeconvolution
 
 instance ( KnownNat channels
          , KnownNat filters

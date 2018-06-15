@@ -37,7 +37,9 @@ data Logit = Logit
 instance UpdateLayer Logit where
   type Gradient Logit = ()
   runUpdate _ _ _ = Logit
-  createRandom = return Logit
+
+instance RandomLayer Logit where
+  createRandomWith _ = return Logit
 
 instance (a ~ b, SingI a) => Layer Logit a b where
   -- Wengert tape optimisation:

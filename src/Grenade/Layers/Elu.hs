@@ -33,7 +33,9 @@ data Elu = Elu
 instance UpdateLayer Elu where
   type Gradient Elu = ()
   runUpdate _ _ _ = Elu
-  createRandom = return Elu
+
+instance RandomLayer Elu where
+  createRandomWith _ = return Elu
 
 instance Serialize Elu where
   put _ = return ()

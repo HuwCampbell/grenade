@@ -40,7 +40,9 @@ data Softmax = Softmax
 instance UpdateLayer Softmax where
   type Gradient Softmax = ()
   runUpdate _ _ _ = Softmax
-  createRandom = return Softmax
+
+instance RandomLayer Softmax where
+  createRandomWith _ = return Softmax
 
 instance ( KnownNat i ) => Layer Softmax ('D1 i) ('D1 i) where
   type Tape Softmax ('D1 i) ('D1 i) = S ('D1 i)

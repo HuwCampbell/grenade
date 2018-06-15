@@ -1,5 +1,7 @@
 {-# LANGUAGE CPP                   #-}
 {-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE GADTs, DataKinds, PolyKinds, ScopedTypeVariables #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE RankNTypes            #-}
@@ -17,7 +19,7 @@ module Grenade.Recurrent.Layers.LSTM (
   , randomLSTM
   ) where
 
-import           Control.Monad.Random ( MonadRandom, getRandom )
+import           Control.Monad.Random ( MonadRandom )
 
 -- import           Data.List ( foldl1' )
 import           Data.Proxy
@@ -123,7 +125,9 @@ instance (KnownNat i, KnownNat o) => UpdateLayer (LSTM i o) where
 
   --   v :: forall x ix. (x -> (R ix)) -> x -> x -> R ix
   --   v e (e -> a) (e -> b) = a + b
-  createRandom = randomLSTM
+
+instance (KnownNat i, KnownNat o) => RandomLayer (LSTM i o) where
+  createRandomWith = randomLSTM
 
 instance (KnownNat i, KnownNat o) => RecurrentUpdateLayer (LSTM i o) where
   -- The recurrent shape is the same size as the output.
@@ -210,18 +214,22 @@ instance (KnownNat i, KnownNat o) => RecurrentLayer (LSTM i o) ('D1 i) ('D1 o) w
 --   https://github.com/karpathy/char-rnn/commit/0dfeaa454e687dd0278f036552ea1e48a0a408c9
 --
 randomLSTM :: forall m i o. (MonadRandom m, KnownNat i, KnownNat o)
-           => m (LSTM i o)
-randomLSTM = do
-    let w = (\s -> uniformSample s (-1) 1 ) <$> getRandom
-        u = (\s -> uniformSample s (-1) 1 ) <$> getRandom
-        v = (\s -> randomVector s Uniform * 2 - 1) <$> getRandom
+           => WeightInitMethod -> m (LSTM i o)
+randomLSTM m = do
+  let w = getRandomMatrix i o m
+  let u = getRandomMatrix i o m
+  let v = getRandomVector i o m
 
-        w0 = konst 0
-        u0 = konst 0
-        v0 = konst 0
+  let w0 = konst 0
+      u0 = konst 0
+      v0 = konst 0
 
-    LSTM <$> (LSTMWeights <$> w <*> u <*> pure (konst 1) <*> w <*> u <*> v <*> w <*> u <*> v <*> w <*> v)
+  LSTM <$> (LSTMWeights <$> w <*> u <*> pure (konst 1) <*> w <*> u <*> v <*> w <*> u <*> v <*> w <*> v)
          <*> pure (LSTMWeights w0 u0 v0 w0 u0 v0 w0 u0 v0 w0 v0)
+
+  where i = natVal (Proxy :: Proxy i)
+        o = natVal (Proxy :: Proxy o)
+
 
 -- | Maths
 --

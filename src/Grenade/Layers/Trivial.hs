@@ -37,7 +37,9 @@ instance Serialize Trivial where
 instance UpdateLayer Trivial where
   type Gradient Trivial = ()
   runUpdate _ _ _ = Trivial
-  createRandom = return Trivial
+
+instance RandomLayer Trivial where
+  createRandomWith _ = return Trivial
 
 instance (a ~ b) => Layer Trivial a b where
   type Tape Trivial a b = ()

@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 {-# LANGUAGE CPP                   #-}
+=======
+{-# LANGUAGE AllowAmbiguousTypes   #-}
+>>>>>>> weight initialization implemented
 {-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
@@ -6,8 +10,10 @@
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Core.Layer
 Description : Defines the Layer Classes
@@ -37,11 +43,13 @@ runtime errors.
 module Grenade.Core.Layer (
     Layer (..)
   , UpdateLayer (..)
+  , RandomLayer (..)
+  , createRandom
   ) where
 
-import           Control.Monad.Random            (MonadRandom)
+import           Control.Monad.Random              (MonadRandom)
 
-import           Data.List                       (foldl')
+import           Data.List                         (foldl')
 
 #if MIN_VERSION_base(4,9,0)
 import           Data.Kind                       (Type)
@@ -49,7 +57,7 @@ import           Data.Kind                       (Type)
 
 import           Grenade.Core.LearningParameters
 import           Grenade.Core.Shape
-import           Grenade.Core.Shape
+import           Grenade.Core.WeightInitialization
 
 -- | Class for updating a layer. All layers implement this, as it
 --   describes how to create and update the layer.
@@ -62,21 +70,17 @@ class UpdateLayer x where
   -- | Update a layer with its gradient and learning parameters
   runUpdate       :: LearningParameters -> x -> Gradient x -> x
 
-  -- | Create a random layer, many layers will use pure
-  createRandom    :: MonadRandom m => m x
-
   -- | Update a layer with many Gradients
   runUpdates      :: LearningParameters -> x -> [Gradient x] -> x
   runUpdates rate = foldl' (runUpdate rate)
 
-  {-# MINIMAL runUpdate, createRandom #-}
-
+  {-# MINIMAL runUpdate #-}
 
 -- | Class for a layer. All layers implement this, however, they don't
 --   need to implement it for all shapes, only ones which are
 --   appropriate.
 --
-class UpdateLayer x => Layer x (i :: Shape) (o :: Shape) where
+class (UpdateLayer x) => Layer x (i :: Shape) (o :: Shape) where
   -- | The Wengert tape for this layer. Includes all that is required
   --   to generate the back propagated gradients efficiently. As a
   --   default, `S i` is fine.
@@ -94,4 +98,16 @@ class UpdateLayer x => Layer x (i :: Shape) (o :: Shape) where
   --   further.
   runBackwards   :: x -> Tape x i o -> S o -> (Gradient x, S i)
 
+
+-- | Class for random initialization of a layer. This enables to use
+--   various initialization techniques for the networks. Every layer
+--   needs to implement this.
+class RandomLayer x where
+  -- | Create a random layer according to given initialization method.
+  createRandomWith    :: (MonadRandom m) => WeightInitMethod -> m x
+
+
+-- | Create a new random network. This uses the uniform initialization.
+createRandom :: (MonadRandom m, RandomLayer x)  => m x
+createRandom = createRandomWith UniformInit
 
