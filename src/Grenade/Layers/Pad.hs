@@ -49,7 +49,9 @@ instance Show (Pad padLeft padTop padRight padBottom) where
 instance UpdateLayer (Pad l t r b) where
   type Gradient (Pad l t r b) = ()
   runUpdate _ x _ = x
-  createRandom = return Pad
+
+instance RandomLayer (Pad l t r b)  where 
+  createRandomWith _ = return Pad
 
 instance Serialize (Pad l t r b) where
   put _ = return ()

@@ -58,7 +58,9 @@ instance (Show x, Show y) => Show (Concat m x n y) where
 instance (UpdateLayer x, UpdateLayer y) => UpdateLayer (Concat m x n y) where
   type Gradient (Concat m x n y) = (Gradient x, Gradient y)
   runUpdate lr (Concat x y) (x', y') = Concat (runUpdate lr x x') (runUpdate lr y y')
-  createRandom = Concat <$> createRandom <*> createRandom
+
+instance (RandomLayer x, RandomLayer y) => RandomLayer (Concat m x n y) where
+  createRandomWith m = Concat <$> createRandomWith m <*> createRandomWith m
 
 instance ( SingI i
          , Layer x i ('D1 o)

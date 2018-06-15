@@ -1,13 +1,15 @@
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE KindSignatures        #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PolyKinds             #-}
+{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-|
 Module      : Grenade.Layers.Concat
 Description : Concatenation layer
@@ -29,7 +31,7 @@ import           GHC.TypeLits
 import           Grenade.Core
 import           Grenade.Recurrent.Core
 
-import           Numeric.LinearAlgebra.Static ( (#), split, R )
+import           Numeric.LinearAlgebra.Static (R, split, ( # ))
 
 -- | A Concatentating Layer.
 --
@@ -58,22 +60,28 @@ instance (RecurrentUpdateLayer x, UpdateLayer y) => UpdateLayer (ConcatRecurrent
   type Gradient (ConcatRecurrent m (Recurrent x) n (FeedForward y)) = (Gradient x, Gradient y)
   runUpdate lr (ConcatRecLeft x y) (x', y')
     = ConcatRecLeft (runUpdate lr x x') (runUpdate lr y y')
-  createRandom
-    = ConcatRecLeft <$> createRandom <*> createRandom
+
+instance (RandomLayer x, RandomLayer y) => RandomLayer (ConcatRecurrent m (Recurrent x) n (FeedForward y)) where
+  createRandomWith m
+    = ConcatRecLeft <$> createRandomWith m <*> createRandomWith m
 
 instance (UpdateLayer x, RecurrentUpdateLayer y) => UpdateLayer (ConcatRecurrent m (FeedForward x) n (Recurrent y)) where
   type Gradient (ConcatRecurrent m (FeedForward x) n (Recurrent y)) = (Gradient x, Gradient y)
   runUpdate lr (ConcatRecRight x y) (x', y')
     = ConcatRecRight (runUpdate lr x x') (runUpdate lr y y')
-  createRandom
-    = ConcatRecRight <$> createRandom <*> createRandom
+
+instance (RandomLayer x, RandomLayer y) => RandomLayer (ConcatRecurrent m (FeedForward x) n (Recurrent y)) where
+  createRandomWith m
+    = ConcatRecRight <$> createRandomWith m <*> createRandomWith m
 
 instance (RecurrentUpdateLayer x, RecurrentUpdateLayer y) => UpdateLayer (ConcatRecurrent m (Recurrent x) n (Recurrent y)) where
   type Gradient (ConcatRecurrent m (Recurrent x) n (Recurrent y)) = (Gradient x, Gradient y)
   runUpdate lr (ConcatRecBoth x y) (x', y')
     = ConcatRecBoth (runUpdate lr x x') (runUpdate lr y y')
-  createRandom
-    = ConcatRecBoth <$> createRandom <*> createRandom
+
+instance (RandomLayer x, RandomLayer y) => RandomLayer (ConcatRecurrent m (Recurrent x) n (Recurrent y)) where
+  createRandomWith m
+    = ConcatRecBoth <$> createRandomWith m <*> createRandomWith m
 
 instance (RecurrentUpdateLayer x, UpdateLayer y) => RecurrentUpdateLayer (ConcatRecurrent m (Recurrent x) n (FeedForward y)) where
   type RecurrentShape (ConcatRecurrent m (Recurrent x) n (FeedForward y)) = RecurrentShape x

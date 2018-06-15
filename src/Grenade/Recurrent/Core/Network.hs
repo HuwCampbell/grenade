@@ -1,14 +1,14 @@
+{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE EmptyDataDecls        #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE EmptyDataDecls        #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
 
 module Grenade.Recurrent.Core.Network (
@@ -27,10 +27,10 @@ module Grenade.Recurrent.Core.Network (
   ) where
 
 
-import           Control.Monad.Random ( MonadRandom )
-import           Data.Singletons ( SingI )
-import           Data.Singletons.Prelude ( Head, Last )
+import           Control.Monad.Random         (MonadRandom)
 import           Data.Serialize
+import           Data.Singletons              (SingI)
+import           Data.Singletons.Prelude      (Head, Last)
 
 import           Grenade.Core
 import           Grenade.Recurrent.Core.Layer
@@ -206,22 +206,27 @@ instance (Show x, Show (RecurrentNetwork xs rs)) => Show (RecurrentNetwork (Recu
 --   recurrent network and a set of random inputs for it is with the randomRecurrent.
 class CreatableRecurrent (xs :: [*]) (ss :: [Shape]) where
   -- | Create a network of the types requested
-  randomRecurrent :: MonadRandom m => m (RecurrentNetwork xs ss)
+  randomRecurrentWith :: MonadRandom m => WeightInitMethod -> m (RecurrentNetwork xs ss)
+
+-- | Create a random recurrent network using uniform distribution.
+randomRecurrent :: (MonadRandom m, CreatableRecurrent xs ss) => m (RecurrentNetwork xs ss)
+randomRecurrent = randomRecurrentWith UniformInit
+
 
 instance SingI i => CreatableRecurrent '[] '[i] where
-  randomRecurrent =
+  randomRecurrentWith _ =
     return RNil
 
-instance (SingI i, Layer x i o, CreatableRecurrent xs (o ': rs)) => CreatableRecurrent (FeedForward x ': xs) (i ': o ': rs) where
-  randomRecurrent = do
-    thisLayer     <- createRandom
-    rest          <- randomRecurrent
+instance (SingI i, Layer x i o, CreatableRecurrent xs (o ': rs), RandomLayer x) => CreatableRecurrent (FeedForward x ': xs) (i ': o ': rs) where
+  randomRecurrentWith m = do
+    thisLayer     <- createRandomWith m
+    rest          <- randomRecurrentWith m
     return (thisLayer :~~> rest)
 
-instance (SingI i, RecurrentLayer x i o, CreatableRecurrent xs (o ':  rs)) => CreatableRecurrent (Recurrent x ': xs) (i ': o ': rs) where
-  randomRecurrent = do
-    thisLayer     <- createRandom
-    rest          <- randomRecurrent
+instance (SingI i, RecurrentLayer x i o, CreatableRecurrent xs (o ':  rs), RandomLayer x) => CreatableRecurrent (Recurrent x ': xs) (i ': o ': rs) where
+  randomRecurrentWith m = do
+    thisLayer     <- createRandomWith m
+    rest          <- randomRecurrentWith m
     return (thisLayer :~@> rest)
 
 -- | Add very simple serialisation to the recurrent network
@@ -306,7 +311,9 @@ instance (Fractional (RecurrentShape x), RecurrentUpdateLayer x, Fractional (Rec
 instance CreatableRecurrent sublayers subshapes => UpdateLayer (RecurrentNetwork sublayers subshapes) where
   type Gradient (RecurrentNetwork sublayers subshapes) = RecurrentGradient sublayers
   runUpdate    = applyRecurrentUpdate
-  createRandom = randomRecurrent
+
+instance CreatableRecurrent sublayers subshapes => RandomLayer (RecurrentNetwork sublayers subshapes) where
+  createRandomWith = randomRecurrentWith
 
 -- | Ultimate composition.
 --

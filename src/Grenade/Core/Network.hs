@@ -29,11 +29,12 @@ module Grenade.Core.Network (
   , runNetwork
   , runGradient
   , applyUpdate
+  , randomNetwork
 
   ) where
 
 import           Control.DeepSeq
-import           Control.Monad.Random            (MonadRandom)
+import           Control.Monad.Random              (MonadRandom)
 
 import           Data.Serialize
 import           Data.Singletons
@@ -42,6 +43,7 @@ import           Data.Singletons.Prelude
 import           Grenade.Core.Layer
 import           Grenade.Core.LearningParameters
 import           Grenade.Core.Shape
+import           Grenade.Core.WeightInitialization
 
 -- | Type of a network.
 --
@@ -171,13 +173,17 @@ class CreatableNetwork (xs :: [*]) (ss :: [Shape]) where
   --
   --   Calls to this function will not compile if the type of the neural
   --   network is not sound.
-  randomNetwork :: MonadRandom m => m (Network xs ss)
+  randomNetworkWith :: MonadRandom m => WeightInitMethod -> m (Network xs ss)
+
+-- | Create a random network using uniform distribution.
+randomNetwork :: (MonadRandom m, CreatableNetwork xs ss) => m (Network xs ss)
+randomNetwork = randomNetworkWith UniformInit
 
 instance SingI i => CreatableNetwork '[] '[i] where
-  randomNetwork = return NNil
+  randomNetworkWith _ = return NNil
 
-instance (SingI i, SingI o, Layer x i o, CreatableNetwork xs (o ': rs)) => CreatableNetwork (x ': xs) (i ': o ': rs) where
-  randomNetwork = (:~>) <$> createRandom <*> randomNetwork
+instance (SingI i, SingI o, Layer x i o, RandomLayer x, CreatableNetwork xs (o ': rs)) => CreatableNetwork (x ': xs) (i ': o ': rs) where
+  randomNetworkWith m = (:~>) <$> createRandomWith m <*> randomNetworkWith m
 
 -- | Add very simple serialisation to the network
 instance SingI i => Serialize (Network '[] '[i]) where
@@ -195,7 +201,9 @@ instance (SingI i, SingI o, Layer x i o, Serialize x, Serialize (Network xs (o '
 instance CreatableNetwork sublayers subshapes => UpdateLayer (Network sublayers subshapes) where
   type Gradient (Network sublayers subshapes) = Gradients sublayers
   runUpdate    = applyUpdate
-  createRandom = randomNetwork
+
+instance  CreatableNetwork sublayers subshapes => RandomLayer (Network sublayers subshapes) where
+  createRandomWith = randomNetworkWith
 
 -- | Ultimate composition.
 --

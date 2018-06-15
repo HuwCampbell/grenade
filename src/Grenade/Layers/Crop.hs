@@ -45,9 +45,8 @@ instance Show (Crop cropLeft cropTop cropRight cropBottom) where
 instance UpdateLayer (Crop l t r b) where
   type Gradient (Crop l t r b) = ()
   runUpdate _ x _ = x
-  createRandom = return Crop
 
--- | A two dimentional image can be cropped.
+-- | A two dimensional image can be cropped.
 instance ( KnownNat cropLeft
          , KnownNat cropTop
          , KnownNat cropRight
@@ -78,7 +77,7 @@ instance ( KnownNat cropLeft
     in  ((), S2D . fromJust . create $ vs)
 
 
--- | A two dimentional image can be cropped.
+-- | A three dimensional image can be cropped.
 instance ( KnownNat cropLeft
          , KnownNat cropTop
          , KnownNat cropRight
@@ -121,3 +120,15 @@ instance ( KnownNat cropLeft
         m     = extract gradient
         padded = pad ch padl padt padr padb outr outc inr inc m
     in  ((), S3D . fromJust . create $ padded)
+
+
+instance RandomLayer (Crop l t r b) where
+  createRandomWith _ = return Crop
+
+
+-------------------- GNum instances --------------------
+
+instance GNum (Crop l t r b) where
+  _ |* x = x
+  _ |+ x = x
+  gFromRational _ = Crop

@@ -35,6 +35,24 @@ executable             feedforward
                      , semigroups
                      , MonadRandom
 
+executable             feedforwardweightinit
+    ghc-options:       -Wall -threaded -O2
+    main-is:           main/feedforwardweightinit.hs
+    build-depends:     base
+                     , grenade
+                     , attoparsec
+                     , bytestring
+                     , cereal
+                     , either
+                     , optparse-applicative            >= 0.13       && < 0.15
+                     , text                            == 1.2.*
+                     , mtl                             >= 2.2.1      && < 2.3
+                     , hmatrix
+                     , transformers
+                     , singletons
+                     , semigroups
+                     , MonadRandom
+
 executable             mnist
     ghc-options:       -Wall -threaded -O2
     main-is:           main/mnist.hs

@@ -52,9 +52,6 @@ instance (KnownNat i, KnownNat o) => UpdateLayer (FullyConnected i o) where
         (newActivations, newMomentum) = descendMatrix learningRate learningMomentum learningRegulariser oldActivations activationGradient oldMomentum
     in FullyConnected (FullyConnected' newBias newActivations) (FullyConnected' newBiasMomentum newMomentum)
 
-  createRandom = randomFullyConnected
-
-
 instance (KnownNat i, KnownNat o) => Layer (FullyConnected i o) ('D1 i) ('D1 o) where
   type Tape (FullyConnected i o) ('D1 i) ('D1 o) = R i
   -- Do a matrix vector multiplication and return the result.
@@ -81,17 +78,21 @@ instance (KnownNat i, KnownNat o) => Serialize (FullyConnected i o) where
       let mm = konst 0
       return $ FullyConnected (FullyConnected' b k) (FullyConnected' bm mm)
 
+instance (KnownNat i, KnownNat o) => RandomLayer (FullyConnected i o) where
+
+  createRandomWith = randomFullyConnected
+
+
 randomFullyConnected :: forall m i o . (MonadRandom m, KnownNat i, KnownNat o)
-                     => m (FullyConnected i o)
-randomFullyConnected = do
-    s1    <- getRandom
-    s2    <- getRandom
-    let wB = randomVector  s1 Uniform * 2 - 1
-        wN = 1/sqrt (fromIntegral i) * uniformSample s2 (-1) 1
-        bm = konst 0
-        mm = konst 0
-    return $ FullyConnected (FullyConnected' wB wN) (FullyConnected' bm mm)
+                     => WeightInitMethod -> m (FullyConnected i o)
+randomFullyConnected m = do
+  wN <- getRandomMatrix i o m
+  wB <- getRandomVector i o m
+  let bm = konst 0
+      mm = konst 0
+  return $ FullyConnected (FullyConnected' wB wN) (FullyConnected' bm mm)
   where i = natVal (Proxy :: Proxy i)
+        o = natVal (Proxy :: Proxy o)
 
 
 -------------------- GNum instances --------------------

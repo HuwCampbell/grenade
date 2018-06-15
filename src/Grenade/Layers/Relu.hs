@@ -33,7 +33,9 @@ data Relu = Relu
 instance UpdateLayer Relu where
   type Gradient Relu = ()
   runUpdate _ _ _ = Relu
-  createRandom = return Relu
+
+instance RandomLayer Relu where
+  createRandomWith _ = return Relu
 
 instance Serialize Relu where
   put _ = return ()
