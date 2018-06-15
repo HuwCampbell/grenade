@@ -33,7 +33,7 @@ import           Numeric.LinearAlgebra.Static
 
 data WeightInitMethod = UniformInit       -- ^ W_l,i ~ U(-1/sqrt(n_l),1/sqrt(n_l))                   where n_l is the number of nodes in layer l
                       | Xavier            -- ^ W_l,i ~ U(-sqrt (6/n_l+n_{l+1}),sqrt (6/n_l+n_{l+1})) where n_l is the number of nodes in layer l
-                      | HeEtAl            -- ^ W_l,i ~ N(0,2/n_l)                                    where n_l is the number of nodes in layer l
+                      | HeEtAl            -- ^ W_l,i ~ N(0,sqrt(2/n_l))                              where n_l is the number of nodes in layer l
 
 
 -- | Get a random vector initialized according to the specified method.
