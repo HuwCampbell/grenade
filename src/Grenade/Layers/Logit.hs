@@ -63,3 +63,11 @@ instance Serialize Logit where
 
 sigmoid :: Floating a => a -> a
 sigmoid x = 1 / (1 + exp (-x))
+
+
+-------------------- GNum instances --------------------
+
+instance GNum Logit where
+  _ |* x = x
+  _ |+ x = x
+  gFromRational _ = Logit

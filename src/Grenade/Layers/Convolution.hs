@@ -299,12 +299,17 @@ instance ( KnownNat kernelRows
 -------------------- GNum instances --------------------
 
 
-instance (GNum x, GNum y) => GNum (Convolution channels filters kernelRows kernelCols strideRows strideCols) where
-  n |* (Convolution x y) = Concat (n |* x) (n |* y)
-  (Concat x1 y1) |+ (Concat x2 y2)  = Concat (x1|+x2) (y1|+y2)
-  gFromRational r = Concat (gFromRational r) (gFromRational r)
+instance (KnownNat strideCols,KnownNat strideRows,KnownNat kernelCols,KnownNat kernelRows,KnownNat filters,KnownNat channels,KnownNat
+                          ((kernelRows * kernelCols) * channels)) => GNum (Convolution channels filters kernelRows kernelCols strideRows strideCols) where
+  n |* (Convolution w m) = Convolution (fromRational n * w) m
+  (Convolution w m) |+ (Convolution w2 m2)  = Convolution (fromRational 0.5 * (w+w2)) (fromRational 0.5 * (m+m2))
+  gFromRational r = Convolution (fromRational r) (fromRational r)
 
 
-instance GNum (Convolution' c f k k' s s') where
+instance (KnownNat strideCols,KnownNat strideRows,KnownNat kernelCols,KnownNat kernelRows,KnownNat filters,KnownNat channels,KnownNat
+                          ((kernelRows * kernelCols) * channels)) => GNum (Convolution' channels filters kernelRows kernelCols strideRows strideCols) where
+  _ |* (Convolution' g) = Convolution' g
+  (Convolution' g) |+ (Convolution' g2)  = Convolution' (fromRational 0.5 * (g+g2)) 
+  gFromRational r = Convolution' (fromRational r)
 
   

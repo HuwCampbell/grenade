@@ -285,3 +285,20 @@ instance (KnownNat i, KnownNat o) => Serialize (LSTM i o) where
     w0 = konst 0
     u0 = konst 0
     v0 = konst 0
+
+
+-------------------- GNum instances --------------------
+
+instance (KnownNat i, KnownNat o) => GNum (LSTM i o) where
+  n |* (LSTM w m) = LSTM (n |* w) m
+  (LSTM w1 m1) |+ (LSTM w2 m2)  = LSTM (0.5 |* (w1|+w2)) (0.5 |* (m1|+m2))
+  gFromRational r = LSTM (gFromRational r) (gFromRational r)
+
+
+instance (KnownNat i, KnownNat o) => GNum (LSTMWeights i o) where
+  n |* (LSTMWeights wf uf bf wi ui bi wo uo bo wc bc) = LSTMWeights (fromRational n * wf) (fromRational n * uf) (fromRational n * bf) (fromRational n * wi) (fromRational n * ui)
+    (fromRational n * bi) (fromRational n * wo) (fromRational n * uo) (fromRational n * bo) (fromRational n * wc) (fromRational n * bc)
+  (LSTMWeights wf1 uf1 bf1 wi1 ui1 bi1 wo1 uo1 bo1 wc1 bc1) |+ (LSTMWeights wf2 uf2 bf2 wi2 ui2 bi2 wo2 uo2 bo2 wc2 bc2)  = LSTMWeights (0.5 * (wf1 + wf2)) (0.5 * (uf1+uf2)) (0.5 * (bf1+bf2))
+    (0.5 * (wi1+wi2)) (0.5 * (ui1+ui2)) (0.5 * (bi1+bi2)) (0.5 * (wo1+wo2)) (0.5 * (uo1+uo2)) (0.5 * (bo1+bo2)) (0.5 * (wc1+wc2)) (0.5 * (bc1+bc2))
+  gFromRational r = LSTMWeights (fromRational r) (fromRational r) (fromRational r) (fromRational r) (fromRational r) (fromRational r) (fromRational r) (fromRational r) (fromRational r)
+    (fromRational r) (fromRational r)

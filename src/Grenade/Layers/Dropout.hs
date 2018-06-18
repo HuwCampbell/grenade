@@ -44,3 +44,11 @@ instance (KnownNat i) => Layer Dropout ('D1 i) ('D1 i) where
   type Tape Dropout ('D1 i) ('D1 i) = ()
   runForwards (Dropout _ _) (S1D x) = ((), S1D x)
   runBackwards (Dropout _ _) _ (S1D x) = ((),  S1D x)
+
+-------------------- GNum instance --------------------
+
+instance GNum Dropout where
+  _ |* x = x
+  _ |+ x = x
+  gFromRational r = Dropout 0.95 (round r)
+

@@ -180,3 +180,16 @@ instance (Serialize a, Serialize b) => Serialize (ConcatRecurrent sa (Recurrent 
 instance (Serialize a, Serialize b) => Serialize (ConcatRecurrent sa (Recurrent a) sb (FeedForward b)) where
   put (ConcatRecLeft a b) = put a *> put b
   get = ConcatRecLeft <$> get <*> get
+
+
+-------------------- GNum instances --------------------
+
+instance (GNum x, GNum y) => GNum (ConcatRecurrent m (p x) n (q y)) where
+  n |* (ConcatRecLeft x y) = ConcatRecLeft (n |* x) (n |* y)
+  n |* (ConcatRecRight x y) = ConcatRecRight (n |* x) (n |* y)
+  n |* (ConcatRecBoth x y) = ConcatRecBoth (n |* x) (n |* y)
+  (ConcatRecLeft x1 y1) |+ (ConcatRecLeft x2 y2)  = ConcatRecLeft (x1|+x2) (y1|+y2)
+  (ConcatRecRight x1 y1) |+ (ConcatRecRight x2 y2)  = ConcatRecRight (x1|+x2) (y1|+y2)
+  (ConcatRecBoth x1 y1) |+ (ConcatRecBoth x2 y2)  = ConcatRecBoth (x1|+x2) (y1|+y2)
+  gFromRational _ = error "ConcatRecurrent.gFromRational must not be called"
+

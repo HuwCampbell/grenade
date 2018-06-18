@@ -94,3 +94,11 @@ instance (KnownNat i, KnownNat o, KnownNat (i + o), i <= (i + o), o ~ ((i + o) -
         (backGrad, recGrad) = split $ tr wN #> (dRec + dEdy)
     in  (BasicRecurrent' biasGradient layerGrad, S1D recGrad, S1D backGrad)
 
+
+-------------------- GNum instances --------------------
+
+instance (KnownNat i,KnownNat o,KnownNat (i+o)) => GNum (BasicRecurrent i o) where
+  n |* (BasicRecurrent wB mB a nM) = (BasicRecurrent (fromRational n * wB) mB a nM)
+  (BasicRecurrent wB mB a nM) |+ (BasicRecurrent wB2 mB2 a2 nM2)  = (BasicRecurrent (0.5 * (wB + wB2)) (0.5* (mB+mB2)) (0.5 * (a+a2)) (0.5 * (nM + nM2)))
+  gFromRational r = (BasicRecurrent (fromRational r) 0 (fromRational r) 0)
+

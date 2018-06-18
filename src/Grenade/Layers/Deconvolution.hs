@@ -289,3 +289,22 @@ instance ( KnownNat kernelRows
 
         xW = col2vid 1 1 1 1 ix iy dW
     in  (Deconvolution' kN, S3D . fromJust . create $ xW)
+
+
+-------------------- GNum instances --------------------
+
+
+instance (KnownNat strideCols,KnownNat strideRows,KnownNat kernelCols,KnownNat kernelRows,KnownNat filters,KnownNat channels,KnownNat ((kernelRows * kernelCols) * filters),KnownNat
+                          ((kernelRows * kernelCols) * channels)) => GNum (Deconvolution channels filters kernelRows kernelCols strideRows strideCols) where
+  n |* (Deconvolution w m) = Deconvolution (fromRational n * w) m
+  (Deconvolution w m) |+ (Deconvolution w2 m2)  = Deconvolution (fromRational 0.5 * (w+w2)) (fromRational 0.5 * (m+m2))
+  gFromRational r = Deconvolution (fromRational r) (fromRational r)
+
+
+instance (KnownNat strideCols,KnownNat strideRows,KnownNat kernelCols,KnownNat kernelRows,KnownNat filters,KnownNat channels,KnownNat ((kernelRows * kernelCols) * filters),KnownNat
+                          ((kernelRows * kernelCols) * channels)) => GNum (Deconvolution' channels filters kernelRows kernelCols strideRows strideCols) where
+  _ |* (Deconvolution' g) = Deconvolution' g
+  (Deconvolution' g) |+ (Deconvolution' g2)  = Deconvolution' (fromRational 0.5 * (g+g2)) 
+  gFromRational r = Deconvolution' (fromRational r)
+
+  
