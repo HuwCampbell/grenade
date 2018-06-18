@@ -140,3 +140,11 @@ instance ( KnownNat padLeft
         m     = extract gradient
         cropped = crop ch padl padt padr padb inr inc outr outc m
     in  ((), S3D . fromJust . create $ cropped)
+
+
+-------------------- GNum instance --------------------
+
+instance GNum (Pad l t r b) where
+  _ |* _ = Pad
+  _ |+ _ = Pad
+  gFromRational _ = Pad 

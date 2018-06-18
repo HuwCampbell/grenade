@@ -145,3 +145,10 @@ instance ( KnownNat kernelRows
         eo = extract dEdy
         vs = poolBackward ch ix iy kx ky sx sy ex eo
     in  ((), S3D . fromJust . create $ vs)
+
+-------------------- GNum instance --------------------
+
+instance GNum (Pooling k k' s s') where
+  _ |* _ = Pooling
+  _ |+ _ = Pooling
+  gFromRational _ = Pooling 
