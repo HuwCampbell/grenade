@@ -57,7 +57,7 @@ instance Serialize (Pad l t r b) where
   put _ = return ()
   get = return Pad
 
--- | A two dimentional image can be padped.
+-- | A two dimentional image can be padded.
 instance ( KnownNat padLeft
          , KnownNat padTop
          , KnownNat padRight
@@ -87,7 +87,7 @@ instance ( KnownNat padLeft
         vs    = subMatrix (padt, padl) (nrows, ncols) m
     in  ((), S2D . fromJust . create $ vs)
 
--- | A two dimentional image can be padped.
+-- | A two dimentional image can be padded.
 instance ( KnownNat padLeft
          , KnownNat padTop
          , KnownNat padRight
