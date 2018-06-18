@@ -123,7 +123,7 @@ instance ( KnownNat cropLeft
 
 
 instance RandomLayer (Crop l t r b) where
-  createRandomWith _ = return Crop
+  createRandomWith _ _ = return Crop
 
 
 -------------------- GNum instances --------------------

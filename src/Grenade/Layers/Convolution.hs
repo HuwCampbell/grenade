@@ -1,3 +1,4 @@
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DataKinds             #-}
@@ -122,9 +123,10 @@ instance ( KnownNat c
          , KnownNat k'
          , KnownNat s
          , KnownNat s'
-         , KnownNat ((k * k') * c)) => RandomLayer (Convolution c f k k' s s') where
-  createRandomWith m = do
-    wN <- getRandomMatrix i i m
+         , KnownNat ((k * k') * c)
+         , KnownNat (f * ((k * k') * c))) => RandomLayer (Convolution c f k k' s s') where
+  createRandomWith m gen = do
+    wN <- getRandomMatrix i i m gen
     let mm = konst 0
     return $ Convolution wN mm
     where i = natVal (Proxy :: Proxy ((k * k') * c))
@@ -292,3 +294,17 @@ instance ( KnownNat kernelRows
 
   runBackwards c tape (S2D grads) =
     runBackwards c tape (S3D grads :: S ('D3 outputRows outputCols 1))
+
+
+-------------------- GNum instances --------------------
+
+
+instance (GNum x, GNum y) => GNum (Convolution channels filters kernelRows kernelCols strideRows strideCols) where
+  n |* (Convolution x y) = Concat (n |* x) (n |* y)
+  (Concat x1 y1) |+ (Concat x2 y2)  = Concat (x1|+x2) (y1|+y2)
+  gFromRational r = Concat (gFromRational r) (gFromRational r)
+
+
+instance GNum (Convolution' c f k k' s s') where
+
+  

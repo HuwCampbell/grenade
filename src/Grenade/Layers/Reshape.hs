@@ -44,7 +44,7 @@ instance UpdateLayer Reshape where
   runUpdate _ _ _ = Reshape
 
 instance RandomLayer Reshape where
-  createRandomWith _ = return Reshape
+  createRandomWith _ _ = return Reshape
 
 instance (KnownNat a, KnownNat x, KnownNat y, a ~ (x * y)) => Layer Reshape ('D2 x y) ('D1 a) where
   type Tape Reshape ('D2 x y) ('D1 a) = ()

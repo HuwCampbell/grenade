@@ -35,7 +35,7 @@ instance UpdateLayer Relu where
   runUpdate _ _ _ = Relu
 
 instance RandomLayer Relu where
-  createRandomWith _ = return Relu
+  createRandomWith _ _ = return Relu
 
 instance Serialize Relu where
   put _ = return ()

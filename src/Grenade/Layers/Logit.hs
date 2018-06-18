@@ -39,7 +39,7 @@ instance UpdateLayer Logit where
   runUpdate _ _ _ = Logit
 
 instance RandomLayer Logit where
-  createRandomWith _ = return Logit
+  createRandomWith _ _ = return Logit
 
 instance (a ~ b, SingI a) => Layer Logit a b where
   -- Wengert tape optimisation:

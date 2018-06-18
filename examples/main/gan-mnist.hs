@@ -1,11 +1,11 @@
-{-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TupleSections         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections       #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeOperators       #-}
 
 -- This is a simple generative adversarial network to make pictures
 -- of numbers similar to those in MNIST.
@@ -40,17 +40,17 @@ import           Control.Monad
 import           Control.Monad.Random
 import           Control.Monad.Trans.Except
 
-import qualified Data.Attoparsec.Text as A
-import qualified Data.ByteString as B
-import           Data.List ( foldl' )
-import           Data.Semigroup ( (<>) )
+import qualified Data.Attoparsec.Text         as A
+import qualified Data.ByteString              as B
+import           Data.List                    (foldl')
+import           Data.Semigroup               ((<>))
 import           Data.Serialize
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
-import qualified Data.Vector.Storable as V
+import qualified Data.Text                    as T
+import qualified Data.Text.IO                 as T
+import qualified Data.Vector.Storable         as V
 
+import           Numeric.LinearAlgebra.Data   (toLists)
 import qualified Numeric.LinearAlgebra.Static as SA
-import           Numeric.LinearAlgebra.Data ( toLists )
 
 import           Options.Applicative
 
@@ -77,10 +77,10 @@ type Generator =
      , 'D3 11 11 10, 'D3 11 11 10
      , 'D2 28 28, 'D2 28 28 ]
 
-randomDiscriminator :: MonadRandom m => m Discriminator
+randomDiscriminator :: IO Discriminator
 randomDiscriminator = randomNetwork
 
-randomGenerator :: MonadRandom m => m Generator
+randomGenerator :: IO Generator
 randomGenerator = randomNetwork
 
 trainExample :: LearningParameters -> Discriminator -> Generator -> S ('D2 28 28) -> S ('D1 80) -> ( Discriminator, Generator )
@@ -154,13 +154,13 @@ main = do
   putStrLn "Training stupidly simply GAN"
   nets0 <- case load of
     Just loadFile -> netLoad loadFile
-    Nothing -> (,) <$> randomDiscriminator <*> randomGenerator
+    Nothing       -> (,) <$> randomDiscriminator <*> randomGenerator
 
   res <- runExceptT $ ganTest nets0 iter mnist rate
   case res of
     Right nets1 -> case save of
       Just saveFile -> B.writeFile saveFile $ runPut (put nets1)
-      Nothing -> return ()
+      Nothing       -> return ()
 
     Left err -> putStrLn err
 

@@ -35,7 +35,7 @@ instance UpdateLayer Elu where
   runUpdate _ _ _ = Elu
 
 instance RandomLayer Elu where
-  createRandomWith _ = return Elu
+  createRandomWith _ _ = return Elu
 
 instance Serialize Elu where
   put _ = return ()

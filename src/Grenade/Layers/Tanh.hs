@@ -33,7 +33,7 @@ instance UpdateLayer Tanh where
   runUpdate _ _ _ = Tanh
 
 instance RandomLayer Tanh where
-  createRandomWith _ = return Tanh
+  createRandomWith _ _ = return Tanh
 
 instance Serialize Tanh where
   put _ = return ()

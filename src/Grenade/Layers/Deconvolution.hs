@@ -1,3 +1,4 @@
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE RecordWildCards       #-}
@@ -119,9 +120,10 @@ instance ( KnownNat c
          , KnownNat s
          , KnownNat s'
          , KnownNat ((k * k') * f)
-         , KnownNat ((k * k') * c)) => RandomLayer (Deconvolution c f k k' s s') where
-  createRandomWith m = do
-    wN <- getRandomMatrix i i m
+         , KnownNat ((k * k') * c)
+         , KnownNat (c * ((k * k') * f))) => RandomLayer (Deconvolution c f k k' s s') where
+  createRandomWith m gen = do
+    wN <- getRandomMatrix i i m gen
     let mm = konst 0
     return $ Deconvolution wN mm
     where i = natVal (Proxy :: Proxy ((k * k') * c))

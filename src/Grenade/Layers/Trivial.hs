@@ -39,7 +39,7 @@ instance UpdateLayer Trivial where
   runUpdate _ _ _ = Trivial
 
 instance RandomLayer Trivial where
-  createRandomWith _ = return Trivial
+  createRandomWith _ _ = return Trivial
 
 instance (a ~ b) => Layer Trivial a b where
   type Tape Trivial a b = ()

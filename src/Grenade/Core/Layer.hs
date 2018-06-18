@@ -43,7 +43,8 @@ module Grenade.Core.Layer (
   , createRandom
   ) where
 
-import           Control.Monad.Random              (MonadRandom)
+import           Control.Monad.Primitive           (PrimBase, PrimState)
+import           System.Random.MWC
 
 import           Data.List                         (foldl')
 
@@ -96,10 +97,10 @@ class (UpdateLayer x) => Layer x (i :: Shape) (o :: Shape) where
 --   needs to implement this.
 class RandomLayer x where
   -- | Create a random layer according to given initialization method.
-  createRandomWith    :: (MonadRandom m) => WeightInitMethod -> m x
+  createRandomWith    :: (PrimBase m) => WeightInitMethod -> Gen (PrimState m) -> m x
 
 
--- | Create a new random network. This uses the uniform initialization.
-createRandom :: (MonadRandom m, RandomLayer x)  => m x
-createRandom = createRandomWith UniformInit
+-- | Create a new random network. This uses the uniform initialization, see @WeightInitMethod@.
+createRandom :: (PrimBase m, RandomLayer x)  => IO x
+createRandom = withSystemRandom . asGenST $ \gen -> createRandomWith UniformInit gen
 

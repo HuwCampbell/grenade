@@ -48,7 +48,7 @@ instance (UpdateLayer x, UpdateLayer y) => UpdateLayer (Merge x y) where
   runUpdate lr (Merge x y) (x', y') = Merge (runUpdate lr x x') (runUpdate lr y y')
 
 instance (RandomLayer x, RandomLayer y) => RandomLayer (Merge x y) where
-  createRandomWith m = Merge <$> createRandomWith m <*> createRandomWith m
+  createRandomWith m gen = Merge <$> createRandomWith m gen <*> createRandomWith m gen
 
 -- | Combine the outputs and the inputs, summing the output shape
 instance (SingI i, SingI o, Layer x i o, Layer y i o) => Layer (Merge x y) i o where
