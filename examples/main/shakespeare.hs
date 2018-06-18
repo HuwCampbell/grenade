@@ -1,39 +1,44 @@
-{-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE CPP                   #-}
-{-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TupleSections         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE LambdaCase            #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE RecordWildCards     #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections       #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeOperators       #-}
 
 import           Control.Monad.Random
 import           Control.Monad.Trans.Except
 
-import           Data.Char ( isUpper, toUpper, toLower )
-import           Data.List ( foldl' )
-import           Data.Maybe ( fromMaybe )
+import           Data.Char                    (isUpper, toLower, toUpper)
+import           Data.List                    (foldl')
+import           Data.Maybe                   (fromMaybe)
 
 #if ! MIN_VERSION_base(4,13,0)
-import           Data.Semigroup ( (<>) )
+import           Data.Semigroup               ((<>))
 #endif
+import           Data.Char                    (isUpper, toLower, toUpper)
+import           Data.List                    (foldl')
+import           Data.Maybe                   (fromMaybe)
+import           Data.Semigroup               ((<>))
 
-import qualified Data.Vector as V
-import           Data.Vector ( Vector )
+import           Data.Vector                  (Vector)
+import qualified Data.Vector                  as V
 
-import qualified Data.Map as M
 #if ! MIN_VERSION_base(4,13,0)
-import           Data.Proxy ( Proxy (..) )
+import           Data.Proxy                   (Proxy (..))
 #endif
+import qualified Data.Map                     as M
+import           Data.Proxy                   (Proxy (..))
 
-import qualified Data.ByteString as B
+import qualified Data.ByteString              as B
 import           Data.Serialize
 
 import           Data.Singletons.Prelude
 import           GHC.TypeLits
 
-import           Numeric.LinearAlgebra.Static ( konst )
+import           Numeric.LinearAlgebra.Static (konst)
 
 import           Options.Applicative
 
@@ -41,7 +46,7 @@ import           Grenade
 import           Grenade.Recurrent
 import           Grenade.Utils.OneHot
 
-import           System.IO.Unsafe ( unsafeInterleaveIO )
+import           System.IO.Unsafe             (unsafeInterleaveIO)
 
 -- The defininition for our natural language recurrent network.
 -- This network is able to learn and generate simple words in
@@ -70,7 +75,7 @@ type Shakespeare = RecurrentNetwork '[ R (LSTM 40 80), R (LSTM 80 40), F (FullyC
 -- The definition of the "sideways" input, which the network is fed recurrently.
 type Shakespearian = RecurrentInputs  '[ R (LSTM 40 80), R (LSTM 80 40), F (FullyConnected 40 40), F Logit]
 
-randomNet :: MonadRandom m => m Shakespeare
+randomNet :: IO Shakespeare
 randomNet = randomRecurrent
 
 -- | Load the data files and prepare a map of characters to a compressed int representation.
@@ -99,7 +104,7 @@ runShakespeare ShakespeareOpts {..} = do
   (net0, i0) <- lift $
     case loadPath of
       Just loadFile -> netLoad loadFile
-      Nothing -> (,0) <$> randomNet
+      Nothing       -> (,0) <$> randomNet
 
   (trained, bestInput) <- lift $ foldM (\(!net, !io) size -> do
     xs <- take (iterations `div` 10) <$> getRandomRs (0, length shakespeare - size - 1)
@@ -112,7 +117,7 @@ runShakespeare ShakespeareOpts {..} = do
 
   case savePath of
     Just saveFile -> lift . B.writeFile saveFile $ runPut (put trained >> put bestInput)
-    Nothing -> return ()
+    Nothing       -> return ()
 
 generateParagraph :: forall layers shapes n a. (Last shapes ~ 'D1 n, Head shapes ~ 'D1 n, KnownNat n, Ord a)
   => RecurrentNetwork layers shapes

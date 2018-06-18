@@ -61,7 +61,7 @@ instance UpdateLayer (Pad l t r b) where
   runUpdate _ x _ = x
 
 instance RandomLayer (Pad l t r b)  where 
-  createRandomWith _ = return Pad
+  createRandomWith _ _ = return Pad
 
 instance Serialize (Pad l t r b) where
   put _ = return ()

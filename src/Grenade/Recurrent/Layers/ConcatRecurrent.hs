@@ -68,8 +68,8 @@ instance (RecurrentUpdateLayer x, UpdateLayer y) => UpdateLayer (ConcatRecurrent
     = ConcatRecLeft (runUpdate lr x x') (runUpdate lr y y')
 
 instance (RandomLayer x, RandomLayer y) => RandomLayer (ConcatRecurrent m (Recurrent x) n (FeedForward y)) where
-  createRandomWith m
-    = ConcatRecLeft <$> createRandomWith m <*> createRandomWith m
+  createRandomWith m gen
+    = ConcatRecLeft <$> createRandomWith m gen <*> createRandomWith m gen
 
 instance (UpdateLayer x, RecurrentUpdateLayer y) => UpdateLayer (ConcatRecurrent m (FeedForward x) n (Recurrent y)) where
   type Gradient (ConcatRecurrent m (FeedForward x) n (Recurrent y)) = (Gradient x, Gradient y)
@@ -77,8 +77,8 @@ instance (UpdateLayer x, RecurrentUpdateLayer y) => UpdateLayer (ConcatRecurrent
     = ConcatRecRight (runUpdate lr x x') (runUpdate lr y y')
 
 instance (RandomLayer x, RandomLayer y) => RandomLayer (ConcatRecurrent m (FeedForward x) n (Recurrent y)) where
-  createRandomWith m
-    = ConcatRecRight <$> createRandomWith m <*> createRandomWith m
+  createRandomWith m gen
+    = ConcatRecRight <$> createRandomWith m gen <*> createRandomWith m gen
 
 instance (RecurrentUpdateLayer x, RecurrentUpdateLayer y) => UpdateLayer (ConcatRecurrent m (Recurrent x) n (Recurrent y)) where
   type Gradient (ConcatRecurrent m (Recurrent x) n (Recurrent y)) = (Gradient x, Gradient y)
@@ -86,8 +86,8 @@ instance (RecurrentUpdateLayer x, RecurrentUpdateLayer y) => UpdateLayer (Concat
     = ConcatRecBoth (runUpdate lr x x') (runUpdate lr y y')
 
 instance (RandomLayer x, RandomLayer y) => RandomLayer (ConcatRecurrent m (Recurrent x) n (Recurrent y)) where
-  createRandomWith m
-    = ConcatRecBoth <$> createRandomWith m <*> createRandomWith m
+  createRandomWith m gen
+    = ConcatRecBoth <$> createRandomWith m gen <*> createRandomWith m gen
 
 instance (RecurrentUpdateLayer x, UpdateLayer y) => RecurrentUpdateLayer (ConcatRecurrent m (Recurrent x) n (FeedForward y)) where
   type RecurrentShape (ConcatRecurrent m (Recurrent x) n (FeedForward y)) = RecurrentShape x

@@ -31,18 +31,20 @@ module Grenade.Core.Network (
   , runGradient
   , applyUpdate
   , randomNetwork
+  , randomNetworkInitWith
 
   ) where
 
 import           Control.DeepSeq
-import           Control.Monad.Random              (MonadRandom)
+import           Control.Monad.Primitive           (PrimBase, PrimState)
+import           System.Random.MWC
 
 import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.Prelude
 
 #if MIN_VERSION_base(4,9,0)
-import           Data.Kind                       (Type)
+import           Data.Kind                         (Type)
 #endif
 
 import           Grenade.Core.Layer
@@ -178,17 +180,22 @@ class CreatableNetwork (xs :: [Type]) (ss :: [Shape]) where
   --
   --   Calls to this function will not compile if the type of the neural
   --   network is not sound.
-  randomNetworkWith :: MonadRandom m => WeightInitMethod -> m (Network xs ss)
+  randomNetworkWith :: PrimBase m => WeightInitMethod -> Gen (PrimState m) -> m (Network xs ss)
 
 -- | Create a random network using uniform distribution.
-randomNetwork :: (MonadRandom m, CreatableNetwork xs ss) => m (Network xs ss)
-randomNetwork = randomNetworkWith UniformInit
+randomNetwork :: (CreatableNetwork xs ss) => IO (Network xs ss)
+randomNetwork = withSystemRandom . asGenST $ \gen -> randomNetworkWith UniformInit gen
+
+-- | Create a random network using the specified weight initialization method.
+randomNetworkInitWith :: (CreatableNetwork xs ss) => WeightInitMethod -> IO (Network xs ss)
+randomNetworkInitWith m = withSystemRandom . asGenST $ \gen -> randomNetworkWith m gen
+
 
 instance SingI i => CreatableNetwork '[] '[i] where
-  randomNetworkWith _ = return NNil
+  randomNetworkWith _  _ = return NNil
 
 instance (SingI i, SingI o, Layer x i o, RandomLayer x, CreatableNetwork xs (o ': rs)) => CreatableNetwork (x ': xs) (i ': o ': rs) where
-  randomNetworkWith m = (:~>) <$> createRandomWith m <*> randomNetworkWith m
+  randomNetworkWith m gen = (:~>) <$> createRandomWith m gen <*> randomNetworkWith m gen
 
 -- | Add very simple serialisation to the network
 instance SingI i => Serialize (Network '[] '[i]) where

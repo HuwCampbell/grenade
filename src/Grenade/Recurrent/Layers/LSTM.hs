@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP                   #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE GADTs, DataKinds, PolyKinds, ScopedTypeVariables #-}
@@ -19,12 +20,13 @@ module Grenade.Recurrent.Layers.LSTM (
   , randomLSTM
   ) where
 
-import           Control.Monad.Random ( MonadRandom )
+import           Control.Monad.Primitive           (PrimBase, PrimState)
+import           System.Random.MWC hiding (create)
+import GHC.TypeLits
 
 -- import           Data.List ( foldl1' )
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits
 
 #if MIN_VERSION_base(4,9,0)
 import           Data.Kind (Type)
@@ -126,7 +128,7 @@ instance (KnownNat i, KnownNat o) => UpdateLayer (LSTM i o) where
   --   v :: forall x ix. (x -> (R ix)) -> x -> x -> R ix
   --   v e (e -> a) (e -> b) = a + b
 
-instance (KnownNat i, KnownNat o) => RandomLayer (LSTM i o) where
+instance (KnownNat i, KnownNat o, KnownNat (i*o), KnownNat (o*o)) => RandomLayer (LSTM i o) where
   createRandomWith = randomLSTM
 
 instance (KnownNat i, KnownNat o) => RecurrentUpdateLayer (LSTM i o) where
@@ -213,12 +215,12 @@ instance (KnownNat i, KnownNat o) => RecurrentLayer (LSTM i o) ('D1 i) ('D1 o) w
 --
 --   https://github.com/karpathy/char-rnn/commit/0dfeaa454e687dd0278f036552ea1e48a0a408c9
 --
-randomLSTM :: forall m i o. (MonadRandom m, KnownNat i, KnownNat o)
-           => WeightInitMethod -> m (LSTM i o)
-randomLSTM m = do
-  let w = getRandomMatrix i o m
-  let u = getRandomMatrix i o m
-  let v = getRandomVector i o m
+randomLSTM :: forall m i o. (PrimBase m, KnownNat i, KnownNat o, KnownNat (i*o),KnownNat (o*o))
+           => WeightInitMethod -> Gen (PrimState m) -> m (LSTM i o)
+randomLSTM m gen = do
+  let w = getRandomMatrix i o m gen 
+  let u = getRandomMatrix i o m gen 
+  let v = getRandomVector i o m gen 
 
   let w0 = konst 0
       u0 = konst 0

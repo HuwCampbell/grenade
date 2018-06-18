@@ -10,7 +10,9 @@ module Grenade.Layers.Dropout (
   ) where
 
 import           Control.DeepSeq
-import           Control.Monad.Random hiding (fromList)
+import           Control.Monad.Primitive (PrimBase, PrimState)
+import           System.Random.MWC
+
 import           GHC.Generics
 
 import           GHC.TypeLits
@@ -34,9 +36,9 @@ instance UpdateLayer Dropout where
 instance RandomLayer Dropout where
   createRandomWith _ = randomDropout 0.95
 
-randomDropout :: MonadRandom m
-              => Double -> m Dropout
-randomDropout rate = Dropout rate <$> getRandom
+randomDropout :: PrimBase m
+              => Double -> Gen (PrimState m) -> m Dropout
+randomDropout rate gen = Dropout rate <$> uniform gen
 
 instance (KnownNat i) => Layer Dropout ('D1 i) ('D1 i) where
   type Tape Dropout ('D1 i) ('D1 i) = ()

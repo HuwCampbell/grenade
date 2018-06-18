@@ -33,6 +33,7 @@ module Grenade.Core.Shape (
 
 import           Control.DeepSeq              (NFData (..))
 import           Control.Monad.Random         (MonadRandom, getRandom)
+import           System.Random.MWC
 
 #if MIN_VERSION_base(4,13,0)
 import           Data.Kind                    (Type)
@@ -159,9 +160,9 @@ instance NFData (S x) where
   rnf (S3D x) = rnf x
 
 -- | Generate random data of the desired shape
-randomOfShape :: forall x m. ( MonadRandom m, SingI x ) => m (S x)
+randomOfShape :: forall x . (SingI x) => IO (S x)
 randomOfShape = do
-  seed :: Int <- getRandom
+  seed :: Int <- withSystemRandom . asGenST $ \gen -> uniform gen
   return $ case (sing :: Sing x) of
     D1Sing SNat ->
         S1D (randomVector seed Uniform * 2 - 1)

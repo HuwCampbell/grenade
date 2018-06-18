@@ -63,7 +63,7 @@ instance UpdateLayer (Pooling kernelRows kernelColumns strideRows strideColumns)
   runUpdate _ Pooling _ = Pooling
 
 instance RandomLayer (Pooling k k' s s') where
-  createRandomWith _ = return Pooling
+  createRandomWith _ _ = return Pooling
 
 instance Serialize (Pooling kernelRows kernelColumns strideRows strideColumns) where
   put _ = return ()

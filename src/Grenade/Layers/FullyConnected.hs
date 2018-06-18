@@ -1,13 +1,16 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveAnyClass        #-}
 {-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NoStarIsType          #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 module Grenade.Layers.FullyConnected (
     FullyConnected (..)
   , FullyConnected' (..)
@@ -15,12 +18,15 @@ module Grenade.Layers.FullyConnected (
   ) where
 
 import           Control.DeepSeq
-import           Control.Monad.Random
 import           GHC.Generics                   (Generic)
+import           GHC.TypeLits
+
+import           Control.Monad.Primitive        (PrimBase, PrimState)
+import           System.Random.MWC              hiding (create)
+
 
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits
 
 import qualified Numeric.LinearAlgebra          as LA
 import           Numeric.LinearAlgebra.Static
@@ -78,16 +84,16 @@ instance (KnownNat i, KnownNat o) => Serialize (FullyConnected i o) where
       let mm = konst 0
       return $ FullyConnected (FullyConnected' b k) (FullyConnected' bm mm)
 
-instance (KnownNat i, KnownNat o) => RandomLayer (FullyConnected i o) where
+instance (KnownNat i, KnownNat o, KnownNat (i*o)) => RandomLayer (FullyConnected i o) where
 
   createRandomWith = randomFullyConnected
 
 
-randomFullyConnected :: forall m i o . (MonadRandom m, KnownNat i, KnownNat o)
-                     => WeightInitMethod -> m (FullyConnected i o)
-randomFullyConnected m = do
-  wN <- getRandomMatrix i o m
-  wB <- getRandomVector i o m
+randomFullyConnected :: forall m i o . (PrimBase m, KnownNat i, KnownNat o, KnownNat (i*o))
+                     => WeightInitMethod -> Gen (PrimState m) -> m (FullyConnected i o)
+randomFullyConnected m gen = do
+  wN <- getRandomMatrix i o m gen
+  wB <- getRandomVector i o m gen
   let bm = konst 0
       mm = konst 0
   return $ FullyConnected (FullyConnected' wB wN) (FullyConnected' bm mm)

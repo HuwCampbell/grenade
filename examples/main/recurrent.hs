@@ -1,20 +1,26 @@
-{-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE CPP                   #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TupleSections         #-}
-{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections       #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeOperators       #-}
 
-import           Control.Monad ( foldM )
-import           Control.Monad.Random ( MonadRandom, getRandomR )
+import           Control.Monad                (foldM)
+import           Control.Monad.Random         (MonadRandom, getRandomR)
 
 #if MIN_VERSION_base(4,13,0)
-import           Data.List ( unfoldr )
+import           Data.List                    (unfoldr)
 #else
-import           Data.List ( cycle, unfoldr )
-import           Data.Semigroup ( (<>) )
+import           Data.List                    (cycle, unfoldr)
+import           Data.Semigroup               ((<>))
 #endif
+#if __GLASGOW_HASKELL__ < 800
+import           Data.List                    (unfoldr)
+#else
+import           Data.List                    (cycle, unfoldr)
+#endif
+import           Data.Semigroup               ((<>))
 
 import qualified Numeric.LinearAlgebra.Static as SA
 
@@ -36,7 +42,7 @@ type RecNet = RecurrentNetwork '[ R (LSTM 1 1)]
 
 type RecInput = RecurrentInputs '[ R (LSTM 1 1)]
 
-randomNet :: MonadRandom m => m RecNet
+randomNet :: IO RecNet
 randomNet = randomRecurrent
 
 netTest :: MonadRandom m => RecNet -> RecInput -> LearningParameters -> Int -> m (RecNet, RecInput)

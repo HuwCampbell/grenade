@@ -18,7 +18,6 @@ import qualified Numeric.LinearAlgebra.Static as SA
 
 import           Options.Applicative
 
-import           Debug.Trace
 import           Grenade
 
 -- The definition for our simple feed forward network.
@@ -30,8 +29,8 @@ import           Grenade
 type FFNet = Network '[ FullyConnected 2 40, Tanh, FullyConnected 40 30, Relu, FullyConnected 30 20, Relu, FullyConnected 20 10, Relu, FullyConnected 10 1, Logit ]
                      '[ 'D1 2, 'D1 40, 'D1 40, 'D1 30, 'D1 30, 'D1 20, 'D1 20, 'D1 10, 'D1 10, 'D1 1, 'D1 1]
 
-randomNet :: MonadRandom m => m FFNet
-randomNet = randomNetworkWith HeEtAl
+randomNet :: IO FFNet
+randomNet = randomNetworkInitWith HeEtAl  -- you might want to try `Xavier` or `UniformInit` instead of `HeEtAl`
 
 
 netTrain :: FFNet -> LearningParameters -> Int -> IO FFNet
@@ -47,10 +46,7 @@ netTrain net0 rate n = do
     let trained = foldl' trainEach net0 (zip inps outs)
     return trained
 
-  where
-    inCircle :: KnownNat n => SA.R n -> (SA.R n, Double) -> Bool
-    v `inCircle` (o, r) = SA.norm_2 (v - o) <= r
-    trainEach !network (i,o) = train rate network i o
+  where trainEach !network (i,o) = train rate network i o
 
 netLoad :: FilePath -> IO FFNet
 netLoad modelPath = do
@@ -108,7 +104,6 @@ testValues network = do
       incorrect = length $ filter id $ map (uncurry (/=)) ress
       falsePositives = length $ filter id $ map (uncurry (\shd nn -> shd == 0 && nn == 1)) ress
       falseNegatives = length $ filter id $ map (uncurry (\shd nn -> shd == 1 && nn == 0)) ress
-      len = length inps
   putStr $ show correct  ++ " | "
   putStr $ show incorrect ++ " | "
   putStr $ show falsePositives ++ " | "
@@ -119,7 +114,7 @@ inCircle :: KnownNat n => SA.R n -> (SA.R n, Double) -> Bool
 v `inCircle` (o, r) = SA.norm_2 (v - o) <= r
 
 
-data FeedForwardOpts = FeedForwardOpts Int LearningParameters (Maybe FilePath) (Maybe FilePath)
+data FeedForwardOpts = FeedForwardOpts Int LearningParameters
 
 feedForward' :: Parser FeedForwardOpts
 feedForward' =
@@ -129,20 +124,18 @@ feedForward' =
                       <*> option auto (long "momentum" <> value 0.0)
                       <*> option auto (long "l2" <> value 0.0005)
                       )
-                  <*> optional (strOption (long "load"))
-                  <*> optional (strOption (long "save"))
+
 
 main :: IO ()
 main = do
-  FeedForwardOpts examples rate load save <- execParser (info (feedForward' <**> helper) idm)
+  FeedForwardOpts examples rate <- execParser (info (feedForward' <**> helper) idm)
 
-  putStrLn $ "| Nr | Correct | Incorrect | FalsePositives | FalseNegatives |"
-  putStrLn $ "--------------------------------------------------------------"
-  let nr = 100
+  putStrLn "| Nr | Correct | Incorrect | FalsePositives | FalseNegatives |"
+  putStrLn "--------------------------------------------------------------"
+  let nr = 100 :: Int
   mapM_ (\n -> do
     putStr $ "| " ++ show n  ++ " | "
     net0 <- randomNet
     net <- netTrain net0 rate examples
     -- netScore net
-    testValues net
-        ) [1..nr]
+    testValues net) [1..nr]

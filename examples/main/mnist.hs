@@ -1,28 +1,31 @@
-{-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE CPP                   #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TupleSections         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections       #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeOperators       #-}
 
 import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Random
 import           Control.Monad.Trans.Except
 
-import qualified Data.Attoparsec.Text as A
-import           Data.List ( foldl' )
+import qualified Data.Attoparsec.Text         as A
+import           Data.List                    (foldl')
 #if ! MIN_VERSION_base(4,13,0)
-import           Data.Semigroup ( (<>) )
+import           Data.Semigroup               ((<>))
 #endif
 
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
-import qualified Data.Vector.Storable as V
+import qualified Data.Attoparsec.Text         as A
+import           Data.List                    (foldl')
+import           Data.Semigroup               ((<>))
+import qualified Data.Text                    as T
+import qualified Data.Text.IO                 as T
+import qualified Data.Vector.Storable         as V
 
-import           Numeric.LinearAlgebra ( maxIndex )
+import           Numeric.LinearAlgebra        (maxIndex)
 import qualified Numeric.LinearAlgebra.Static as SA
 
 import           Options.Applicative
@@ -64,7 +67,7 @@ type MNIST =
        'D3 12 12 18, 'D3 4 4 18, 'D3 4 4 18,
        'D1 288, 'D1 80, 'D1 10 ]
 
-randomMnist :: MonadRandom m => m MNIST
+randomMnist :: IO MNIST
 randomMnist = randomNetwork
 
 convTest :: Int -> FilePath -> FilePath -> LearningParameters -> ExceptT String IO ()

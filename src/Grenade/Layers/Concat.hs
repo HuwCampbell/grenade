@@ -6,9 +6,9 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NoStarIsType          #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
@@ -67,7 +67,7 @@ instance (UpdateLayer x, UpdateLayer y) => UpdateLayer (Concat m x n y) where
   runUpdate lr (Concat x y) (x', y') = Concat (runUpdate lr x x') (runUpdate lr y y')
 
 instance (RandomLayer x, RandomLayer y) => RandomLayer (Concat m x n y) where
-  createRandomWith m = Concat <$> createRandomWith m <*> createRandomWith m
+  createRandomWith m gen = Concat <$> createRandomWith m gen <*> createRandomWith m gen
 
 instance ( SingI i
          , Layer x i ('D1 o)
@@ -147,7 +147,7 @@ instance (Serialize a, Serialize b) => Serialize (Concat sa a sb b) where
   get = Concat <$> get <*> get
 
 
--------------------- GNum instances --------------------
+-------------------- GNum instance --------------------
 
 
 instance (GNum x, GNum y) => GNum (Concat m x n y) where

@@ -1,10 +1,10 @@
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeOperators       #-}
 
 module Grenade.Utils.OneHot (
     oneHot
@@ -14,21 +14,21 @@ module Grenade.Utils.OneHot (
   , sample
   ) where
 
-import qualified Control.Monad.Random as MR
+import           Data.List                    (group, sort)
+import           System.Random.MWC            hiding (create)
 
-import           Data.List ( group, sort )
 
-import           Data.Map ( Map )
-import qualified Data.Map as M
+import           Data.Map                     (Map)
+import qualified Data.Map                     as M
 
 import           Data.Proxy
 import           Data.Singletons.TypeLits
 
-import           Data.Vector ( Vector )
-import qualified Data.Vector as V
-import qualified Data.Vector.Storable as VS
+import           Data.Vector                  (Vector)
+import qualified Data.Vector                  as V
+import qualified Data.Vector.Storable         as VS
 
-import           Numeric.LinearAlgebra ( maxIndex )
+import           Numeric.LinearAlgebra        (maxIndex)
 import           Numeric.LinearAlgebra.Devel
 import           Numeric.LinearAlgebra.Static
 
@@ -87,8 +87,21 @@ unHot v (S1D xs)
   = (V.!?) v
   $ maxIndex (extract xs)
 
-sample :: forall a n m. (KnownNat n, MR.MonadRandom m)
-       => Double -> Vector a -> S ('D1 n) -> m a
+sample :: forall a n . (KnownNat n)
+       => Double -> Vector a -> S ('D1 n) -> IO a
 sample temperature v (S1D xs) = do
-  ix <- MR.fromList . zip [0..] . fmap (toRational . exp . (/ temperature) . log) . VS.toList . extract $ xs
+  ix <- randFromList . zip [0..] . fmap (toRational . exp . (/ temperature) . log) . VS.toList . extract $ xs
   return $ v V.! ix
+
+
+-- | Sample a random value from a weighted list.  The total weight of all
+-- elements must not be 0.
+randFromList :: [(a,Rational)] -> IO a
+randFromList [] = error "OneHot.randFromList called with empty list"
+randFromList [(x,_)] = return x
+randFromList xs | sumxs == 0 = error "OneHot.randFromList sum of weights was 0"
+                | otherwise = do
+                    r <- toRational <$> (withSystemRandom . asGenST $ \gen -> uniformR (0, fromRational sumxs :: Double) gen)
+                    return . fst . head $ dropWhile ((< r) . snd) cs
+  where sumxs = sum (map snd xs)
+        cs = scanl1 (\(_,q) (y,s') -> (y, s'+q)) xs -- cumulative weight

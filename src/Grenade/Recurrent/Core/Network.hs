@@ -22,13 +22,16 @@ module Grenade.Recurrent.Core.Network (
   , RecurrentGradient (..)
 
   , randomRecurrent
+  , randomRecurrentInitWith
   , runRecurrent
   , runRecurrent'
   , applyRecurrentUpdate
   ) where
 
 
-import           Control.Monad.Random         (MonadRandom)
+import           Control.Monad.Primitive      (PrimBase, PrimState)
+import           System.Random.MWC
+
 import           Data.Serialize
 import           Data.Singletons              (SingI)
 import           Data.Singletons.Prelude      (Head, Last)
@@ -211,27 +214,31 @@ instance (Show x, Show (RecurrentNetwork xs rs)) => Show (RecurrentNetwork (Recu
 --   recurrent network and a set of random inputs for it is with the randomRecurrent.
 class CreatableRecurrent (xs :: [Type]) (ss :: [Shape]) where
   -- | Create a network of the types requested
-  randomRecurrentWith :: MonadRandom m => WeightInitMethod -> m (RecurrentNetwork xs ss)
+  randomRecurrentWith :: PrimBase m => WeightInitMethod -> Gen (PrimState m) -> m (RecurrentNetwork xs ss)
 
 -- | Create a random recurrent network using uniform distribution.
-randomRecurrent :: (MonadRandom m, CreatableRecurrent xs ss) => m (RecurrentNetwork xs ss)
-randomRecurrent = randomRecurrentWith UniformInit
+randomRecurrent :: (CreatableRecurrent xs ss) => IO (RecurrentNetwork xs ss)
+randomRecurrent = withSystemRandom . asGenST $ \gen -> randomRecurrentWith UniformInit gen
+
+-- | Create a random recurrent network using the specified weight initialization method.
+randomRecurrentInitWith :: (CreatableRecurrent xs ss) => WeightInitMethod -> IO (RecurrentNetwork xs ss)
+randomRecurrentInitWith m = withSystemRandom . asGenST $ \gen -> randomRecurrentWith m gen
 
 
 instance SingI i => CreatableRecurrent '[] '[i] where
-  randomRecurrentWith _ =
+  randomRecurrentWith _ _ =
     return RNil
 
 instance (SingI i, Layer x i o, CreatableRecurrent xs (o ': rs), RandomLayer x) => CreatableRecurrent (FeedForward x ': xs) (i ': o ': rs) where
-  randomRecurrentWith m = do
-    thisLayer     <- createRandomWith m
-    rest          <- randomRecurrentWith m
+  randomRecurrentWith m gen = do
+    thisLayer     <- createRandomWith m gen
+    rest          <- randomRecurrentWith m gen
     return (thisLayer :~~> rest)
 
 instance (SingI i, RecurrentLayer x i o, CreatableRecurrent xs (o ':  rs), RandomLayer x) => CreatableRecurrent (Recurrent x ': xs) (i ': o ': rs) where
-  randomRecurrentWith m = do
-    thisLayer     <- createRandomWith m
-    rest          <- randomRecurrentWith m
+  randomRecurrentWith m gen = do
+    thisLayer     <- createRandomWith m gen
+    rest          <- randomRecurrentWith m gen
     return (thisLayer :~@> rest)
 
 -- | Add very simple serialisation to the recurrent network

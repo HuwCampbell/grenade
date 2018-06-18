@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3c02b8dc84cb2ed0c0802d81748819c3c227cc8c2fbeb23a69f5b3efa8c1dcc1
+-- hash: 05e1134a014b88761b0aef4535a3964183835e4c4402cb27d6a514a40b32b8c5
 
 name:           grenade-examples
 version:        0.0.1.0
@@ -36,7 +36,7 @@ flag fast
   default: False
 
 executable feedforward
-  main-is: main/feedforward.hs
+  main-is: main/feedforwardweightinit.hs
   other-modules:
       Paths_grenade_examples
   ghc-options: -Wall -threaded -O2
@@ -82,25 +82,6 @@ executable gan-mnist
     , transformers
     , vector
   default-language: Haskell2010
-
-executable             feedforwardweightinit
-    ghc-options:       -Wall -threaded -O2
-    main-is:           main/feedforwardweightinit.hs
-    build-depends:     base
-                     , grenade
-                     , attoparsec
-                     , bytestring
-                     , cereal
-                     , either
-                     , optparse-applicative            >= 0.13       && < 0.15
-                     , text                            == 1.2.*
-                     , mtl                             >= 2.2.1      && < 2.3
-                     , hmatrix
-                     , transformers
-                     , singletons
-                     , semigroups
-                     , MonadRandom
-
 
 executable mnist
   main-is: main/mnist.hs

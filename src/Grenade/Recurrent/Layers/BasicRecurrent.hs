@@ -69,10 +69,10 @@ instance (KnownNat i, KnownNat o, KnownNat (i + o)) => UpdateLayer (BasicRecurre
         newActivations  = oldActivations + newMomentum - regulariser
     in BasicRecurrent newBias newBiasMomentum newActivations newMomentum
 
-instance (KnownNat i, KnownNat o, KnownNat x, x ~ (i+o)) => RandomLayer (BasicRecurrent i o) where
-  createRandomWith m = do
-    wB <- getRandomVector i o m
-    wN <- getRandomMatrix i o m
+instance (KnownNat i, KnownNat o, KnownNat x, KnownNat (x*o), x ~ (i+o)) => RandomLayer (BasicRecurrent i o) where
+  createRandomWith m gen = do
+    wB <- getRandomVector i o m gen
+    wN <- getRandomMatrix i o m gen
     let bm = konst 0
         mm = konst 0
     return $ BasicRecurrent wB bm wN mm

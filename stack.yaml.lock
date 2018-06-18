@@ -3,14 +3,7 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages:
-- completed:
-    hackage: typelits-witnesses-0.3.0.3@sha256:2d9df4ac6ff3077bfd2bf659e4b495e157723ac5b45c519762853f55df5c16db,2738
-    pantry-tree:
-      size: 469
-      sha256: 6a42a462f98e94933b6e9721acd912c6c6b6a4743635efd15cc5871908c816a0
-  original:
-    hackage: typelits-witnesses-0.3.0.3
+packages: []
 snapshots:
 - completed:
     size: 491372

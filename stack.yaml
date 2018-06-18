@@ -4,12 +4,9 @@
 # For advanced use and comprehensive documentation of the format, please see:
 # https://docs.haskellstack.org/en/stable/yaml_configuration/
 
-<<<<<<< HEAD
 # A warning or info to be displayed to the user on config load.
 # user-message: |
 
-=======
->>>>>>> NMult class for scalar multiplication and some instances
 # Resolver to choose a 'specific' stackage snapshot or a compiler version.
 # A snapshot resolver dictates the compiler version and the set of packages
 # to be used for project dependencies. For example:
@@ -17,7 +14,6 @@
 # resolver: lts-3.5
 # resolver: nightly-2015-09-21
 # resolver: ghc-7.10.2
-<<<<<<< HEAD
 #
 # The location of a snapshot can be provided as a file or url. Stack assumes
 # a snapshot provided as a file might change, whereas a url resource does not.
@@ -25,13 +21,6 @@
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
 resolver: lts-15.5
-=======
-# resolver: ghcjs-0.1.0_ghc-7.10.2
-# resolver:
-#  name: custom-snapshot
-#  location: "./custom-snapshot.yaml"
-resolver: lts-9.21
->>>>>>> NMult class for scalar multiplication and some instances
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -39,7 +28,6 @@ resolver: lts-9.21
 # packages:
 # - some-directory
 # - https://example.com/foo/bar/baz-0.0.2.tar.gz
-<<<<<<< HEAD
 #   subdirs:
 #   - auto-update
 #   - wai
@@ -56,28 +44,8 @@ packages:
 # - git: https://github.com/commercialhaskell/stack.git
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
 #
-extra-deps:
-  - typelits-witnesses-0.3.0.3
-=======
-# - location:
-#    git: https://github.com/commercialhaskell/stack.git
-#    commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
-# - location: https://github.com/commercialhaskell/stack/commit/e7b331f14bcffb8367cd58fbfc8b40ec7642100a
-#   extra-dep: true
-#  subdirs:
-#  - auto-update
-#  - wai
-#
-# A package marked 'extra-dep: true' will only be built if demanded by a
-# non-dependency (i.e. a user package), and its test suites and benchmarks
-# will not be run. This is useful for tweaking upstream packages.
-packages:
-- .
-- examples
-# Dependency packages to be pulled from upstream that are not in the resolver
-# (e.g., acme-missiles-0.3)
-# extra-deps: []
->>>>>>> NMult class for scalar multiplication and some instances
+extra-deps: []
+#  - typelits-witnesses-0.3.0.3
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
@@ -90,11 +58,7 @@ packages:
 #
 # Require a specific version of stack, using version ranges
 # require-stack-version: -any # Default
-<<<<<<< HEAD
 # require-stack-version: ">=2.1"
-=======
-# require-stack-version: ">=1.6"
->>>>>>> NMult class for scalar multiplication and some instances
 #
 # Override the architecture used by stack, especially useful on Windows
 # arch: i386
@@ -105,8 +69,4 @@ packages:
 # extra-lib-dirs: [/path/to/dir]
 #
 # Allow a newer minor version of GHC than the snapshot specifies
-<<<<<<< HEAD
 # compiler-check: newer-minor
-=======
-# compiler-check: newer-minor
->>>>>>> NMult class for scalar multiplication and some instances

@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NoStarIsType          #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -138,7 +139,7 @@ instance ( KnownNat cropLeft
 
 
 instance RandomLayer (Crop l t r b) where
-  createRandomWith _ = return Crop
+  createRandomWith _ _ = return Crop
 
 
 -------------------- GNum instances --------------------

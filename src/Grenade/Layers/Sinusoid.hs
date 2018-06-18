@@ -34,7 +34,7 @@ instance UpdateLayer Sinusoid where
   runUpdate _ _ _ = Sinusoid
 
 instance RandomLayer Sinusoid where
-  createRandomWith _ = return Sinusoid
+  createRandomWith _ _ = return Sinusoid
 
 instance Serialize Sinusoid where
   put _ = return ()
