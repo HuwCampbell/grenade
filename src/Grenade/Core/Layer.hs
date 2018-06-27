@@ -101,6 +101,6 @@ class RandomLayer x where
 
 
 -- | Create a new random network. This uses the uniform initialization, see @WeightInitMethod@.
-createRandom :: (PrimBase m, RandomLayer x)  => IO x
+createRandom :: (RandomLayer x)  => IO x
 createRandom = withSystemRandom . asGenST $ \gen -> createRandomWith UniformInit gen
 
