@@ -31,10 +31,10 @@ import           Grenade.Recurrent
 -- creation function know how to treat the layers.
 type R = Recurrent
 
-type RecNet = RecurrentNetwork '[ R (LSTM 1 4), R (LSTM 4 1)]
-                               '[ 'D1 1, 'D1 4, 'D1 1 ]
+type RecNet = RecurrentNetwork '[ R (LSTM 1 1)]
+                               '[ 'D1 1, 'D1 1]
 
-type RecInput = RecurrentInputs '[ R (LSTM 1 4), R (LSTM 4 1)]
+type RecInput = RecurrentInputs '[ R (LSTM 1 1)]
 
 randomNet :: MonadRandom m => m RecNet
 randomNet = randomRecurrent
