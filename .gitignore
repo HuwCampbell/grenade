@@ -1,4 +1,4 @@
 .cabal-sandbox/
 cabal.sandbox.config
 dist/
-
+TAGS

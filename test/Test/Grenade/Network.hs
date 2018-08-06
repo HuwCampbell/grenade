@@ -21,7 +21,7 @@ import qualified Data.Vector.Storable as VS
 import qualified Data.Vector.Storable.Mutable as VS ( write )
 import           Data.Singletons
 import           Data.Singletons.Prelude.List
-import           Data.Singletons.TypeLits
+import           Data.Singletons.TypeLits hiding (natVal)
 
 -- import           Data.Type.Equality
 
