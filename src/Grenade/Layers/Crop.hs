@@ -20,7 +20,8 @@ import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons.TypeLits
-import           GHC.TypeLits
+
+import           GHC.TypeLits hiding (natVal)
 
 import           Grenade.Core
 import           Grenade.Layers.Internal.Pad

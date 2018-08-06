@@ -45,7 +45,7 @@ library
                      , hmatrix                         == 0.18.*
                      , MonadRandom                     >= 0.4         && < 0.6
                      , primitive                       >= 0.6         && < 0.7
-                     , singletons                      >= 2.1         && < 2.4
+                     , singletons                      >= 2.1         && < 2.5
                      , vector                          >= 0.11        && < 0.13
 
   ghc-options:
@@ -176,7 +176,7 @@ benchmark bench
   build-depends:
                        base                            >= 3          && < 5
                      , bytestring                      == 0.10.*
-                     , criterion                       >= 1.1        && < 1.3
+                     , criterion                       >= 1.1        && < 1.6
                      , grenade
                      , hmatrix
 
@@ -193,6 +193,6 @@ benchmark bench-lstm
   build-depends:
                        base                            >= 3          && < 5
                      , bytestring                      == 0.10.*
-                     , criterion                       == 1.1.*
+                     , criterion                       >= 1.1        && < 1.6
                      , grenade
                      , hmatrix
