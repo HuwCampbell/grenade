@@ -45,7 +45,9 @@ library
                      , hmatrix                         == 0.18.*
                      , MonadRandom                     >= 0.4         && < 0.6
                      , primitive                       >= 0.6         && < 0.7
-                     , singletons                      >= 2.1         && < 2.4
+                     -- Versions of singletons are *tightly* coupled with the
+                     -- GHC version so its fine to drop version bounds.
+                     , singletons
                      , vector                          >= 0.11        && < 0.13
 
   ghc-options:
@@ -146,9 +148,9 @@ test-suite test
     ghc-options:       -fno-warn-incomplete-patterns
 
   build-depends:
-                       base                            >= 4.8         && < 5
+                       base
                      , grenade
-                     , hedgehog                        >= 0.5         && < 0.6
+                     , hedgehog                        >= 0.5         && < 0.7
                      , hmatrix
                      , mtl
                      , singletons
@@ -174,9 +176,9 @@ benchmark bench
                        bench
 
   build-depends:
-                       base                            >= 3          && < 5
-                     , bytestring                      == 0.10.*
-                     , criterion                       >= 1.1        && < 1.3
+                       base
+                     , bytestring
+                     , criterion                       >= 1.1        && < 1.5
                      , grenade
                      , hmatrix
 
@@ -191,8 +193,8 @@ benchmark bench-lstm
                        bench
 
   build-depends:
-                       base                            >= 3          && < 5
-                     , bytestring                      == 0.10.*
-                     , criterion                       == 1.1.*
+                       base
+                     , bytestring
+                     , criterion
                      , grenade
                      , hmatrix
