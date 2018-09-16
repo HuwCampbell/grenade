@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE KindSignatures        #-}
@@ -35,7 +36,11 @@ import           Data.Singletons.TypeLits
 import           Data.Vector.Storable ( Vector )
 import qualified Data.Vector.Storable as V
 
+#if MIN_VERSION_base(4,11,0)
+import           GHC.TypeLits hiding (natVal)
+#else
 import           GHC.TypeLits
+#endif
 
 import qualified Numeric.LinearAlgebra.Static as H
 import           Numeric.LinearAlgebra.Static
