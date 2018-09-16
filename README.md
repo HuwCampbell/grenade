@@ -159,7 +159,7 @@ and the tests run using:
 ./mafia test
 ```
 
-Grenade builds with ghc 7.10 and 8.0.
+Grenade builds with ghc 7.10, 8.0, 8.2 and 8.4.
 
 Thanks
 ------
