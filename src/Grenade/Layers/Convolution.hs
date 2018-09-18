@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE RecordWildCards       #-}
@@ -29,7 +30,11 @@ import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons.TypeLits
 
+#if MIN_VERSION_base(4,11,0)
+import           GHC.TypeLits hiding (natVal)
+#else
 import           GHC.TypeLits
+#endif
 
 import           Numeric.LinearAlgebra hiding ( uniformSample, konst )
 import qualified Numeric.LinearAlgebra as LA
