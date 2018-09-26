@@ -49,6 +49,8 @@ library
                      -- GHC version so its fine to drop version bounds.
                      , singletons
                      , vector                          >= 0.11        && < 0.13
+                     , accelerate                      == 1.0.*
+                     , accelerate-io                   == 1.0.*
 
   ghc-options:
                        -Wall
@@ -61,12 +63,19 @@ library
 
   exposed-modules:
                        Grenade
+                       Grenade.Accelerate
                        Grenade.Core
+                       Grenade.Core.Accelerate
                        Grenade.Core.Layer
+                       Grenade.Core.Layer.Accelerate
                        Grenade.Core.LearningParameters
+                       Grenade.Core.LearningParameters.Accelerate
+                       Grenade.Core.Matrix.Accelerate
                        Grenade.Core.Network
+                       Grenade.Core.Network.Accelerate
                        Grenade.Core.Runner
                        Grenade.Core.Shape
+                       Grenade.Core.Shape.Accelerate
 
                        Grenade.Layers
                        Grenade.Layers.Concat
@@ -89,9 +98,12 @@ library
                        Grenade.Layers.Trivial
 
                        Grenade.Layers.Internal.Convolution
+                       Grenade.Layers.Internal.Convolution.Accelerate
                        Grenade.Layers.Internal.Pad
                        Grenade.Layers.Internal.Pooling
+                       Grenade.Layers.Internal.Pooling.Accelerate
                        Grenade.Layers.Internal.Update
+                       Grenade.Layers.Internal.Update.Accelerate
 
                        Grenade.Recurrent
 
@@ -129,15 +141,18 @@ test-suite test
 
   other-modules:       Test.Hedgehog.Compat
                        Test.Hedgehog.Hmatrix
+                       Test.Hedgehog.Accelerate
                        Test.Hedgehog.TypeLits
 
                        Test.Grenade.Network
                        Test.Grenade.Layers.Convolution
                        Test.Grenade.Layers.FullyConnected
+                       Test.Grenade.Layers.FullyConnected.Accelerate
                        Test.Grenade.Layers.Nonlinear
                        Test.Grenade.Layers.PadCrop
                        Test.Grenade.Layers.Pooling
                        Test.Grenade.Layers.Internal.Convolution
+                       Test.Grenade.Layers.Internal.Convolution.Accelerate
                        Test.Grenade.Layers.Internal.Pooling
                        Test.Grenade.Layers.Internal.Reference
 
@@ -163,6 +178,7 @@ test-suite test
                      , ad
                      , reflection
                      , vector
+                     , accelerate
 
 
 benchmark bench
@@ -181,6 +197,9 @@ benchmark bench
                      , criterion                       >= 1.1        && < 1.5
                      , grenade
                      , hmatrix
+                     , accelerate
+                     , accelerate-llvm-native
+                     --, accelerate-llvm-ptx
 
 benchmark bench-lstm
   type:                exitcode-stdio-1.0

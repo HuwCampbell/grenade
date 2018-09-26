@@ -1,5 +1,4 @@
-Grenade
-=======
+# Grenade
 
 [![Build Status](https://api.travis-ci.org/HuwCampbell/grenade.svg?branch=master)](https://travis-ci.org/HuwCampbell/grenade)
 [![Hackage page (downloads and API reference)][hackage-png]][hackage]
@@ -48,8 +47,7 @@ type Shakespeare
     '[ 'D1 40, 'D1 80, 'D1 40, 'D1 40, 'D1 40 ]
 ```
 
-Design
-------
+## Design
 
 Networks in Grenade can be thought of as a heterogeneous lists of layers, where
 their type includes not only the layers of the network, but also the shapes of
@@ -79,8 +77,7 @@ outputs a three dimensional (`D3`) 24x24x10 image. The last item in the list is
 one dimensional (`D1`) with 10 values, representing the categories of the MNIST
 data.
 
-Usage
------
+## Usage
 
 To perform back propagation, one can call the eponymous function
 ```haskell
@@ -103,8 +100,7 @@ easy in downstream code. If the shapes of a network are not specified correctly
 and a layer can not sensibly perform the operation between two shapes, then
 it will result in a compile time error.
 
-Composition
------------
+## Composition
 
 Networks and Layers in Grenade are easily composed at the type level. As a `Network`
 is an instance of `Layer`, one can use a trained Network as a small component in a
@@ -126,24 +122,24 @@ See the [MNIST](https://github.com/HuwCampbell/grenade/blob/master/examples/main
 example, which has been overengineered to contain both residual style learning as well
 as inception style convolutions.
 
-Generative Adversarial Networks
--------------------------------
+## Generative Adversarial Networks
 
 As Grenade is purely functional, one can compose its training functions in flexible
 ways. [GAN-MNIST](https://github.com/HuwCampbell/grenade/blob/master/examples/main/gan-mnist.hs)
 example displays an interesting, type safe way of writing a generative adversarial
 training function in 10 lines of code.
 
-Layer Zoo
----------
+## Layer Zoo
 
 Grenade layers are normal haskell data types which are an instance of `Layer`, so
 it's easy to build one's own downstream code. We do however provide a decent set
 of layers, including convolution, deconvolution, pooling, pad, crop, logit, relu,
 elu, tanh, and fully connected.
 
-Build Instructions
-------------------
+## Build Instructions
+
+### Mafia
+
 Grenade is most easily built with the [mafia](https://github.com/ambiata/mafia)
 script that is located in the repository. You will also need the `lapack` and
 `blas` libraries and development tools. Once you have all that, Grenade can be
@@ -161,16 +157,59 @@ and the tests run using:
 
 Grenade builds with ghc 7.10, 8.0, 8.2 and 8.4.
 
-Thanks
-------
+### Stack
+
+Grenade also supports [stack](https://docs.haskellstack.org). You can build
+the whole project with
+
+```
+stack build
+```
+
+and run the tests using:
+
+```
+stack test grenade
+```
+
+and run the benchmarkes using:
+
+```
+stack bench grenade
+```
+
+## Windows build
+
+This recipe is for Stack 1.4.0 - tested and working.
+
+1)
+
+	> stack setup
+
+2) Download and unzip somewhere OpenBLAS http://www.openblas.net/
+
+3) In MSYS2 console of Stack, i.e.: C:\Users\{User}\AppData\Local\Programs\stack\x86_64-windows\msys2-{version}\msys2_shell.bat
+
+    > cd /.../OpenBLAS
+    > pacman -Sy
+    > pacman -S make perl gcc-fortran
+    > make clean
+    > make
+    > make install
+
+3) Then in normal Windows console (fill in user name, versions and check if paths are different on your machine):
+
+    > stack install --flag hmatrix:openblas --extra-include-dirs=C:\Users\{User}\AppData\Local\Programs\stack\x86_64-windows\msys2-20150512\opt\OpenBLAS\include --extra-lib-dirs=C:\Users\{User}\AppData\Local\Programs\stack\x86_64-windows\msys2-20150512\opt\OpenBLAS\bin --extra-lib-dirs=C:\Users\{User}\AppData\Local\Programs\stack\x86_64-windows\msys2-20150512\usr\lib\gcc\x86_64-pc-msys\6.3.0\
+
+
+## Thanks
 Writing a library like this has been on my mind for a while now, but a big shout
 out must go to [Justin Le](https://github.com/mstksg), whose
 [dependently typed fully connected network](https://blog.jle.im/entry/practical-dependent-types-in-haskell-1.html)
 inspired me to get cracking, gave many ideas for the type level tools I
 needed, and was a great starting point for writing this library.
 
-Performance
------------
+## Performance
 Grenade is backed by hmatrix, BLAS, and LAPACK, with critical functions optimised
 in C. Using the im2col trick popularised by Caffe, it should be sufficient for
 many problems.
@@ -182,8 +221,7 @@ threaded.
 Training 15 generations over Kaggle's 41000 sample MNIST training set on a single
 core took around 12 minutes, achieving 1.5% error rate on a 1000 sample holdout set.
 
-Contributing
-------------
+## Contributing
 Contributions are welcome.
 
  [hackage]: http://hackage.haskell.org/package/grenade
