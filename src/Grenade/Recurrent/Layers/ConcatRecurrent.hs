@@ -31,19 +31,14 @@ import           Grenade.Recurrent.Core
 
 import           Numeric.LinearAlgebra.Static ( (#), split, R )
 
--- | A Concatentating Layer.
+-- | A Recurrent Concatentating Layer.
 --
 -- This layer shares it's input state between two sublayers, and concatenates their output.
 --
 -- With Networks able to be Layers, this allows for very expressive composition of complex Networks.
 --
--- The Concat layer has a few instances, which allow one to flexibly "bash" together the outputs.
---
--- Two 1D vectors, can go to a 2D shape with 2 rows if their lengths are identical.
--- Any 2 1D vectors can also become a longer 1D Vector.
---
--- 3D images become 3D images with more channels. The sizes must be the same, one can use Pad
--- and Crop layers to ensure this is the case.
+-- The ConcatRecurrent layer currently supports D1 shape concatenation only, but allows a mix of
+-- recurrent and feedforward layers.
 data ConcatRecurrent :: Shape -> * -> Shape -> * -> * where
   ConcatRecLeft  :: x -> y -> ConcatRecurrent m (Recurrent x) n (FeedForward y)
   ConcatRecRight :: x -> y -> ConcatRecurrent m (FeedForward x) n (Recurrent y)

@@ -1,5 +1,5 @@
 name:                  grenade
-version:               0.1.0
+version:               0.2.0
 license:               BSD2
 license-file:          LICENSE
 author:                Huw Campbell <huw.campbell@gmail.com>
@@ -24,6 +24,7 @@ description:
 
 extra-source-files:
   README.md
+  CHANGELOG.md
   cbits/im2col.h
   cbits/im2col.c
   cbits/gradient_descent.h
