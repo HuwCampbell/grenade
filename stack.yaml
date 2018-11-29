@@ -2,6 +2,5 @@ flags: {}
 packages:
 - .
 - examples
-extra-deps:
-- mwc-random-0.13.5.0
+extra-deps: []
 resolver: lts-9.21

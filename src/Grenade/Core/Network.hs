@@ -104,6 +104,11 @@ data Tapes :: [*] -> [Shape] -> * where
          -> !(Tapes xs (h ': hs))
          -> Tapes (x ': xs) (i ': h ': hs)
 
+instance NFData (Tapes '[] '[i]) where
+  rnf TNil       = ()
+
+instance (NFData (Tape x i h), NFData (Tapes xs (h ': hs)), Layer x i h) => NFData (Tapes (x ': xs) (i ': h ': hs)) where
+  rnf (t :\> ts) = rnf t `seq` rnf ts
 
 -- | Running a network forwards with some input data.
 --
