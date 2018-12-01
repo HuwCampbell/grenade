@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric  #-}
 {-|
 Module      : Grenade.Core.LearningParameters
 Description : Stochastic gradient descent learning parameters
@@ -13,9 +15,12 @@ module Grenade.Core.LearningParameters (
     LearningParameters (..)
   ) where
 
+import           Control.DeepSeq
+import           GHC.Generics
+
 -- | Learning parameters for stochastic gradient descent.
 data LearningParameters = LearningParameters {
-    learningRate :: Double
-  , learningMomentum :: Double
+    learningRate        :: Double
+  , learningMomentum    :: Double
   , learningRegulariser :: Double
-  } deriving (Eq, Show)
+  } deriving (Eq, Show, NFData, Generic)
