@@ -6,7 +6,6 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoStarIsType          #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Layers.Crop

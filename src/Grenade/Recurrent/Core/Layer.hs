@@ -8,6 +8,8 @@ module Grenade.Recurrent.Core.Layer (
   , RecurrentUpdateLayer (..)
   ) where
 
+import           Data.Kind (Type)
+
 import           Grenade.Core
 
 -- | Class for a recurrent layer.
@@ -15,11 +17,11 @@ import           Grenade.Core
 --   of an extra recurrent data shape.
 class UpdateLayer x => RecurrentUpdateLayer x where
   -- | Shape of data that is passed between each subsequent run of the layer
-  type RecurrentShape x   :: *
+  type RecurrentShape x   :: Type
 
 class (RecurrentUpdateLayer x, Num (RecurrentShape x)) => RecurrentLayer x (i :: Shape) (o :: Shape) where
   -- | Wengert Tape
-  type RecTape x i o :: *
+  type RecTape x i o :: Type
   -- | Used in training and scoring. Take the input from the previous
   --   layer, and give the output from this layer.
   runRecurrentForwards    :: x -> RecurrentShape x -> S i -> (RecTape x i o, RecurrentShape x, S o)

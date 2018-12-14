@@ -8,7 +8,6 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE NoStarIsType          #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Core.Shape
