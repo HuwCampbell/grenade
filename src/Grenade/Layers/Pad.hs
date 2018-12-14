@@ -6,6 +6,8 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE NoStarIsType          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Core.Pad
 Description : Padding layer for 2D and 3D images
@@ -27,6 +29,7 @@ import           GHC.TypeLits hiding (natVal)
 #else
 import           GHC.TypeLits
 #endif
+import           Data.Kind (Type)
 
 import           Grenade.Core
 import           Grenade.Layers.Internal.Pad
@@ -40,7 +43,7 @@ import           Numeric.LinearAlgebra.Static (extract, create)
 data Pad  :: Nat
           -> Nat
           -> Nat
-          -> Nat -> * where
+          -> Nat -> Type where
   Pad  :: Pad padLeft padTop padRight padBottom
 
 instance Show (Pad padLeft padTop padRight padBottom) where

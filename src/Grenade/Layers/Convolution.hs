@@ -8,6 +8,8 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE NoStarIsType          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Layers.Convolution
 Description : Convolution layer
@@ -35,6 +37,7 @@ import           GHC.TypeLits hiding (natVal)
 #else
 import           GHC.TypeLits
 #endif
+import           Data.Kind (Type)
 
 import           Numeric.LinearAlgebra hiding ( uniformSample, konst )
 import qualified Numeric.LinearAlgebra as LA
@@ -61,7 +64,7 @@ data Convolution :: Nat -- Number of channels, for the first layer this could be
                  -> Nat -- The number of column in the kernel filter
                  -> Nat -- The row stride of the convolution filter
                  -> Nat -- The columns stride of the convolution filter
-                 -> * where
+                 -> Type where
   Convolution :: ( KnownNat channels
                  , KnownNat filters
                  , KnownNat kernelRows
@@ -80,7 +83,7 @@ data Convolution' :: Nat -- Number of channels, for the first layer this could b
                   -> Nat -- The number of column in the kernel filter
                   -> Nat -- The row stride of the convolution filter
                   -> Nat -- The columns stride of the convolution filter
-                  -> * where
+                  -> Type where
   Convolution' :: ( KnownNat channels
                   , KnownNat filters
                   , KnownNat kernelRows
