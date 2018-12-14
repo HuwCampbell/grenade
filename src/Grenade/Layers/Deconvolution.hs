@@ -8,6 +8,8 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE NoStarIsType          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Layers.Deconvolution
 Description : Deconvolution layer
@@ -39,6 +41,7 @@ import           GHC.TypeLits hiding (natVal)
 #else
 import           GHC.TypeLits
 #endif
+import           Data.Kind (Type)
 
 import           Numeric.LinearAlgebra hiding ( uniformSample, konst )
 import qualified Numeric.LinearAlgebra as LA
@@ -60,7 +63,7 @@ data Deconvolution :: Nat -- Number of channels, for the first layer this could 
                    -> Nat -- The number of column in the kernel filter
                    -> Nat -- The row stride of the Deconvolution filter
                    -> Nat -- The columns stride of the Deconvolution filter
-                   -> * where
+                   -> Type where
   Deconvolution :: ( KnownNat channels
                    , KnownNat filters
                    , KnownNat kernelRows
@@ -79,7 +82,7 @@ data Deconvolution' :: Nat -- Number of channels, for the first layer this could
                     -> Nat -- The number of column in the kernel filter
                     -> Nat -- The row stride of the Deconvolution filter
                     -> Nat -- The columns stride of the Deconvolution filter
-                    -> * where
+                    -> Type where
   Deconvolution' :: ( KnownNat channels
                   , KnownNat filters
                   , KnownNat kernelRows

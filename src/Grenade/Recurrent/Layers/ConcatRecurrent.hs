@@ -8,6 +8,7 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Layers.Concat
 Description : Concatenation layer
