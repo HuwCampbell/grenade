@@ -6,6 +6,8 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NoStarIsType          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Layers.Crop
 Description : Cropping layer
@@ -27,6 +29,7 @@ import           GHC.TypeLits hiding (natVal)
 #else
 import           GHC.TypeLits
 #endif
+import           Data.Kind (Type)
 
 import           Grenade.Core
 import           Grenade.Layers.Internal.Pad
@@ -38,7 +41,7 @@ import           Numeric.LinearAlgebra.Static (extract, create)
 data Crop :: Nat
           -> Nat
           -> Nat
-          -> Nat -> * where
+          -> Nat -> Type where
   Crop :: Crop cropLeft cropTop cropRight cropBottom
 
 instance Show (Crop cropLeft cropTop cropRight cropBottom) where
