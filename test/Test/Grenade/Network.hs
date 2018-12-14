@@ -35,6 +35,9 @@ import           GHC.TypeLits hiding (natVal)
 #else
 import           GHC.TypeLits
 #endif
+#if MIN_VERSION_base(4,9,0)
+import           Data.Kind (Type)
+#endif
 
 import           GHC.TypeLits.Witnesses
 import           Test.Hedgehog.Compat
@@ -46,7 +49,7 @@ import           Numeric.LinearAlgebra ( flatten )
 import           Numeric.LinearAlgebra.Static ( extract, norm_Inf )
 import           Unsafe.Coerce
 
-data SomeNetwork :: * where
+data SomeNetwork :: Type where
     SomeNetwork :: ( SingI shapes, SingI (Head shapes), SingI (Last shapes), Show (Network layers shapes) ) => Network layers shapes -> SomeNetwork
 
 instance Show SomeNetwork where
@@ -448,7 +451,7 @@ oneUp =
     D1Sing SNat ->
       let x = 0 :: S ( shape )
       in  case x of
-              ( S1D x' ) -> do
+            ( S1D x' ) -> do
               let ex = extract x'
               let len = VS.length ex
               ix <- choose 0 (len - 1)
@@ -460,7 +463,7 @@ oneUp =
     D2Sing SNat SNat ->
       let x = 0 :: S ( shape )
       in  case x of
-              ( S2D x' ) -> do
+            ( S2D x' ) -> do
               let ex = flatten ( extract x' )
               let len = VS.length ex
               ix <- choose 0 (len - 1)
@@ -472,7 +475,7 @@ oneUp =
     D3Sing SNat SNat SNat ->
       let x = 0 :: S ( shape )
       in  case x of
-              ( S3D x' ) -> do
+            ( S3D x' ) -> do
               let ex = flatten ( extract x' )
               let len = VS.length ex
               ix <- choose 0 (len - 1)

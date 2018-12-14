@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE DataKinds           #-}
@@ -12,6 +13,10 @@ import           Data.Singletons ()
 
 import           GHC.TypeLits
 
+#if MIN_VERSION_base(4,9,0)
+import           Data.Kind (Type)
+#endif
+
 import           Grenade.Core
 import           Grenade.Layers.FullyConnected
 
@@ -20,7 +25,7 @@ import           Hedgehog
 import           Test.Hedgehog.Compat
 import           Test.Hedgehog.Hmatrix
 
-data OpaqueFullyConnected :: * where
+data OpaqueFullyConnected :: Type where
      OpaqueFullyConnected :: (KnownNat i, KnownNat o) => FullyConnected i o -> OpaqueFullyConnected
 
 instance Show OpaqueFullyConnected where
