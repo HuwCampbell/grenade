@@ -41,6 +41,8 @@ import           Control.Monad.Random ( MonadRandom )
 
 import           Data.List ( foldl' )
 
+import           Data.Kind (Type)
+
 import           Grenade.Core.Shape
 import           Grenade.Core.LearningParameters
 
@@ -50,7 +52,7 @@ import           Grenade.Core.LearningParameters
 class UpdateLayer x where
   -- | The type for the gradient for this layer.
   --   Unit if there isn't a gradient to pass back.
-  type Gradient x :: *
+  type Gradient x :: Type
 
   -- | Update a layer with its gradient and learning parameters
   runUpdate       :: LearningParameters -> x -> Gradient x -> x
@@ -72,7 +74,7 @@ class UpdateLayer x => Layer x (i :: Shape) (o :: Shape) where
   -- | The Wengert tape for this layer. Includes all that is required
   --   to generate the back propagated gradients efficiently. As a
   --   default, `S i` is fine.
-  type Tape x i o :: *
+  type Tape x i o :: Type
 
   -- | Used in training and scoring. Take the input from the previous
   --   layer, and give the output from this layer.
