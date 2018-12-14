@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -8,7 +9,9 @@ module Grenade.Recurrent.Core.Layer (
   , RecurrentUpdateLayer (..)
   ) where
 
+#if MIN_VERSION_base(4,9,0)
 import           Data.Kind (Type)
+#endif
 
 import           Grenade.Core
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -23,7 +24,9 @@ import           Data.Serialize
 
 import           Data.Singletons
 
+#if MIN_VERSION_base(4,9,0)
 import           Data.Kind (Type)
+#endif
 
 import           Grenade.Core
 

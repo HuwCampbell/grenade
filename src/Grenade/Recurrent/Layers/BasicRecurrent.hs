@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE RecordWildCards       #-}
@@ -18,7 +19,9 @@ import           Control.Monad.Random ( MonadRandom, getRandom )
 
 import           Data.Singletons.TypeLits
 
+#if MIN_VERSION_base(4,9,0)
 import           Data.Kind (Type)
+#endif
 
 import           Numeric.LinearAlgebra.Static
 

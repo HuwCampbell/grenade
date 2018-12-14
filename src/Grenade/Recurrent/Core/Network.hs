@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -32,7 +33,9 @@ import           Data.Singletons ( SingI )
 import           Data.Singletons.Prelude ( Head, Last )
 import           Data.Serialize
 
+#if MIN_VERSION_base(4,9,0)
 import           Data.Kind (Type)
+#endif
 
 import           Grenade.Core
 import           Grenade.Recurrent.Core.Layer
