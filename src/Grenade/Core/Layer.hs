@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -41,7 +42,9 @@ import           Control.Monad.Random ( MonadRandom )
 
 import           Data.List ( foldl' )
 
+#if MIN_VERSION_base(4,9,0)
 import           Data.Kind (Type)
+#endif
 
 import           Grenade.Core.Shape
 import           Grenade.Core.LearningParameters

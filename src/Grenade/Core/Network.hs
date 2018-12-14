@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE GADTs                 #-}
@@ -36,7 +37,9 @@ import           Data.Singletons
 import           Data.Singletons.Prelude
 import           Data.Serialize
 
+#if MIN_VERSION_base(4,9,0)
 import           Data.Kind (Type)
+#endif
 
 import           Grenade.Core.Layer
 import           Grenade.Core.LearningParameters

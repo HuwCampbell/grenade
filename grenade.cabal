@@ -57,6 +57,7 @@ library
 
   if impl(ghc < 8.0)
     ghc-options:       -fno-warn-incomplete-patterns
+    cpp-options:       -DType=*
 
   if impl(ghc >= 8.6)
     default-extensions: NoStarIsType
