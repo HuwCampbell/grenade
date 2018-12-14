@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
@@ -15,6 +16,10 @@ import           Data.Singletons ()
 import           GHC.TypeLits
 import           GHC.TypeLits.Witnesses
 
+#if MIN_VERSION_base(4,9,0)
+import           Data.Kind (Type)
+#endif
+
 import           Grenade.Core
 import           Grenade.Layers.Convolution
 
@@ -25,7 +30,7 @@ import           Test.Hedgehog.Hmatrix
 import           Test.Hedgehog.TypeLits
 import           Test.Hedgehog.Compat
 
-data OpaqueConvolution :: * where
+data OpaqueConvolution :: Type where
      OpaqueConvolution :: Convolution channels filters kernelRows kernelColumns strideRows strideColumns -> OpaqueConvolution
 
 instance Show OpaqueConvolution where

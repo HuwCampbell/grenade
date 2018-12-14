@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE KindSignatures      #-}
@@ -9,6 +10,10 @@ module Test.Grenade.Layers.Pooling where
 import           Data.Proxy
 import           Data.Singletons ()
 
+#if MIN_VERSION_base(4,9,0)
+import           Data.Kind (Type)
+#endif
+
 import           GHC.TypeLits
 import           Grenade.Layers.Pooling
 
@@ -16,7 +21,7 @@ import           Hedgehog
 
 import           Test.Hedgehog.Compat
 
-data OpaquePooling :: * where
+data OpaquePooling :: Type where
      OpaquePooling :: (KnownNat kh, KnownNat kw, KnownNat sh, KnownNat sw) => Pooling kh kw sh sw -> OpaquePooling
 
 instance Show OpaquePooling where
@@ -24,10 +29,10 @@ instance Show OpaquePooling where
 
 genOpaquePooling :: Gen OpaquePooling
 genOpaquePooling = do
-    Just kernelHeight <- someNatVal <$> choose 2 15
-    Just kernelWidth  <- someNatVal <$> choose 2 15
-    Just strideHeight <- someNatVal <$> choose 2 15
-    Just strideWidth  <- someNatVal <$> choose 2 15
+    ~(Just kernelHeight) <- someNatVal <$> choose 2 15
+    ~(Just kernelWidth ) <- someNatVal <$> choose 2 15
+    ~(Just strideHeight) <- someNatVal <$> choose 2 15
+    ~(Just strideWidth ) <- someNatVal <$> choose 2 15
 
     case (kernelHeight, kernelWidth, strideHeight, strideWidth) of
        (SomeNat (_ :: Proxy kh), SomeNat (_ :: Proxy kw), SomeNat (_ :: Proxy sh), SomeNat (_ :: Proxy sw)) ->
