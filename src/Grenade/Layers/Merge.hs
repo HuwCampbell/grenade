@@ -23,13 +23,15 @@ import           Data.Serialize
 
 import           Data.Singletons
 
+import           Data.Kind (Type)
+
 import           Grenade.Core
 
 -- | A Merging layer.
 --
 -- Similar to Concat layer, except sums the activations instead of creating a larger
 -- shape.
-data Merge :: * -> * -> * where
+data Merge :: Type -> Type -> Type where
   Merge :: x -> y -> Merge x y
 
 instance (Show x, Show y) => Show (Merge x y) where

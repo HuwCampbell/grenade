@@ -36,6 +36,8 @@ import           Data.Singletons
 import           Data.Singletons.Prelude
 import           Data.Serialize
 
+import           Data.Kind (Type)
+
 import           Grenade.Core.Layer
 import           Grenade.Core.LearningParameters
 import           Grenade.Core.Shape
@@ -48,7 +50,7 @@ import           Grenade.Core.Shape
 --
 --   Can be considered to be a heterogeneous list of layers which are able to
 --   transform the data shapes of the network.
-data Network :: [*] -> [Shape] -> * where
+data Network :: [Type] -> [Shape] -> Type where
     NNil  :: SingI i
           => Network '[] '[i]
 
@@ -66,7 +68,7 @@ instance (Show x, Show (Network xs rs)) => Show (Network (x ': xs) (i ': rs)) wh
 -- | Gradient of a network.
 --
 --   Parameterised on the layers of the network.
-data Gradients :: [*] -> * where
+data Gradients :: [Type] -> Type where
    GNil  :: Gradients '[]
 
    (:/>) :: UpdateLayer x
@@ -77,7 +79,7 @@ data Gradients :: [*] -> * where
 -- | Wegnert Tape of a network.
 --
 --   Parameterised on the layers and shapes of the network.
-data Tapes :: [*] -> [Shape] -> * where
+data Tapes :: [Type] -> [Shape] -> Type where
    TNil  :: SingI i
          => Tapes '[] '[i]
 
@@ -152,7 +154,7 @@ applyUpdate _ NNil GNil
 
 -- | A network can easily be created by hand with (:~>), but an easy way to
 --   initialise a random network is with the randomNetwork.
-class CreatableNetwork (xs :: [*]) (ss :: [Shape]) where
+class CreatableNetwork (xs :: [Type]) (ss :: [Shape]) where
   -- | Create a network with randomly initialised weights.
   --
   --   Calls to this function will not compile if the type of the neural

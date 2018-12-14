@@ -18,6 +18,8 @@ import           Control.Monad.Random ( MonadRandom, getRandom )
 
 import           Data.Singletons.TypeLits
 
+import           Data.Kind (Type)
+
 import           Numeric.LinearAlgebra.Static
 
 import           GHC.TypeLits
@@ -27,7 +29,7 @@ import           Grenade.Recurrent.Core
 
 data BasicRecurrent :: Nat -- Input layer size
                     -> Nat -- Output layer size
-                    -> * where
+                    -> Type where
   BasicRecurrent :: ( KnownNat input
                     , KnownNat output
                     , KnownNat matrixCols
@@ -40,7 +42,7 @@ data BasicRecurrent :: Nat -- Input layer size
 
 data BasicRecurrent' :: Nat -- Input layer size
                      -> Nat -- Output layer size
-                     -> * where
+                     -> Type where
   BasicRecurrent' :: ( KnownNat input
                      , KnownNat output
                      , KnownNat matrixCols

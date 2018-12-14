@@ -8,7 +8,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE NoStarIsType          #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Layers.Convolution

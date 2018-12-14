@@ -27,6 +27,8 @@ import           Data.Serialize
 import           Data.Singletons
 import           GHC.TypeLits
 
+import           Data.Kind (Type)
+
 import           Grenade.Core
 import           Grenade.Recurrent.Core
 
@@ -45,7 +47,7 @@ import           Numeric.LinearAlgebra.Static ( (#), split, R )
 --
 -- 3D images become 3D images with more channels. The sizes must be the same, one can use Pad
 -- and Crop layers to ensure this is the case.
-data ConcatRecurrent :: Shape -> * -> Shape -> * -> * where
+data ConcatRecurrent :: Shape -> Type -> Shape -> Type -> Type where
   ConcatRecLeft  :: x -> y -> ConcatRecurrent m (Recurrent x) n (FeedForward y)
   ConcatRecRight :: x -> y -> ConcatRecurrent m (FeedForward x) n (Recurrent y)
   ConcatRecBoth  :: x -> y -> ConcatRecurrent m (Recurrent x) n   (Recurrent y)
