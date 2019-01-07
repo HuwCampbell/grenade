@@ -28,7 +28,7 @@ module Grenade.Layers.Convolution (
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits
+import           Data.Singletons.TypeLits hiding (natVal)
 
 import           GHC.TypeLits
 import           Control.DeepSeq              (NFData (..))

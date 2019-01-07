@@ -31,7 +31,7 @@ import           System.Random.MWC
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons
-import           Data.Singletons.TypeLits
+import           Data.Singletons.TypeLits hiding (natVal)
 import           Data.Vector.Storable ( Vector )
 import qualified Data.Vector.Storable as V
 

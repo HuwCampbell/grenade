@@ -26,7 +26,7 @@ module Grenade.Recurrent.Layers.ConcatRecurrent (
 import           Data.Serialize
 
 import           Data.Singletons
-import           GHC.TypeLits
+import           GHC.TypeLits 
 
 import           Grenade.Core
 import           Grenade.Recurrent.Core

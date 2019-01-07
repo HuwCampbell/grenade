@@ -17,7 +17,7 @@ module Grenade.Recurrent.Layers.BasicRecurrent (
 
 
 import           Data.Proxy
-import           Data.Singletons.TypeLits
+import           Data.Singletons.TypeLits hiding (natVal)
 
 import           Numeric.LinearAlgebra.Static
 
