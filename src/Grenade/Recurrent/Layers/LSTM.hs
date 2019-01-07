@@ -22,7 +22,7 @@ module Grenade.Recurrent.Layers.LSTM (
 
 import           Control.Monad.Primitive           (PrimBase, PrimState)
 import           System.Random.MWC hiding (create)
-import GHC.TypeLits
+import GHC.TypeLits 
 
 -- import           Data.List ( foldl1' )
 import           Data.Proxy

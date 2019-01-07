@@ -33,7 +33,7 @@ import           Control.Monad.Random                hiding (fromList)
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits
+import           Data.Singletons.TypeLits hiding (natVal)
 
 #if MIN_VERSION_base(4,11,0)
 import           GHC.TypeLits                        hiding (natVal)

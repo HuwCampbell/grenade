@@ -28,6 +28,7 @@ import           Data.Singletons.TypeLits
 #if MIN_VERSION_base(4,11,0)
 import           GHC.TypeLits                 hiding (natVal)
 #else
+import           Data.Singletons.TypeLits     hiding (natVal)
 import           GHC.TypeLits
 #endif
 #if MIN_VERSION_base(4,9,0)
@@ -60,7 +61,7 @@ instance UpdateLayer (Pad l t r b) where
   type Gradient (Pad l t r b) = ()
   runUpdate _ x _ = x
 
-instance RandomLayer (Pad l t r b)  where 
+instance RandomLayer (Pad l t r b)  where
   createRandomWith _ _ = return Pad
 
 instance Serialize (Pad l t r b) where
@@ -147,4 +148,4 @@ instance ( KnownNat padLeft
 instance GNum (Pad l t r b) where
   _ |* _ = Pad
   _ |+ _ = Pad
-  gFromRational _ = Pad 
+  gFromRational _ = Pad

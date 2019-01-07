@@ -1,216 +1,198 @@
-cabal-version: 1.12
+name:                  grenade
+version:               0.1.0
+license:               BSD2
+license-file:          LICENSE
+author:                Huw Campbell <huw.campbell@gmail.com>
+maintainer:            Huw Campbell <huw.campbell@gmail.com>
+copyright:             (c) 2016-2017 Huw Campbell.
+synopsis:              Practical Deep Learning in Haskell
+category:              AI, Machine Learning
+cabal-version:         >= 1.8
+build-type:            Simple
+description:
+    Grenade is a composable, dependently typed, practical, and fast
+    recurrent neural network library for precise specifications and
+    complex deep neural networks in Haskell.
+    .
+    Grenade provides an API for composing layers of a neural network
+    into a sequence parallel graph in a type safe manner; running
+    networks with reverse automatic differentiation to calculate their
+    gradients; and applying gradient descent for learning.
+    .
+    Documentation and examples are available on github
+    <https://github.com/HuwCampbell/grenade>.
 
--- This file has been generated from package.yaml by hpack version 0.31.2.
---
--- see: https://github.com/sol/hpack
---
--- hash: 0dc778c2895d28a05d07f46b94ee738f5ea0afdd653e1c657c35f4771f290d11
-
-name:           grenade
-version:        0.1.0
-synopsis:       Practical Deep Learning in Haskell
-description:    Grenade is a composable, dependently typed, practical, and fast recurrent neural network library for precise specifications and complex deep neural networks in Haskell.
-                Grenade provides an API for composing layers of a neural network into a sequence parallel graph in a type safe manner; running networks with reverse automatic differentiation to calculate their gradients; and applying gradient descent for learning.
-                Documentation and examples are available on github <https://github.com/HuwCampbell/grenade>.
-category:       AI, Machine Learning
-homepage:       https://github.com/github.com/HuwCampbell#readme
-bug-reports:    https://github.com/github.com/HuwCampbell/issues
-author:         Huw Campbell <huw.campbell@gmail.com>, Manuel Schneckenreither <manuel.schnecki@gmail.com>
-maintainer:     Huw Campbell <huw.campbell@gmail.com>
-copyright:      (c) 2016-2020 Huw Campbell.
-license:        BSD2
-license-file:   LICENSE
-build-type:     Simple
 extra-source-files:
-    README.md
-    cbits/im2col.h
-    cbits/im2col.c
-    cbits/gradient_descent.h
-    cbits/gradient_descent.c
-    cbits/pad.h
-    cbits/pad.c
+  README.md
+  cbits/im2col.h
+  cbits/im2col.c
+  cbits/gradient_descent.h
+  cbits/gradient_descent.c
+  cbits/pad.h
+  cbits/pad.c
 
 source-repository head
   type: git
-  location: https://github.com/github.com/HuwCampbell
-  subdir: grenade.git
-
-flag debug
-  description: Turn on debug settings.
-  manual: False
-  default: False
-
-flag fast
-  description: Disables optimizations
-  manual: True
-  default: False
+  location: https://github.com/HuwCampbell/grenade.git
 
 library
-  exposed-modules:
-      Grenade
-      Grenade.Core
-      Grenade.Core.Layer
-      Grenade.Core.LearningParameters
-      Grenade.Core.Network
-      Grenade.Core.Runner
-      Grenade.Core.Shape
-      Grenade.Core.WeightInitialization
-      Grenade.Layers
-      Grenade.Layers.Concat
-      Grenade.Layers.Convolution
-      Grenade.Layers.Crop
-      Grenade.Layers.Deconvolution
-      Grenade.Layers.Dropout
-      Grenade.Layers.Elu
-      Grenade.Layers.FullyConnected
-      Grenade.Layers.Inception
-      Grenade.Layers.Internal.Convolution
-      Grenade.Layers.Internal.Pad
-      Grenade.Layers.Internal.Pooling
-      Grenade.Layers.Internal.Update
-      Grenade.Layers.Logit
-      Grenade.Layers.Merge
-      Grenade.Layers.Pad
-      Grenade.Layers.Pooling
-      Grenade.Layers.Relu
-      Grenade.Layers.Reshape
-      Grenade.Layers.Sinusoid
-      Grenade.Layers.Softmax
-      Grenade.Layers.Tanh
-      Grenade.Layers.Trivial
-      Grenade.Recurrent
-      Grenade.Recurrent.Core
-      Grenade.Recurrent.Core.Layer
-      Grenade.Recurrent.Core.Network
-      Grenade.Recurrent.Core.Runner
-      Grenade.Recurrent.Layers
-      Grenade.Recurrent.Layers.BasicRecurrent
-      Grenade.Recurrent.Layers.ConcatRecurrent
-      Grenade.Recurrent.Layers.LSTM
-      Grenade.Utils.OneHot
-  other-modules:
-      Paths_grenade
-  hs-source-dirs:
-      src
-  ghc-options: -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints -fwarn-tabs
-  cc-options: -std=c99 -O3 -msse4.2 -Wall -Werror -DCABAL=1
-  c-sources:
-      cbits/im2col.c
-      cbits/gradient_descent.c
-      cbits/pad.c
   build-depends:
-      MonadRandom >=0.4 && <0.6
-    , base >=4.7 && <5
-    , bytestring ==0.10.*
-    , cereal >=0.5 && <0.6
-    , containers >=0.5 && <0.7
-    , deepseq >=1.4 && <1.5
-    , hmatrix >=0.18 && <0.21
-    , mwc-random >=0.13
-    , primitive >=0.6 && <0.8
-    , singletons
-    , vector >=0.11 && <0.13
+                       base                            >= 4.8         && < 5
+                     , bytestring                      == 0.10.*
+                     , containers                      >= 0.5
+                     , cereal                          >= 0.5
+                     , deepseq                         >= 1.4
+                     , hmatrix                         >= 0.18
+                     , primitive                       >= 0.6
+                     , singletons                      >= 2.1
+                     , vector                          >= 0.11
+                     , mwc-random                      >= 0.11
+
+  ghc-options:
+                       -Wall
+  hs-source-dirs:
+                       src
+
   if impl(ghc < 8.0)
-    ghc-options: -fno-warn-incomplete-patterns
-    cpp-options: -DType=*
-  if (flag(debug)) || (flag(fast))
-    ghc-options: -O0
-    cpp-options: -DDEBUG
-  else
-    ghc-options: -O2
-  default-language: Haskell2010
+    ghc-options:       -fno-warn-incomplete-patterns
+
+
+  exposed-modules:
+                       Grenade
+                       Grenade.Core
+                       Grenade.Core.Layer
+                       Grenade.Core.LearningParameters
+                       Grenade.Core.Network
+                       Grenade.Core.Runner
+                       Grenade.Core.Shape
+                       Grenade.Core.WeightInitialization
+
+                       Grenade.Layers
+                       Grenade.Layers.Concat
+                       Grenade.Layers.Convolution
+                       Grenade.Layers.Crop
+                       Grenade.Layers.Deconvolution
+                       Grenade.Layers.Dropout
+                       Grenade.Layers.Elu
+                       Grenade.Layers.FullyConnected
+                       Grenade.Layers.Inception
+                       Grenade.Layers.Logit
+                       Grenade.Layers.Merge
+                       Grenade.Layers.Pad
+                       Grenade.Layers.Pooling
+                       Grenade.Layers.Relu
+                       Grenade.Layers.Reshape
+                       Grenade.Layers.Sinusoid
+                       Grenade.Layers.Softmax
+                       Grenade.Layers.Tanh
+                       Grenade.Layers.Trivial
+
+                       Grenade.Layers.Internal.Convolution
+                       Grenade.Layers.Internal.Pad
+                       Grenade.Layers.Internal.Pooling
+                       Grenade.Layers.Internal.Update
+
+                       Grenade.Recurrent
+
+                       Grenade.Recurrent.Core
+                       Grenade.Recurrent.Core.Layer
+                       Grenade.Recurrent.Core.Network
+                       Grenade.Recurrent.Core.Runner
+
+                       Grenade.Recurrent.Layers
+                       Grenade.Recurrent.Layers.BasicRecurrent
+                       Grenade.Recurrent.Layers.ConcatRecurrent
+                       Grenade.Recurrent.Layers.LSTM
+
+                       Grenade.Utils.OneHot
+
+  includes:            cbits/im2col.h
+                       cbits/gradient_descent.h
+                       cbits/pad.h
+  c-sources:           cbits/im2col.c
+                       cbits/gradient_descent.c
+                       cbits/pad.c
+
+  cc-options:          -std=c99 -O3 -msse4.2 -Wall -Werror -DCABAL=1
 
 test-suite test
-  type: exitcode-stdio-1.0
-  main-is: test.hs
-  other-modules:
-      Test.Grenade.Layers.Convolution
-      Test.Grenade.Layers.FullyConnected
-      Test.Grenade.Layers.Internal.Convolution
-      Test.Grenade.Layers.Internal.Pooling
-      Test.Grenade.Layers.Internal.Reference
-      Test.Grenade.Layers.Nonlinear
-      Test.Grenade.Layers.PadCrop
-      Test.Grenade.Layers.Pooling
-      Test.Grenade.Network
-      Test.Grenade.Recurrent.Layers.LSTM
-      Test.Grenade.Recurrent.Layers.LSTM.Reference
-      Test.Hedgehog.Compat
-      Test.Hedgehog.Hmatrix
-      Test.Hedgehog.TypeLits
-      Paths_grenade
+  type:                exitcode-stdio-1.0
+
+  main-is:             test.hs
+
+  ghc-options:         -Wall -threaded -O2
+
   hs-source-dirs:
-      test
-  ghc-options: -Wall -threaded -O2
-  build-depends:
-      MonadRandom >=0.4 && <0.6
-    , ad
-    , base >=4.7 && <5
-    , bytestring ==0.10.*
-    , cereal >=0.5 && <0.6
-    , constraints
-    , containers >=0.5 && <0.7
-    , deepseq >=1.4 && <1.5
-    , grenade
-    , hedgehog
-    , hmatrix >=0.18 && <0.21
-    , mwc-random >=0.13
-    , primitive >=0.6 && <0.8
-    , reflection
-    , singletons
-    , typelits-witnesses
-    , vector >=0.11 && <0.13
+                       test
+
+
+  other-modules:       Test.Hedgehog.Compat
+                       Test.Hedgehog.Hmatrix
+                       Test.Hedgehog.TypeLits
+
+                       Test.Grenade.Network
+                       Test.Grenade.Layers.Convolution
+                       Test.Grenade.Layers.FullyConnected
+                       Test.Grenade.Layers.Nonlinear
+                       Test.Grenade.Layers.PadCrop
+                       Test.Grenade.Layers.Pooling
+                       Test.Grenade.Layers.Internal.Convolution
+                       Test.Grenade.Layers.Internal.Pooling
+                       Test.Grenade.Layers.Internal.Reference
+
+                       Test.Grenade.Recurrent.Layers.LSTM
+                       Test.Grenade.Recurrent.Layers.LSTM.Reference
+
   if impl(ghc < 8.0)
-    ghc-options: -fno-warn-incomplete-patterns
-    cpp-options: -DType=*
-  if impl(ghc >= 8.6)
-    default-extensions: NoStarIsType
-  default-language: Haskell2010
+    ghc-options:       -fno-warn-incomplete-patterns
+
+  build-depends:
+                       base                            >= 4.8         && < 5
+                     , grenade
+                     , hedgehog                        >= 0.5
+                     , hmatrix
+                     , mtl
+                     , singletons
+                     , text                            >= 1.2
+                     , typelits-witnesses
+                     , transformers
+                     , constraints
+                     , random
+                     , ad
+                     , reflection
+                     , vector
+
 
 benchmark bench
-  type: exitcode-stdio-1.0
-  main-is: bench.hs
-  other-modules:
-      Paths_grenade
+  type:                exitcode-stdio-1.0
+
+  main-is:             bench.hs
+
+  ghc-options:         -Wall -threaded -O2
+
   hs-source-dirs:
-      bench
-  ghc-options: -Wall -threaded -O2
+                       bench
+
   build-depends:
-      MonadRandom >=0.4 && <0.6
-    , base >=4.7 && <5
-    , bytestring ==0.10.*
-    , cereal >=0.5 && <0.6
-    , containers >=0.5 && <0.7
-    , criterion >=1.1 && <1.6
-    , deepseq >=1.4 && <1.5
-    , grenade
-    , hmatrix >=0.18 && <0.21
-    , mwc-random >=0.13
-    , primitive >=0.6 && <0.8
-    , singletons
-    , vector >=0.11 && <0.13
-  default-language: Haskell2010
+                       base                            >= 3          && < 5
+                     , bytestring                      >= 0.10
+                     , criterion                       >= 1.1
+                     , grenade
+                     , hmatrix
 
 benchmark bench-lstm
-  type: exitcode-stdio-1.0
-  main-is: bench-lstm.hs
-  other-modules:
-      Paths_grenade
+  type:                exitcode-stdio-1.0
+
+  main-is:             bench-lstm.hs
+
+  ghc-options:         -Wall -threaded -O2
+
   hs-source-dirs:
-      bench
-  ghc-options: -Wall -threaded -O2
+                       bench
+
   build-depends:
-      MonadRandom >=0.4 && <0.6
-    , base >=4.7 && <5
-    , bytestring ==0.10.*
-    , cereal >=0.5 && <0.6
-    , containers >=0.5 && <0.7
-    , criterion >=1.1 && <1.6
-    , deepseq >=1.4 && <1.5
-    , grenade
-    , hmatrix >=0.18 && <0.21
-    , mwc-random >=0.13
-    , primitive >=0.6 && <0.8
-    , singletons
-    , vector >=0.11 && <0.13
-  default-language: Haskell2010
+                       base                            >= 3          && < 5
+                     , bytestring                      >= 0.10
+                     , criterion                       >= 1.1
+                     , grenade
+                     , hmatrix

@@ -29,6 +29,7 @@ import           Data.Singletons.TypeLits
 #if MIN_VERSION_base(4,11,0)
 import           GHC.TypeLits                    hiding (natVal)
 #else
+import           Data.Singletons.TypeLits        hiding (natVal)
 import           GHC.TypeLits
 #endif
 #if MIN_VERSION_base(4,9,0)
@@ -151,4 +152,4 @@ instance ( KnownNat kernelRows
 instance GNum (Pooling k k' s s') where
   _ |* _ = Pooling
   _ |+ _ = Pooling
-  gFromRational _ = Pooling 
+  gFromRational _ = Pooling
