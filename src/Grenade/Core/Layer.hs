@@ -19,7 +19,7 @@ neural network.
 There are two classes of interest: `UpdateLayer` and `Layer`.
 
 `UpdateLayer` is required for all types which are used as a layer
-in a network. Having no shape information, this class is agnotostic
+in a network. Having no shape information, this class is agnostic
 to the input and output data of the layer.
 
 An instance of `Layer` on the other hand is required for usage in
