@@ -190,7 +190,7 @@ benchmark bench
   build-depends:
                        base
                      , bytestring
-                     , criterion                       >= 1.1        && < 1.5
+                     , criterion                       >= 1.1        && < 1.6
                      , grenade
                      , hmatrix
 
