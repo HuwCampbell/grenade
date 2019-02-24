@@ -44,6 +44,11 @@ RUN stack build
 RUN echo ':set prompt "\ESC[34mλ> \ESC[m"' > ~/.ghci
 
 #
+# Choose default main object to run GHCI
+#
+ENV GRENADE_MAIN=mnist
+
+#
 # Run GHC repl
 #
-CMD [ "stack", "ghci" ]
+CMD stack ghci --main-is grenade-examples:exe:$GRENADE_MAIN
