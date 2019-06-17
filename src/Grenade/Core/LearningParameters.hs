@@ -16,6 +16,7 @@ module Grenade.Core.LearningParameters (
   ) where
 
 import           Control.DeepSeq
+import           Data.Serialize
 import           GHC.Generics
 
 -- | Learning parameters for stochastic gradient descent.
@@ -23,4 +24,4 @@ data LearningParameters = LearningParameters {
     learningRate        :: Double
   , learningMomentum    :: Double
   , learningRegulariser :: Double
-  } deriving (Eq, Show, NFData, Generic)
+  } deriving (Eq, Show, NFData, Generic, Serialize)
