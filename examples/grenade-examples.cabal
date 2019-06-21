@@ -26,9 +26,9 @@ executable             feedforward
                      , bytestring
                      , cereal
                      , either
-                     , optparse-applicative            >= 0.13       && < 0.15
+                     , optparse-applicative            >= 0.13
                      , text                            == 1.2.*
-                     , mtl                             >= 2.2.1      && < 2.3
+                     , mtl                             >= 2.2.1
                      , hmatrix
                      , transformers
                      , singletons
@@ -44,9 +44,9 @@ executable             feedforwardweightinit
                      , bytestring
                      , cereal
                      , either
-                     , optparse-applicative            >= 0.13       && < 0.15
+                     , optparse-applicative            >= 0.13
                      , text                            == 1.2.*
-                     , mtl                             >= 2.2.1      && < 2.3
+                     , mtl                             >= 2.2.1
                      , hmatrix
                      , transformers
                      , singletons
@@ -60,10 +60,10 @@ executable             mnist
                      , grenade
                      , attoparsec
                      , either
-                     , optparse-applicative            >= 0.13       && < 0.15
+                     , optparse-applicative            >= 0.13
                      , text                            == 1.2.*
-                     , mtl                             >= 2.2.1      && < 2.3
-                     , hmatrix                         >= 0.18       && < 0.19
+                     , mtl                             >= 2.2.1
+                     , hmatrix                         >= 0.18
                      , transformers
                      , semigroups
                      , singletons
@@ -79,10 +79,10 @@ executable             gan-mnist
                      , bytestring
                      , cereal
                      , either
-                     , optparse-applicative            >= 0.13       && < 0.15
+                     , optparse-applicative            >= 0.13
                      , text                            == 1.2.*
-                     , mtl                             >= 2.2.1      && < 2.3
-                     , hmatrix                         >= 0.18       && < 0.19
+                     , mtl                             >= 2.2.1
+                     , hmatrix                         >= 0.18
                      , transformers
                      , semigroups
                      , singletons
@@ -96,10 +96,10 @@ executable             recurrent
                      , grenade
                      , attoparsec
                      , either
-                     , optparse-applicative            >= 0.13       && < 0.15
+                     , optparse-applicative            >= 0.13
                      , text                            == 1.2.*
-                     , mtl                             >= 2.2.1      && < 2.3
-                     , hmatrix                         >= 0.18       && < 0.19
+                     , mtl                             >= 2.2.1
+                     , hmatrix                         >= 0.18
                      , transformers
                      , semigroups
                      , singletons
@@ -114,10 +114,10 @@ executable             shakespeare
                      , bytestring
                      , cereal
                      , either
-                     , optparse-applicative            >= 0.13       && < 0.15
+                     , optparse-applicative            >= 0.13
                      , text                            == 1.2.*
-                     , mtl                             >= 2.2.1      && < 2.3
-                     , hmatrix                         >= 0.18       && < 0.19
+                     , mtl                             >= 2.2.1
+                     , hmatrix                         >= 0.18
                      , transformers
                      , semigroups
                      , singletons
