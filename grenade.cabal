@@ -38,7 +38,7 @@ source-repository head
 library
   build-depends:
                        base                            >= 4.8         && < 5
-                     , bytestring                      == 0.10.*
+                     , bytestring                      >= 0.10
                      , containers                      >= 0.5
                      , cereal                          >= 0.5
                      , deepseq                         >= 1.4
