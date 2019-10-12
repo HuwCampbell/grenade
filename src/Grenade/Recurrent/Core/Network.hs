@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE EmptyDataDecls        #-}
 {-# LANGUAGE FlexibleContexts      #-}
@@ -36,18 +37,22 @@ import           Data.Singletons              (SingI)
 import           Data.Singletons.Prelude      (Head, Last)
 
 
+#if MIN_VERSION_base(4,9,0)
+import           Data.Kind                    (Type)
+#endif
+
 import           Grenade.Core
 import           Grenade.Recurrent.Core.Layer
 
 -- | Witness type to say indicate we're building up with a normal feed
 --   forward layer.
-data FeedForward :: * -> *
+data FeedForward :: Type -> Type
 -- | Witness type to say indicate we're building up with a recurrent layer.
-data Recurrent :: * -> *
+data Recurrent :: Type -> Type
 
 -- | Type of a recurrent neural network.
 --
---   The [*] type specifies the types of the layers.
+--   The [Type] type specifies the types of the layers.
 --
 --   The [Shape] type specifies the shapes of data passed between the layers.
 --
@@ -56,7 +61,7 @@ data Recurrent :: * -> *
 --
 --   Often, to make the definitions more concise, one will use a type alias
 --   for these empty data types.
-data RecurrentNetwork :: [*] -> [Shape] -> * where
+data RecurrentNetwork :: [Type] -> [Shape] -> Type where
   RNil   :: SingI i
          => RecurrentNetwork '[] '[i]
 
@@ -75,7 +80,7 @@ infixr 5 :~@>
 -- | Gradient of a network.
 --
 --   Parameterised on the layers of the network.
-data RecurrentGradient :: [*] -> * where
+data RecurrentGradient :: [Type] -> Type where
    RGNil  :: RecurrentGradient '[]
 
    (://>) :: UpdateLayer x
@@ -85,7 +90,7 @@ data RecurrentGradient :: [*] -> * where
 
 -- | Recurrent inputs (sideways shapes on an imaginary unrolled graph)
 --   Parameterised on the layers of a Network.
-data RecurrentInputs :: [*] -> * where
+data RecurrentInputs :: [Type] -> Type where
    RINil   :: RecurrentInputs '[]
 
    (:~~+>) :: (UpdateLayer x, Fractional (RecurrentInputs xs))
@@ -99,7 +104,7 @@ data RecurrentInputs :: [*] -> * where
 --
 --   We index on the time step length as well, to ensure
 --   that that all Tape lengths are the same.
-data RecurrentTape :: [*] -> [Shape] -> * where
+data RecurrentTape :: [Type] -> [Shape] -> Type where
    TRNil  :: SingI i
           => RecurrentTape '[] '[i]
 
@@ -208,7 +213,7 @@ instance (Show x, Show (RecurrentNetwork xs rs)) => Show (RecurrentNetwork (Recu
 
 -- | A network can easily be created by hand with (:~~>) and (:~@>), but an easy way to initialise a random
 --   recurrent network and a set of random inputs for it is with the randomRecurrent.
-class CreatableRecurrent (xs :: [*]) (ss :: [Shape]) where
+class CreatableRecurrent (xs :: [Type]) (ss :: [Shape]) where
   -- | Create a network of the types requested
   randomRecurrentWith :: PrimBase m => WeightInitMethod -> Gen (PrimState m) -> m (RecurrentNetwork xs ss)
 

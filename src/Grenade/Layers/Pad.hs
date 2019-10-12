@@ -1,12 +1,14 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Core.Pad
 Description : Padding layer for 2D and 3D images
@@ -18,20 +20,23 @@ module Grenade.Layers.Pad (
     Pad (..)
   ) where
 
+import           Control.DeepSeq
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits hiding (natVal)
+import           Data.Singletons.TypeLits     hiding (natVal)
+import           GHC.Generics
 import           GHC.TypeLits
-import GHC.Generics
-import Control.DeepSeq
 
+#if MIN_VERSION_base(4,9,0)
+import           Data.Kind                    (Type)
+#endif
 
 import           Grenade.Core
 import           Grenade.Layers.Internal.Pad
 
-import           Numeric.LinearAlgebra (konst, subMatrix, diagBlock)
-import           Numeric.LinearAlgebra.Static (extract, create)
+import           Numeric.LinearAlgebra        (diagBlock, konst, subMatrix)
+import           Numeric.LinearAlgebra.Static (create, extract)
 
 -- | A padding layer for a neural network.
 --
@@ -39,7 +44,7 @@ import           Numeric.LinearAlgebra.Static (extract, create)
 data Pad  :: Nat
           -> Nat
           -> Nat
-          -> Nat -> * where
+          -> Nat -> Type where
   Pad  :: Pad padLeft padTop padRight padBottom
   deriving (NFData, Generic)
 
@@ -50,7 +55,7 @@ instance UpdateLayer (Pad l t r b) where
   type Gradient (Pad l t r b) = ()
   runUpdate _ x _ = x
 
-instance RandomLayer (Pad l t r b)  where 
+instance RandomLayer (Pad l t r b)  where
   createRandomWith _ _ = return Pad
 
 instance Serialize (Pad l t r b) where
@@ -137,4 +142,4 @@ instance ( KnownNat padLeft
 instance GNum (Pad l t r b) where
   _ |* _ = Pad
   _ |+ _ = Pad
-  gFromRational _ = Pad 
+  gFromRational _ = Pad

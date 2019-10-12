@@ -1,12 +1,14 @@
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE KindSignatures        #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE StandaloneDeriving    #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE CPP                  #-}
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE GADTs                #-}
+{-# LANGUAGE KindSignatures       #-}
+{-# LANGUAGE RankNTypes           #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE StandaloneDeriving   #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE TypeOperators        #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-|
 Module      : Grenade.Core.Shape
 Description : Dependently typed shapes of data which are passed between layers of a network
@@ -25,21 +27,25 @@ module Grenade.Core.Shape (
   , fromStorable
   ) where
 
-import           Control.DeepSeq (NFData (..))
+import           Control.DeepSeq              (NFData (..))
 import           System.Random.MWC
 
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons
-import           Data.Singletons.TypeLits hiding (natVal)
-import           Data.Vector.Storable ( Vector )
-import qualified Data.Vector.Storable as V
+import           Data.Singletons.TypeLits
+import           Data.Vector.Storable         (Vector)
+import qualified Data.Vector.Storable         as V
 
+#if MIN_VERSION_base(4,11,0)
+import           GHC.TypeLits                 hiding (natVal)
+#else
 import           GHC.TypeLits
+#endif
 
-import qualified Numeric.LinearAlgebra.Static as H
+import qualified Numeric.LinearAlgebra        as NLA
 import           Numeric.LinearAlgebra.Static
-import qualified Numeric.LinearAlgebra as NLA
+import qualified Numeric.LinearAlgebra.Static as H
 
 -- | The current shapes we accept.
 --   at the moment this is just one, two, and three dimensional

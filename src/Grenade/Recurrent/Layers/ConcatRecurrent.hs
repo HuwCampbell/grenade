@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
@@ -10,6 +11,7 @@
 {-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Layers.Concat
 Description : Concatenation layer
@@ -26,7 +28,11 @@ module Grenade.Recurrent.Layers.ConcatRecurrent (
 import           Data.Serialize
 
 import           Data.Singletons
-import           GHC.TypeLits 
+import           GHC.TypeLits
+
+#if MIN_VERSION_base(4,9,0)
+import           Data.Kind                    (Type)
+#endif
 
 import           Grenade.Core
 import           Grenade.Recurrent.Core
@@ -46,7 +52,7 @@ import           Numeric.LinearAlgebra.Static (R, split, ( # ))
 --
 -- 3D images become 3D images with more channels. The sizes must be the same, one can use Pad
 -- and Crop layers to ensure this is the case.
-data ConcatRecurrent :: Shape -> * -> Shape -> * -> * where
+data ConcatRecurrent :: Shape -> Type -> Shape -> Type -> Type where
   ConcatRecLeft  :: x -> y -> ConcatRecurrent m (Recurrent x) n (FeedForward y)
   ConcatRecRight :: x -> y -> ConcatRecurrent m (FeedForward x) n (Recurrent y)
   ConcatRecBoth  :: x -> y -> ConcatRecurrent m (Recurrent x) n   (Recurrent y)

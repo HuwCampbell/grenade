@@ -24,7 +24,7 @@ import           Test.Hedgehog.Compat
 
 genNat :: Gen SomeNat
 genNat = do
-  Just n <- someNatVal <$> choose 1 10
+  ~(Just n) <- someNatVal <$> choose 1 10
   return n
 
 #if __GLASGOW_HASKELL__ < 800

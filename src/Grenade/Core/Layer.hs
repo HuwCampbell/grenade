@@ -1,5 +1,4 @@
-{-# LANGUAGE AllowAmbiguousTypes   #-}
-{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
@@ -23,7 +22,7 @@ neural network.
 There are two classes of interest: `UpdateLayer` and `Layer`.
 
 `UpdateLayer` is required for all types which are used as a layer
-in a network. Having no shape information, this class is agnotostic
+in a network. Having no shape information, this class is agnostic
 to the input and output data of the layer.
 
 An instance of `Layer` on the other hand is required for usage in
@@ -48,7 +47,12 @@ import           System.Random.MWC
 
 import           Data.List                         (foldl')
 
+#if MIN_VERSION_base(4,9,0)
+import           Data.Kind                         (Type)
+#endif
+
 import           Grenade.Core.LearningParameters
+import           Grenade.Core.Shape
 import           Grenade.Core.Shape
 import           Grenade.Core.WeightInitialization
 
@@ -58,7 +62,7 @@ import           Grenade.Core.WeightInitialization
 class UpdateLayer x where
   -- | The type for the gradient for this layer.
   --   Unit if there isn't a gradient to pass back.
-  type Gradient x :: *
+  type Gradient x :: Type
 
   -- | Update a layer with its gradient and learning parameters
   runUpdate       :: LearningParameters -> x -> Gradient x -> x
@@ -77,7 +81,7 @@ class (UpdateLayer x) => Layer x (i :: Shape) (o :: Shape) where
   -- | The Wengert tape for this layer. Includes all that is required
   --   to generate the back propagated gradients efficiently. As a
   --   default, `S i` is fine.
-  type Tape x i o :: *
+  type Tape x i o :: Type
 
   -- | Used in training and scoring. Take the input from the previous
   --   layer, and give the output from this layer.

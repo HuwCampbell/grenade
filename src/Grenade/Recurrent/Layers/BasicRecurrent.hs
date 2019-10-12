@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE GADTs                 #-}
@@ -19,6 +20,10 @@ module Grenade.Recurrent.Layers.BasicRecurrent (
 import           Data.Proxy
 import           Data.Singletons.TypeLits hiding (natVal)
 
+#if MIN_VERSION_base(4,9,0)
+import           Data.Kind (Type)
+#endif
+
 import           Numeric.LinearAlgebra.Static
 
 import           GHC.TypeLits
@@ -28,7 +33,7 @@ import           Grenade.Recurrent.Core
 
 data BasicRecurrent :: Nat -- Input layer size
                     -> Nat -- Output layer size
-                    -> * where
+                    -> Type where
   BasicRecurrent :: ( KnownNat input
                     , KnownNat output
                     , KnownNat matrixCols
@@ -41,7 +46,7 @@ data BasicRecurrent :: Nat -- Input layer size
 
 data BasicRecurrent' :: Nat -- Input layer size
                      -> Nat -- Output layer size
-                     -> * where
+                     -> Type where
   BasicRecurrent' :: ( KnownNat input
                      , KnownNat output
                      , KnownNat matrixCols

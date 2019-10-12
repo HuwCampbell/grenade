@@ -1,13 +1,14 @@
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Layers.Deconvolution
 Description : Deconvolution layer
@@ -27,18 +28,20 @@ module Grenade.Layers.Deconvolution (
   , Deconvolution' (..)
   ) where
 
+import           Control.DeepSeq                     (NFData (..))
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits hiding (natVal)
-
+import           Data.Singletons.TypeLits            hiding (natVal)
 import           GHC.TypeLits
-import Control.DeepSeq (NFData (..))
 
+#if MIN_VERSION_base(4,9,0)
+import           Data.Kind                           (Type)
+#endif
 
-import           Numeric.LinearAlgebra hiding ( uniformSample, konst )
-import qualified Numeric.LinearAlgebra as LA
-import           Numeric.LinearAlgebra.Static hiding ((|||), build, toRows)
+import           Numeric.LinearAlgebra               hiding (konst, uniformSample)
+import qualified Numeric.LinearAlgebra               as LA
+import           Numeric.LinearAlgebra.Static        hiding (build, toRows, (|||))
 
 import           Grenade.Core
 import           Grenade.Layers.Internal.Convolution
@@ -56,7 +59,7 @@ data Deconvolution :: Nat -- Number of channels, for the first layer this could 
                    -> Nat -- The number of column in the kernel filter
                    -> Nat -- The row stride of the Deconvolution filter
                    -> Nat -- The columns stride of the Deconvolution filter
-                   -> * where
+                   -> Type where
   Deconvolution :: ( KnownNat channels
                    , KnownNat filters
                    , KnownNat kernelRows
@@ -69,7 +72,7 @@ data Deconvolution :: Nat -- Number of channels, for the first layer this could 
                  -> !(L kernelFlattened channels) -- The last kernel update (or momentum)
                  -> Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns
 
-instance NFData (Deconvolution c f k k' s s') where 
+instance NFData (Deconvolution c f k k' s s') where
   rnf (Deconvolution a b) = rnf a `seq` rnf b `seq` ()
 
 
@@ -79,7 +82,7 @@ data Deconvolution' :: Nat -- Number of channels, for the first layer this could
                     -> Nat -- The number of column in the kernel filter
                     -> Nat -- The row stride of the Deconvolution filter
                     -> Nat -- The columns stride of the Deconvolution filter
-                    -> * where
+                    -> Type where
   Deconvolution' :: ( KnownNat channels
                   , KnownNat filters
                   , KnownNat kernelRows
@@ -91,7 +94,7 @@ data Deconvolution' :: Nat -- Number of channels, for the first layer this could
                => !(L kernelFlattened channels) -- The kernel filter gradient
                -> Deconvolution' channels filters kernelRows kernelColumns strideRows strideColumns
 
-instance NFData (Deconvolution' c f k k' s s') where 
+instance NFData (Deconvolution' c f k k' s s') where
   rnf (Deconvolution' a) = rnf a `seq` ()
 
 
@@ -304,7 +307,7 @@ instance (KnownNat strideCols,KnownNat strideRows,KnownNat kernelCols,KnownNat k
 instance (KnownNat strideCols,KnownNat strideRows,KnownNat kernelCols,KnownNat kernelRows,KnownNat filters,KnownNat channels,KnownNat ((kernelRows * kernelCols) * filters),KnownNat
                           ((kernelRows * kernelCols) * channels)) => GNum (Deconvolution' channels filters kernelRows kernelCols strideRows strideCols) where
   _ |* (Deconvolution' g) = Deconvolution' g
-  (Deconvolution' g) |+ (Deconvolution' g2)  = Deconvolution' (fromRational 0.5 * (g+g2)) 
+  (Deconvolution' g) |+ (Deconvolution' g2)  = Deconvolution' (fromRational 0.5 * (g+g2))
   gFromRational r = Deconvolution' (fromRational r)
 
-  
+

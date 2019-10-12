@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveAnyClass        #-}
 {-# LANGUAGE DeriveGeneric         #-}
@@ -27,6 +28,10 @@ import           Control.DeepSeq
 import           Data.Singletons
 import           GHC.Generics
 
+#if MIN_VERSION_base(4,9,0)
+import           Data.Kind (Type)
+#endif
+
 import           Grenade.Core
 
 
@@ -34,7 +39,7 @@ import           Grenade.Core
 --
 -- Similar to Concat layer, except sums the activations instead of creating a larger
 -- shape.
-data Merge :: * -> * -> * where
+data Merge :: Type -> Type -> Type where
   Merge :: x -> y -> Merge x y
   deriving (NFData, Generic)
 

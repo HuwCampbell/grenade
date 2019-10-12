@@ -4,3 +4,4 @@ dist/
 
 .stack-work/
 TAGS
+/stack.yaml.lock

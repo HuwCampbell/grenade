@@ -1,15 +1,16 @@
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE RecordWildCards       #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Layers.Convolution
 Description : Convolution layer
@@ -25,18 +26,20 @@ module Grenade.Layers.Convolution (
   , Convolution' (..)
   ) where
 
+import           Control.DeepSeq                     (NFData (..))
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits hiding (natVal)
-
+import           Data.Singletons.TypeLits            hiding (natVal)
 import           GHC.TypeLits
-import           Control.DeepSeq              (NFData (..))
 
+#if MIN_VERSION_base(4,9,0)
+import           Data.Kind                           (Type)
+#endif
 
-import           Numeric.LinearAlgebra hiding ( uniformSample, konst )
-import qualified Numeric.LinearAlgebra as LA
-import           Numeric.LinearAlgebra.Static hiding ((|||), build, toRows)
+import           Numeric.LinearAlgebra               hiding (konst, uniformSample)
+import qualified Numeric.LinearAlgebra               as LA
+import           Numeric.LinearAlgebra.Static        hiding (build, toRows, (|||))
 
 import           Grenade.Core
 import           Grenade.Layers.Internal.Convolution
@@ -59,7 +62,7 @@ data Convolution :: Nat -- Number of channels, for the first layer this could be
                  -> Nat -- The number of column in the kernel filter
                  -> Nat -- The row stride of the convolution filter
                  -> Nat -- The columns stride of the convolution filter
-                 -> * where
+                 -> Type where
   Convolution :: ( KnownNat channels
                  , KnownNat filters
                  , KnownNat kernelRows
@@ -82,7 +85,7 @@ data Convolution' :: Nat -- Number of channels, for the first layer this could b
                   -> Nat -- The number of column in the kernel filter
                   -> Nat -- The row stride of the convolution filter
                   -> Nat -- The columns stride of the convolution filter
-                  -> * where
+                  -> Type where
   Convolution' :: ( KnownNat channels
                   , KnownNat filters
                   , KnownNat kernelRows
@@ -95,7 +98,7 @@ data Convolution' :: Nat -- Number of channels, for the first layer this could b
                -> Convolution' channels filters kernelRows kernelColumns strideRows strideColumns
 
 instance NFData (Convolution' c f k k' s s') where
-  rnf (Convolution' a) = rnf a 
+  rnf (Convolution' a) = rnf a
 
 
 instance Show (Convolution c f k k' s s') where
@@ -309,7 +312,7 @@ instance (KnownNat strideCols,KnownNat strideRows,KnownNat kernelCols,KnownNat k
 instance (KnownNat strideCols,KnownNat strideRows,KnownNat kernelCols,KnownNat kernelRows,KnownNat filters,KnownNat channels,KnownNat
                           ((kernelRows * kernelCols) * channels)) => GNum (Convolution' channels filters kernelRows kernelCols strideRows strideCols) where
   _ |* (Convolution' g) = Convolution' g
-  (Convolution' g) |+ (Convolution' g2)  = Convolution' (fromRational 0.5 * (g+g2)) 
+  (Convolution' g) |+ (Convolution' g2)  = Convolution' (fromRational 0.5 * (g+g2))
   gFromRational r = Convolution' (fromRational r)
 
-  
+

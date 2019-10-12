@@ -1,13 +1,15 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Core.Pooling
 Description : Max Pooling layer for 2D and 3D images
@@ -22,16 +24,24 @@ module Grenade.Layers.Pooling (
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits hiding (natVal)
-import           GHC.TypeLits
-import           Control.DeepSeq (NFData)
-import           GHC.Generics    (Generic)
+-- import           Data.Singletons.TypeLits hiding (natVal)
+import           Control.DeepSeq                 (NFData)
+import           Data.Singletons.TypeLits
+import           GHC.Generics                    (Generic)
 
+#if MIN_VERSION_base(4,11,0)
+import           GHC.TypeLits                    hiding (natVal)
+#else
+import           GHC.TypeLits
+#endif
+#if MIN_VERSION_base(4,9,0)
+import           Data.Kind                       (Type)
+#endif
 
 import           Grenade.Core
 import           Grenade.Layers.Internal.Pooling
 
-import           Numeric.LinearAlgebra.Static as LAS hiding ((|||), build, toRows)
+import           Numeric.LinearAlgebra.Static    as LAS hiding (build, toRows, (|||))
 
 -- | A pooling layer for a neural network.
 --
@@ -41,7 +51,7 @@ import           Numeric.LinearAlgebra.Static as LAS hiding ((|||), build, toRow
 --   The kernel size dictates which input and output sizes will "fit". Fitting the equation:
 --   `out = (in - kernel) / stride + 1` for both dimensions.
 --
-data Pooling :: Nat -> Nat -> Nat -> Nat -> * where
+data Pooling :: Nat -> Nat -> Nat -> Nat -> Type where
   Pooling :: Pooling kernelRows kernelColumns strideRows strideColumns
   deriving (NFData, Generic)
 
@@ -141,4 +151,4 @@ instance ( KnownNat kernelRows
 instance GNum (Pooling k k' s s') where
   _ |* _ = Pooling
   _ |+ _ = Pooling
-  gFromRational _ = Pooling 
+  gFromRational _ = Pooling

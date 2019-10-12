@@ -1,15 +1,17 @@
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveAnyClass        #-}
 {-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Layers.Concat
 Description : Concatenation layer
@@ -25,14 +27,19 @@ module Grenade.Layers.Concat (
 
 import           Data.Serialize
 
-import           GHC.Generics     (Generic) 
-import           Control.DeepSeq  (NFData (..))
+import           Control.DeepSeq              (NFData (..))
 import           Data.Singletons
+import           GHC.Generics                 (Generic)
 import           GHC.TypeLits
+
+#if MIN_VERSION_base(4,9,0)
+import           Data.Kind                    (Type)
+#endif
 
 import           Grenade.Core
 
-import           Numeric.LinearAlgebra.Static ( row, (===), splitRows, unrow, (#), split, R )
+import           Numeric.LinearAlgebra.Static (R, row, split, splitRows, unrow, ( # ),
+                                               (===))
 
 -- | A Concatenating Layer.
 --
@@ -47,7 +54,7 @@ import           Numeric.LinearAlgebra.Static ( row, (===), splitRows, unrow, (#
 --
 -- 3D images become 3D images with more channels. The sizes must be the same, one can use Pad
 -- and Crop layers to ensure this is the case.
-data Concat :: Shape -> * -> Shape -> * -> * where
+data Concat :: Shape -> Type -> Shape -> Type -> Type where
   Concat :: x -> y -> Concat m x n y
   deriving (Generic, NFData)
 

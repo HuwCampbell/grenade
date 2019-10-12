@@ -1,12 +1,14 @@
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Layers.Crop
 Description : Cropping layer
@@ -18,25 +20,33 @@ module Grenade.Layers.Crop (
     Crop (..)
   ) where
 
+import           Control.DeepSeq              (NFData)
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits hiding (natVal)
+import           Data.Singletons.TypeLits
+import           GHC.Generics                 (Generic)
+
+#if MIN_VERSION_base(4,11,0)
+import           GHC.TypeLits                 hiding (natVal)
+#else
 import           GHC.TypeLits
-import           GHC.Generics (Generic)
-import           Control.DeepSeq (NFData)
+#endif
+#if MIN_VERSION_base(4,9,0)
+import           Data.Kind                    (Type)
+#endif
 
 import           Grenade.Core
 import           Grenade.Layers.Internal.Pad
 
-import           Numeric.LinearAlgebra (konst, subMatrix, diagBlock)
-import           Numeric.LinearAlgebra.Static (extract, create)
+import           Numeric.LinearAlgebra        (diagBlock, konst, subMatrix)
+import           Numeric.LinearAlgebra.Static (create, extract)
 
 -- | A cropping layer for a neural network.
 data Crop :: Nat
           -> Nat
           -> Nat
-          -> Nat -> * where
+          -> Nat -> Type where
   Crop :: Crop cropLeft cropTop cropRight cropBottom
   deriving (Generic,NFData)
 

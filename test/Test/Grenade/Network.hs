@@ -23,8 +23,6 @@ import           Data.Singletons
 import           Data.Singletons.Prelude.List
 import           Data.Singletons.TypeLits
 
--- import           Data.Type.Equality
-
 import           Hedgehog
 import qualified Hedgehog.Gen as Gen
 import           Hedgehog.Internal.Source
@@ -32,7 +30,15 @@ import           Hedgehog.Internal.Property ( failWith )
 
 import           Grenade
 
+#if MIN_VERSION_base(4,11,0)
+import           GHC.TypeLits hiding (natVal)
+#else
 import           GHC.TypeLits
+#endif
+#if MIN_VERSION_base(4,9,0)
+import           Data.Kind (Type)
+#endif
+
 import           GHC.TypeLits.Witnesses
 import           Test.Hedgehog.Compat
 import           Test.Hedgehog.TypeLits
@@ -43,7 +49,7 @@ import           Numeric.LinearAlgebra ( flatten )
 import           Numeric.LinearAlgebra.Static ( extract, norm_Inf )
 import           Unsafe.Coerce
 
-data SomeNetwork :: * where
+data SomeNetwork :: Type where
     SomeNetwork :: ( SingI shapes, SingI (Head shapes), SingI (Last shapes), Show (Network layers shapes) ) => Network layers shapes -> SomeNetwork
 
 instance Show SomeNetwork where
@@ -74,8 +80,9 @@ genNetwork =
                    , pure (SomeNetwork (Elu     :~> rest :: Network ( Elu     ': layers ) ( h ': h ': hs )))
                    , pure (SomeNetwork (Softmax :~> rest :: Network ( Softmax ': layers ) ( h ': h ': hs )))
                    , do -- Reshape to two dimensions
-                        let divisors n = 1 : [x | x <- [2..(n-1)], n `rem` x == 0]
-                        let len = natVal l
+                        let divisors :: Integer -> [Integer]
+                            divisors n = 1 : [x | x <- [2..(n-1)], n `rem` x == 0]
+                        let len = fromIntegral $ natVal l
                         rs  <- Gen.element $ divisors len
                         let cs  = len `quot` rs
                         case ( someNatVal rs, someNatVal cs, someNatVal len ) of
@@ -96,8 +103,8 @@ genNetwork =
                    , do -- Build a convolution layer with one filter output
                         -- Figure out some kernel sizes which work for this layer
                         -- There must be a better way than this...
-                        let output_r = natVal r
-                        let output_c = natVal c
+                        let output_r = fromIntegral $ natVal r
+                        let output_c = fromIntegral $ natVal c
 
                         let ok extent kernel = [stride | stride <- [ 1 .. extent ], (extent - kernel) `mod` stride == 0]
 
@@ -136,8 +143,8 @@ genNetwork =
                    , do -- Build a convolution layer with one filter output
                         -- Figure out some kernel sizes which work for this layer
                         -- There must be a better way than this...
-                        let output_r = natVal r
-                        let output_c = natVal c
+                        let output_r = fromIntegral $ natVal r
+                        let output_c = fromIntegral $ natVal c
 
                         let ok extent kernel = [stride | stride <- [ 1 .. extent ], (extent - kernel) `mod` stride == 0]
 
@@ -178,8 +185,8 @@ genNetwork =
                                         pure (SomeNetwork (conv :~> rest :: Network ( Convolution channels 1 kernelRows kernelCols strideRows strideCols ': layers ) ( ('D3 inRows inCols channels) ': h ': hs )))
                           _ -> Gen.discard -- Can't occur
                    , do -- Build a Pooling layer
-                        let output_r = natVal r
-                        let output_c = natVal c
+                        let output_r = fromIntegral $ natVal r
+                        let output_c = fromIntegral $ natVal c
 
                         let ok extent kernel = [stride | stride <- [ 1 .. extent ], (extent - kernel) `mod` stride == 0]
 
@@ -215,8 +222,8 @@ genNetwork =
                                         pure (SomeNetwork (Pooling :~> rest :: Network ( Pooling kernelRows kernelCols strideRows strideCols ': layers ) ( ('D2 inRows inCols) ': h ': hs )))
                           _ -> Gen.discard -- Can't occur
                    , do -- Build a Pad layer
-                        let output_r = natVal r
-                        let output_c = natVal c
+                        let output_r = fromIntegral $ natVal r
+                        let output_c = fromIntegral $ natVal c
 
                         pad_left   <- choose 0 (output_r - 1)
                         pad_right  <- choose 0 (output_r - 1 - pad_left)
@@ -242,8 +249,8 @@ genNetwork =
                                         pure (SomeNetwork (Pad :~> rest :: Network ( Pad padLeft padTop padRight padBottom ': layers ) ( ('D2 inputRows inputColumns) ': h ': hs )))
                           _ -> Gen.discard -- Can't occur
                    , do -- Build a Crop layer
-                        let output_r = natVal r
-                        let output_c = natVal c
+                        let output_r = fromIntegral $ natVal r
+                        let output_c = fromIntegral $ natVal c
 
                         crop_left   <- choose 0 10
                         crop_right  <- choose 0 10
@@ -275,9 +282,9 @@ genNetwork =
                    , do -- Build a convolution layer with one filter output
                         -- Figure out some kernel sizes which work for this layer
                         -- There must be a better way than this...
-                        let output_r = natVal r
-                        let output_c = natVal c
-                        let output_f = natVal f
+                        let output_r = fromIntegral $ natVal r
+                        let output_c = fromIntegral $ natVal c
+                        let output_f = fromIntegral $ natVal f
 
                         let ok extent kernel = [stride | stride <- [ 1 .. extent ], (extent - kernel) `mod` stride == 0]
 
@@ -318,9 +325,9 @@ genNetwork =
                                         pure (SomeNetwork (conv :~> rest :: Network ( Convolution channels filters kernelRows kernelCols strideRows strideCols ': layers ) ( ('D3 inRows inCols channels) ': h ': hs )))
                           _ -> Gen.discard -- Can't occur
                    , do -- Build a Pooling layer
-                        let output_r = natVal r
-                        let output_c = natVal c
-                        let output_f = natVal f
+                        let output_r = fromIntegral $ natVal r
+                        let output_c = fromIntegral $ natVal c
+                        let output_f = fromIntegral $ natVal f
 
                         let ok extent kernel = [stride | stride <- [ 1 .. extent ], (extent - kernel) `mod` stride == 0]
 
@@ -359,9 +366,9 @@ genNetwork =
                                         pure (SomeNetwork (Pooling :~> rest :: Network ( Pooling kernelRows kernelCols strideRows strideCols ': layers ) ( ('D3 inRows inCols filters) ': h ': hs )))
                           _ -> Gen.discard -- Can't occur
                    , do -- Build a Pad layer
-                        let output_r = natVal r
-                        let output_c = natVal c
-                        let output_f = natVal f
+                        let output_r = fromIntegral $ natVal r
+                        let output_c = fromIntegral $ natVal c
+                        let output_f = fromIntegral $ natVal f
 
                         pad_left   <- choose 0 (output_r - 1)
                         pad_right  <- choose 0 (output_r - 1 - pad_left)
@@ -389,9 +396,9 @@ genNetwork =
                                         pure (SomeNetwork (Pad :~> rest :: Network ( Pad padLeft padTop padRight padBottom ': layers ) ( ('D3 inputRows inputColumns filters) ': h ': hs )))
                           _ -> Gen.discard -- Can't occur
                    , do -- Build a Crop layer
-                        let output_r = natVal r
-                        let output_c = natVal c
-                        let output_f = natVal f
+                        let output_r = fromIntegral $ natVal r
+                        let output_c = fromIntegral $ natVal c
+                        let output_f = fromIntegral $ natVal f
 
                         crop_left   <- choose 0 10
                         crop_right  <- choose 0 10
@@ -444,7 +451,7 @@ oneUp =
     D1Sing SNat ->
       let x = 0 :: S ( shape )
       in  case x of
-              ( S1D x' ) -> do
+            ( S1D x' ) -> do
               let ex = extract x'
               let len = VS.length ex
               ix <- choose 0 (len - 1)
@@ -456,7 +463,7 @@ oneUp =
     D2Sing SNat SNat ->
       let x = 0 :: S ( shape )
       in  case x of
-              ( S2D x' ) -> do
+            ( S2D x' ) -> do
               let ex = flatten ( extract x' )
               let len = VS.length ex
               ix <- choose 0 (len - 1)
@@ -468,7 +475,7 @@ oneUp =
     D3Sing SNat SNat SNat ->
       let x = 0 :: S ( shape )
       in  case x of
-              ( S3D x' ) -> do
+            ( S3D x' ) -> do
               let ex = flatten ( extract x' )
               let len = VS.length ex
               ix <- choose 0 (len - 1)
