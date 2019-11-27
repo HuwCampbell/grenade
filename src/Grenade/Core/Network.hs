@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
@@ -42,6 +43,7 @@ import           System.Random.MWC
 import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.Prelude
+import           Data.Typeable
 
 #if MIN_VERSION_base(4,9,0)
 import           Data.Kind                         (Type)
@@ -211,6 +213,12 @@ instance (SingI i, SingI o, Layer x i o, Serialize x, Serialize (Network xs (o '
   put (x :~> r) = put x >> put r
   get = (:~>) <$> get <*> get
 
+-- | Typeable networks, for storing and restoring specific network structures (e.g. in saving the network strucutre to a
+-- DB and restoring it from there). This does not store the weights and biases! They have to be handled seperately (see
+-- Serialize)!
+-- instance Typeable (Network '[] '[i]) where
+--   typeOf NNil = typeOf ("NNil" :: String)
+
 
 -- | Ultimate composition.
 --
@@ -234,8 +242,8 @@ instance (CreatableNetwork sublayers subshapes, i ~ (Head subshapes), o ~ (Last 
 -- | Grenade Num class.
 --
 -- This allows for instance scalar multiplication of the weights, which is useful for slowly adapting networks, e.g. NN'
--- <- \tau * NN' + (1-\tau) * NN. Or one could sum up some gradients in parallel and apply them at once after
--- normalizing.
+-- <- \tau * NN' + (1-\tau) * NN. Or one could sum up some gradients in parallel and apply them at once: @applyUpdate lp
+-- net $ foldl1 (|+) ...@aq.
 class GNum a where
   (|*) :: Rational -> a -> a
   (|+) :: a -> a -> a
@@ -244,7 +252,7 @@ class GNum a where
 infixl 7 |*
 infixr 5 |+
 
-instance (SingI i) => GNum (Network '[] '[i]) where
+instance (SingI i) => GNum (Network '[] '[ i]) where
   _ |* NNil = NNil
   _ |+ NNil = NNil
   gFromRational _ = NNil
@@ -269,9 +277,8 @@ instance GNum () where
   _ |+ () = ()
   gFromRational _ = ()
 
-instance (GNum a, GNum b) => GNum (a,b) where
-  s |* (a,b) = (s|*a,s|*b)
-  (a1,b1) |+ (a2,b2) = (a1|+a2,b1|+b2)
+instance (GNum a, GNum b) => GNum (a, b) where
+  s |* (a, b) = (s |* a, s |* b)
+  (a1, b1) |+ (a2, b2) = (a1 |+ a2, b1 |+ b2)
   gFromRational v = (gFromRational v, gFromRational v)
-
 
