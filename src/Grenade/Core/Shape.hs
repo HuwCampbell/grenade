@@ -19,9 +19,12 @@ Stability   : experimental
 
 -}
 module Grenade.Core.Shape (
-    Shape (..)
-  , S (..)
+    S (..)
+  , Shape (..)
   , Sing (..)
+#if MIN_VERSION_singletons(2,6,0)
+  , SShape (..)
+#endif
 
   , randomOfShape
   , fromStorable
@@ -30,6 +33,9 @@ module Grenade.Core.Shape (
 import           Control.DeepSeq (NFData (..))
 import           Control.Monad.Random ( MonadRandom, getRandom )
 
+#if MIN_VERSION_base(4,13,0)
+import           Data.Kind (Type)
+#endif
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons
@@ -87,10 +93,20 @@ deriving instance Show (S n)
 -- These could probably be derived with template haskell, but this seems
 -- clear and makes adding the KnownNat constraints simple.
 -- We can also keep our code TH free, which is great.
+#if MIN_VERSION_singletons(2,6,0)
+-- In singletons 2.6 Sing switched from a data family to a type family.
+type instance Sing = SShape
+
+data SShape :: Shape -> Type where
+  D1Sing :: Sing a -> SShape ('D1 a)
+  D2Sing :: Sing a -> Sing b -> SShape ('D2 a b)
+  D3Sing :: KnownNat (a * c) => Sing a -> Sing b -> Sing c -> SShape ('D3 a b c)
+#else
 data instance Sing (n :: Shape) where
   D1Sing :: Sing a -> Sing ('D1 a)
   D2Sing :: Sing a -> Sing b -> Sing ('D2 a b)
   D3Sing :: KnownNat (a * c) => Sing a -> Sing b -> Sing c -> Sing ('D3 a b c)
+#endif
 
 instance KnownNat a => SingI ('D1 a) where
   sing = D1Sing sing
