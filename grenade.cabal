@@ -165,7 +165,7 @@ test-suite test
                      , mtl
                      , singletons
                      , text                            == 1.2.*
-                     , typelits-witnesses
+                     , typelits-witnesses              < 0.4
                      , transformers
                      , constraints
                      , MonadRandom
