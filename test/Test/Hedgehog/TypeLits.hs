@@ -7,17 +7,20 @@
 {-# LANGUAGE GADTs                 #-}
 module Test.Hedgehog.TypeLits where
 
-import           Data.Constraint
-import           Data.Singletons
+import           Data.Constraint (Dict (..))
+import           Data.Singletons (Proxy (..), Sing (..), SomeSing (..), sing)
+#if MIN_VERSION_singletons(2,6,0)
+import           Data.Singletons.TypeLits (SNat (..))
+#endif
 
 import           Hedgehog (Gen)
 import qualified Hedgehog.Gen as Gen
 
 import           Grenade
 
-import           GHC.TypeLits
-import           GHC.TypeLits.Witnesses hiding (SNat)
-import           Test.Hedgehog.Compat
+import           GHC.TypeLits (SomeNat (..), natVal, someNatVal)
+import           GHC.TypeLits.Witnesses ((%*), natDict)
+import           Test.Hedgehog.Compat (choose)
 
 genNat :: Gen SomeNat
 genNat = do

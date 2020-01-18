@@ -1,7 +1,8 @@
-{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 
 module Test.Hedgehog.Hmatrix where
 
