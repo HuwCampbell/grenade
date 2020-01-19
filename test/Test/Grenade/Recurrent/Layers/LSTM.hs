@@ -121,9 +121,9 @@ prop_lstm_reference_backwards_cell =
             , showPretty x
             , showPretty y
             ]
-      Just diff ->
+      Just differ ->
         withFrozenCallStack $
-          failWith (Just $ Diff "Failed (" "- lhs" "~/~" "+ rhs" ")" diff) ""
+          failWith (Just $ Diff "Failed (" "- lhs" "~/~" "+ rhs" ")" differ) ""
 infix 4 ~~~
 
 tests :: IO Bool
