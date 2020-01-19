@@ -14,9 +14,6 @@ import           Control.Monad ( guard )
 import           Control.Monad.ST ( runST )
 
 import           Data.Constraint
-#if __GLASGOW_HASKELL__ < 800
-import           Data.Proxy
-#endif
 import qualified Data.Vector.Storable as VS
 import qualified Data.Vector.Storable.Mutable as VS ( write )
 import           Data.Singletons
