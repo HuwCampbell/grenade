@@ -2,30 +2,29 @@
 
 # The following enables several GHC versions to be tested; often it's enough to test only against the last release in a major GHC version. Feel free to omit lines listings versions you don't need/want testing for.
 env:
- - CABALVER=1.24 GHCVER=8.0.2
- - CABALVER=2.0 GHCVER=8.2.2
- - CABALVER=2.0 GHCVER=8.4.4
- - CABALVER=2.0 GHCVER=8.6.5
+ - GHCVER=8.0.2
+ - GHCVER=8.2.2
+ - GHCVER=8.4.4
+ - GHCVER=8.6.5
+ - GHCVER=8.8.2
 
 # Note: the distinction between `before_install` and `install` is not important.
 before_install:
  - travis_retry sudo add-apt-repository -y ppa:hvr/ghc
  - travis_retry sudo apt-get update
- - travis_retry sudo apt-get install cabal-install-$CABALVER ghc-$GHCVER happy-1.19.5 alex-3.1.7 libblas-dev liblapack-dev
- - export PATH=/opt/alex/3.1.7/bin:/opt/happy/1.19.5/bin:/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$HOME/.cabal/bin:$PATH
+ - travis_retry sudo apt-get install cabal-install-3.0 ghc-$GHCVER libblas-dev liblapack-dev
+ - export PATH=/opt/cabal/bin:/opt/ghc/$GHCVER/bin:$PATH
 
 install:
- - cabal --version
  - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
- - travis_retry cabal update
- - cabal sandbox init
- - cabal install --enable-tests --enable-benchmarks
+ - travis_retry cabal-3.0 update
 
 notifications:
   email: false
 
 # Here starts the actual work to be performed for the package under test; any command which exits with a non-zero exit code causes the build to fail.
 script:
- - cabal build
- - cabal test --show-details=streaming
+ - cabal-3.0 configure --enable-tests
+ - cabal-3.0 build all
+ - cabal-3.0 test --test-show-details=direct -j1
 
