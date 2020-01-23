@@ -21,9 +21,10 @@ Stability   : experimental
 module Grenade.Core.Shape (
     S (..)
   , Shape (..)
-  , Sing (..)
 #if MIN_VERSION_singletons(2,6,0)
   , SShape (..)
+#else
+  , Sing (..)
 #endif
 
   , randomOfShape
