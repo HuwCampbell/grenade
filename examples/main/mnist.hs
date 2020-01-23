@@ -13,7 +13,6 @@ import           Control.Monad.Random
 
 import           Codec.Compression.GZip ( decompress )
 import           Data.Serialize ( Get )
-
 import qualified Data.Serialize as Serialize
 import qualified Data.ByteString.Lazy as B
 
@@ -23,7 +22,6 @@ import           Data.Maybe ( fromMaybe )
 #if ! MIN_VERSION_base(4,13,0)
 import           Data.Semigroup ( (<>) )
 #endif
-
 import           Data.Word ( Word32 , Word8 )
 import qualified Data.Vector.Storable as V
 
@@ -83,8 +81,7 @@ convTest iterations dataDir nSamples rate = do
 
   foldM_ (runIteration (maybe trainData (`take` trainData) nSamples) validateData) net0 [1..iterations]
 
- where
-
+    where
   trainEach rate' !network (i, o) = train rate' network i o
 
   runIteration trainRows validateRows net i = do
@@ -122,6 +119,7 @@ main = do
     putStrLn " samples..."
 
     convTest iter dataDir nSamples rate
+
 
 -- Adapted from https://github.com/tensorflow/haskell/blob/master/tensorflow-mnist/src/TensorFlow/Examples/MNIST/Parse.hs
 -- Could also have used Data.IDX, although that uses a different Vector variant from that need for fromStorable
@@ -176,3 +174,4 @@ readMNISTLabels path = do
     cnt <- fromIntegral <$> Serialize.getWord32be
     -- Read all of the labels.
     B.unpack <$> Serialize.getLazyByteString cnt
+
