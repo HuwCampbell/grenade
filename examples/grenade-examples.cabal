@@ -51,6 +51,8 @@ executable             mnist
                      , singletons
                      , MonadRandom
                      , vector
+                     , zlib
+                     , bytestring
 
 executable             gan-mnist
     ghc-options:       -Wall -threaded -O2
