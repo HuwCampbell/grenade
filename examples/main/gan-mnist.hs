@@ -50,6 +50,7 @@ import           Data.Maybe ( fromMaybe )
 #if ! MIN_VERSION_base(4,13,0)
 import           Data.Semigroup ( (<>) )
 #endif
+
 import           Data.Word ( Word32 , Word8 )
 import qualified Data.Vector.Storable as V
 
