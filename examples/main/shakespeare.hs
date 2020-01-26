@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
@@ -13,13 +14,18 @@ import           Control.Monad.Trans.Except
 import           Data.Char ( isUpper, toUpper, toLower )
 import           Data.List ( foldl' )
 import           Data.Maybe ( fromMaybe )
+
+#if ! MIN_VERSION_base(4,13,0)
 import           Data.Semigroup ( (<>) )
+#endif
 
 import qualified Data.Vector as V
 import           Data.Vector ( Vector )
 
 import qualified Data.Map as M
+#if ! MIN_VERSION_base(4,13,0)
 import           Data.Proxy ( Proxy (..) )
+#endif
 
 import qualified Data.ByteString as B
 import           Data.Serialize

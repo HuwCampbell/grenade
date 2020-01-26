@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -13,7 +14,10 @@ import           Control.Monad.Trans.Except
 
 import qualified Data.Attoparsec.Text as A
 import           Data.List ( foldl' )
+#if ! MIN_VERSION_base(4,13,0)
 import           Data.Semigroup ( (<>) )
+#endif
+
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Vector.Storable as V
