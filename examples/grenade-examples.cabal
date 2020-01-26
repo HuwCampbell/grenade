@@ -53,8 +53,6 @@ executable             mnist
                      , vector
                      , zlib
                      , bytestring
-                     , mnist-idx
-                     , deepseq
                      , binary
                      , split
 
