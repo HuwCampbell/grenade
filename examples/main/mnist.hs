@@ -9,15 +9,8 @@
 import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Random
-import           Control.Monad.Trans.Except
-import           Control.DeepSeq                ( force )
-import           Control.Monad.Trans.Maybe
 
-import qualified Data.Attoparsec.Text          as A
 import           Data.List                      ( foldl' )
-import           Data.Semigroup                 ( (<>) )
-import qualified Data.Text                     as T
-import qualified Data.Text.IO                  as T
 import qualified Data.Vector.Storable          as V
 import           Data.Maybe                     ( fromMaybe )
 import           Data.Binary.Get                ( Get
@@ -32,8 +25,6 @@ import           Data.List.Split                ( chunksOf )
 
 import           Codec.Compression.GZip         ( decompress )
 import qualified Data.ByteString.Lazy          as BS
-import           GHC.Int                        ( Int64 )
-import           Data.IDX
 
 import           Numeric.LinearAlgebra          ( maxIndex )
 import qualified Numeric.LinearAlgebra.Static  as SA
@@ -85,16 +76,15 @@ randomMnist = randomNetwork
 
 convTest :: Int -> FilePath -> LearningParameters -> IO ()
 convTest iterations dataDir rate = do
-  net0      <- lift randomMnist
+  net0      <- randomMnist
 
-
-  trainData <- loadMNIST (mkFilePath "train-images-idx3-ubyte.gz")
+  trainData <- readMNIST (mkFilePath "train-images-idx3-ubyte.gz")
                          (mkFilePath "train-labels-idx1-ubyte.gz")
 
-  validateData <- loadMNIST (mkFilePath "t10k-images-idx3-ubyte.gz")
+  validateData <- readMNIST (mkFilePath "t10k-images-idx3-ubyte.gz")
                             (mkFilePath "t10k-labels-idx1-ubyte.gz")
 
-  lift $ foldM_ (runIteration trainData validateData) net0 [1 .. iterations]
+  foldM_ (runIteration trainData validateData) net0 [1 .. iterations]
 
  where
 
@@ -143,17 +133,19 @@ main = do
   MnistOpts mnistDir iter rate <- execParser (info (mnist' <**> helper) idm)
   putStrLn "Training convolutional neural network..."
 
-  res <- runMaybeT $ convTest iter mnistDir rate
-  case res of
-    Just () -> pure ()
-    Nothing -> putStrLn "Failed"
+  convTest iter mnistDir rate
 
-loadMNIST :: FilePath -> FilePath -> IO (Maybe [(S ( 'D2 28 28), S ( 'D1 10))])
-loadMNIST iFP lFP =  do
-  let labels  = MaybeT $ readMNISTLabels lFP
-  let samples = MaybeT $ fromIntegral . readMNISTSamples $ iFP
-  d <- MaybeT (fromStorable samples, (oneHot . fromIntegral) <$> labels)
-  return d
+-- Adapted from https://github.com/tensorflow/haskell/blob/master/tensorflow-mnist/src/TensorFlow/Examples/MNIST/Parse.hs
+-- Could also have used Data.IDX, although that uses a different Vector variant from that need for fromStorable
+
+readMNIST :: FilePath -> FilePath -> IO [(S ( 'D2 28 28), S ( 'D1 10))]
+readMNIST iFP lFP = do
+  labels  <- readMNISTLabels lFP
+  samples <- readMNISTSamples iFP
+  return $ zip
+    (fmap (fromMaybe (error "bad samples") . fromStorable) samples)
+    ((fromMaybe (error "bad labels") . oneHot . fromIntegral) <$> labels)
+
 
 -- | Check's the file's endianess, throwing an error if it's not as expected.
 checkEndian :: Get ()
@@ -163,10 +155,10 @@ checkEndian = do
     $ fail "Expected big endian, but image file is little endian."
 
 -- | Reads an MNIST file and returns a list of samples.
-readMNISTSamples :: FilePath -> IO [V.Vector Word8]
+readMNISTSamples :: FilePath -> IO [V.Vector Double]
 readMNISTSamples path = do
   raw <- decompress <$> BS.readFile path
-  return $ runGet getMNIST raw
+  return . fmap (V.map normalize) $ runGet getMNIST raw
  where
   getMNIST :: Get [V.Vector Word8]
   getMNIST = do
@@ -178,6 +170,10 @@ readMNISTSamples path = do
     -- Read all of the data, then split into samples.
     pixels <- getLazyByteString $ fromIntegral $ cnt * rows * cols
     return $ V.fromList <$> chunksOf (rows * cols) (BS.unpack pixels)
+
+  normalize :: Word8 -> Double
+  normalize = (/ 255) . fromIntegral
+  --normalize = (/ 0.3081) . (`subtract` 0.1307) . (/ 255) . fromIntegral
 
 -- | Reads a list of MNIST labels from a file and returns them.
 readMNISTLabels :: FilePath -> IO [Word8]
