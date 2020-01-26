@@ -40,8 +40,6 @@ executable             mnist
     main-is:           main/mnist.hs
     build-depends:     base
                      , grenade
-                     , attoparsec
-                     , either
                      , optparse-applicative            >= 0.13       && < 0.16
                      , text                            == 1.2.*
                      , mtl                             >= 2.2.1      && < 2.3

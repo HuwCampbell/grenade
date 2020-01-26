@@ -27,4 +27,5 @@ script:
  - cabal-3.0 configure --enable-tests
  - cabal-3.0 build all
  - cabal-3.0 test --test-show-details=direct -j1
+ - ./runMNIST.sh
 

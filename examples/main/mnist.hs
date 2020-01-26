@@ -1,27 +1,28 @@
-{-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TupleSections         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections       #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeOperators       #-}
 
 import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Random
 
-import           Data.List                      ( foldl' )
-import qualified Data.Vector.Storable          as V
-import           Data.Maybe                     ( fromMaybe )
 import           Data.Binary.Get                ( Get
-                                                , runGet
-                                                , getWord32be
                                                 , getLazyByteString
+                                                , getWord32be
+                                                , runGet
                                                 )
-import           Data.Word                      ( Word8
-                                                , Word32
-                                                )
+import           Data.List                      ( foldl' )
 import           Data.List.Split                ( chunksOf )
+import           Data.Maybe                     ( fromMaybe )
+import           Data.Semigroup                 ( (<>) )
+import qualified Data.Vector.Storable          as V
+import           Data.Word                      ( Word32
+                                                , Word8
+                                                )
 
 import           Codec.Compression.GZip         ( decompress )
 import qualified Data.ByteString.Lazy          as BS
