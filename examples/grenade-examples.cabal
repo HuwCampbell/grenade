@@ -53,6 +53,10 @@ executable             mnist
                      , vector
                      , zlib
                      , bytestring
+                     , mnist-idx
+                     , deepseq
+                     , binary
+                     , split
 
 executable             gan-mnist
     ghc-options:       -Wall -threaded -O2

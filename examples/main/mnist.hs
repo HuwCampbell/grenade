@@ -10,6 +10,8 @@ import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Random
 import           Control.Monad.Trans.Except
+import           Control.DeepSeq                ( force )
+import           Control.Monad.Trans.Maybe
 
 import qualified Data.Attoparsec.Text          as A
 import           Data.List                      ( foldl' )
@@ -17,10 +19,21 @@ import           Data.Semigroup                 ( (<>) )
 import qualified Data.Text                     as T
 import qualified Data.Text.IO                  as T
 import qualified Data.Vector.Storable          as V
+import           Data.Maybe                     ( fromMaybe )
+import           Data.Binary.Get                ( Get
+                                                , runGet
+                                                , getWord32be
+                                                , getLazyByteString
+                                                )
+import           Data.Word                      ( Word8
+                                                , Word32
+                                                )
+import           Data.List.Split                ( chunksOf )
 
 import           Codec.Compression.GZip         ( decompress )
 import qualified Data.ByteString.Lazy          as BS
 import           GHC.Int                        ( Int64 )
+import           Data.IDX
 
 import           Numeric.LinearAlgebra          ( maxIndex )
 import qualified Numeric.LinearAlgebra.Static  as SA
@@ -70,24 +83,24 @@ type MNIST
 randomMnist :: MonadRandom m => m MNIST
 randomMnist = randomNetwork
 
-convTest :: Int -> FilePath -> LearningParameters -> ExceptT String IO ()
+convTest :: Int -> FilePath -> LearningParameters -> IO ()
 convTest iterations dataDir rate = do
-  net0 <- lift randomMnist
+  net0      <- lift randomMnist
 
-  let trainData = readMNIST trainI trainL
-  let validateData = readMNIST validateI validateL
+
+  trainData <- loadMNIST (mkFilePath "train-images-idx3-ubyte.gz")
+                         (mkFilePath "train-labels-idx1-ubyte.gz")
+
+  validateData <- loadMNIST (mkFilePath "t10k-images-idx3-ubyte.gz")
+                            (mkFilePath "t10k-labels-idx1-ubyte.gz")
 
   lift $ foldM_ (runIteration trainData validateData) net0 [1 .. iterations]
 
  where
 
-  [trainI, trainL, validateI, validateL] =
-    ((decompress <$>) . BS.readFile . ((dataDir ++ "/") ++)) <$>
-    [ "train-images-idx3-ubyte.gz"
-    , "train-labels-idx1-ubyte.gz"
-    , "t10k-images-idx3-ubyte.gz"
-    , "t10k-labels-idx1-ubyte.gz"
-    ]
+  mkFilePath :: String -> FilePath
+  mkFilePath s = dataDir ++ '/' : s
+
   trainEach rate' !network (i, o) = train rate' network i o
 
   runIteration trainRows validateRows net i = do
@@ -130,36 +143,53 @@ main = do
   MnistOpts mnistDir iter rate <- execParser (info (mnist' <**> helper) idm)
   putStrLn "Training convolutional neural network..."
 
-  res <- runExceptT $ convTest iter mnistDir rate
+  res <- runMaybeT $ convTest iter mnistDir rate
   case res of
-    Right ()  -> pure ()
-    Left  err -> putStrLn err
+    Just () -> pure ()
+    Nothing -> putStrLn "Failed"
 
---readMNIST
---  :: [BS.ByteString]
---  -> [BS.ByteString]
---  -> ExceptT String IO [(S ( 'D2 28 28), S ( 'D1 10))]
-readMNIST images labels = ExceptT $ do
-  n <- [0 ..]
-  return $ parseMNIST images labels n
+loadMNIST :: FilePath -> FilePath -> IO (Maybe [(S ( 'D2 28 28), S ( 'D1 10))])
+loadMNIST iFP lFP =  do
+  let labels  = MaybeT $ readMNISTLabels lFP
+  let samples = MaybeT $ fromIntegral . readMNISTSamples $ iFP
+  d <- MaybeT (fromStorable samples, (oneHot . fromIntegral) <$> labels)
+  return d
 
-parseMNIST
-  :: BS.ByteString -> BS.ByteString -> Int64 -> (S ( 'D2 28 28), S ( 'D1 10))
-parseMNIST si sl n = do
-  lab    <- getLabel sl n
-  pixels <- getImage si n
-  image  <- pure ((/ 255) <$> pixels)  -- convert to Fractional 0 .. 1
-  return (image, lab)
+-- | Check's the file's endianess, throwing an error if it's not as expected.
+checkEndian :: Get ()
+checkEndian = do
+  magic <- getWord32be
+  when (magic `notElem` ([2049, 2051] :: [Word32]))
+    $ fail "Expected big endian, but image file is little endian."
 
-getImage :: Num b => BS.ByteString -> Int64 -> [b]
-getImage s n =
-  fromIntegral . BS.index s . (n * 28 * 28 + 16 +) <$> [0 .. 28 * 28 - 1] -- 16 = header (ignored)
+-- | Reads an MNIST file and returns a list of samples.
+readMNISTSamples :: FilePath -> IO [V.Vector Word8]
+readMNISTSamples path = do
+  raw <- decompress <$> BS.readFile path
+  return $ runGet getMNIST raw
+ where
+  getMNIST :: Get [V.Vector Word8]
+  getMNIST = do
+    checkEndian
+    -- Parse header data.
+    cnt    <- fromIntegral <$> getWord32be
+    rows   <- fromIntegral <$> getWord32be
+    cols   <- fromIntegral <$> getWord32be
+    -- Read all of the data, then split into samples.
+    pixels <- getLazyByteString $ fromIntegral $ cnt * rows * cols
+    return $ V.fromList <$> chunksOf (rows * cols) (BS.unpack pixels)
 
-getX :: Fractional b => BS.ByteString -> Int64 -> [b]
-getX s n = (/ 255) <$> getImage s n
+-- | Reads a list of MNIST labels from a file and returns them.
+readMNISTLabels :: FilePath -> IO [Word8]
+readMNISTLabels path = do
+  raw <- decompress <$> BS.readFile path
+  return $ runGet getLabels raw
+ where
+  getLabels :: Get [Word8]
+  getLabels = do
+    checkEndian
+    -- Parse header data.
+    cnt <- fromIntegral <$> getWord32be
+    -- Read all of the labels.
+    BS.unpack <$> getLazyByteString cnt
 
-getLabel :: Num b => BS.ByteString -> Int64 -> b
-getLabel s n = fromIntegral $ BS.index s (n + 8) -- 8 = header (ignored)
-
-getY :: Num b => BS.ByteString -> Int64 -> [b]
-getY s n = fromIntegral . fromEnum . (getLabel s n ==) <$> [0 .. 9]
