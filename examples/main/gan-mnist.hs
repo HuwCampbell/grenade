@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
@@ -43,7 +44,9 @@ import           Control.Monad.Trans.Except
 import qualified Data.Attoparsec.Text as A
 import qualified Data.ByteString as B
 import           Data.List ( foldl' )
+#if ! MIN_VERSION_base(4,13,0)
 import           Data.Semigroup ( (<>) )
+#endif
 import           Data.Serialize
 import qualified Data.Text as T
 import qualified Data.Text.IO as T

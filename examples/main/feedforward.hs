@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -10,8 +11,9 @@ import           Data.List ( foldl' )
 
 import qualified Data.ByteString as B
 import           Data.Serialize
+#if ! MIN_VERSION_base(4,13,0)
 import           Data.Semigroup ( (<>) )
-
+#endif
 import           GHC.TypeLits
 
 import qualified Numeric.LinearAlgebra.Static as SA
