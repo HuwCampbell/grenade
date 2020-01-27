@@ -1,34 +1,32 @@
-{-# LANGUAGE BangPatterns        #-}
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections       #-}
-{-# LANGUAGE TypeFamilies        #-}
-{-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE BangPatterns          #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeOperators         #-}
+{-# LANGUAGE TupleSections         #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE FlexibleContexts      #-}
 
 import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Random
 
-import           Data.Binary.Get                ( Get
-                                                , getLazyByteString
-                                                , getWord32be
-                                                , runGet
-                                                )
-import           Data.List                      ( foldl' )
-import           Data.List.Split                ( chunksOf )
-import           Data.Maybe                     ( fromMaybe )
-import           Data.Semigroup                 ( (<>) )
-import qualified Data.Vector.Storable          as V
-import           Data.Word                      ( Word32
-                                                , Word8
-                                                )
+import           Data.List ( foldl' )
+import           Data.List.Split ( chunksOf )
+import           Data.Maybe ( fromMaybe )
+#if ! MIN_VERSION_base(4,13,0)
+import           Data.Semigroup ( (<>) )
+#endif
 
-import           Codec.Compression.GZip         ( decompress )
-import qualified Data.ByteString.Lazy          as BS
+import qualified Data.Vector.Storable as V
 
-import           Numeric.LinearAlgebra          ( maxIndex )
-import qualified Numeric.LinearAlgebra.Static  as SA
+import           Codec.Compression.GZip ( decompress )
+import           Data.Binary.Get ( Get , getLazyByteString , getWord32be , runGet )
+import qualified Data.ByteString.Lazy as BS
+import           Data.Word ( Word32 , Word8 )
+
+import           Numeric.LinearAlgebra ( maxIndex )
+import qualified Numeric.LinearAlgebra.Static as SA
 
 import           Options.Applicative
 
@@ -39,7 +37,10 @@ import           Grenade.Utils.OneHot
 --
 -- This network is used to show how we can embed a Network as a layer in the larger MNIST
 -- type.
-type FL i o = Network '[FullyConnected i o, Logit] '[ 'D1 i, 'D1 o, 'D1 o]
+type FL i o =
+  Network
+    '[ FullyConnected i o, Logit ]
+    '[ 'D1 i, 'D1 o, 'D1 o ]
 
 -- The definition of our convolutional neural network.
 -- In the type signature, we have a type level list of shapes which are passed between the layers.
@@ -54,23 +55,17 @@ type FL i o = Network '[FullyConnected i o, Logit] '[ 'D1 i, 'D1 o, 'D1 o]
 -- /NOTE:/ This model is actually too complex for MNIST, and one should use the type given in the readme instead.
 --         This one is just here to demonstrate Inception layers in use.
 --
-type MNIST
-  = Network
-      '[Reshape, Concat
-        ( 'D3 28 28 1)
-        Trivial
-        ( 'D3 28 28 14)
-        (InceptionMini 28 28 1 5 9), Pooling 2 2 2 2, Relu, Concat
-        ( 'D3 14 14 3)
-        (Convolution 15 3 1 1 1 1)
-        ( 'D3 14 14 15)
-        (InceptionMini 14 14 15 5 10), Crop 1 1 1 1, Pooling 3 3 3 3, Relu, Reshape, FL
-        288
-        80, FL 80 10]
-      '[ 'D2 28 28, 'D3 28 28 1, 'D3 28 28 15, 'D3 14 14 15, 'D3 14 14 15, 'D3
-        14
-        14
-        18, 'D3 12 12 18, 'D3 4 4 18, 'D3 4 4 18, 'D1 288, 'D1 80, 'D1 10]
+type MNIST =
+  Network
+    '[ Reshape,
+       Concat ('D3 28 28 1) Trivial ('D3 28 28 14) (InceptionMini 28 28 1 5 9),
+       Pooling 2 2 2 2, Relu,
+       Concat ('D3 14 14 3) (Convolution 15 3 1 1 1 1) ('D3 14 14 15) (InceptionMini 14 14 15 5 10), Crop 1 1 1 1, Pooling 3 3 3 3, Relu,
+       Reshape, FL 288 80, FL 80 10 ]
+    '[ 'D2 28 28, 'D3 28 28 1,
+       'D3 28 28 15, 'D3 14 14 15, 'D3 14 14 15, 'D3 14 14 18,
+       'D3 12 12 18, 'D3 4 4 18, 'D3 4 4 18,
+       'D1 288, 'D1 80, 'D1 10 ]
 
 randomMnist :: MonadRandom m => m MNIST
 randomMnist = randomNetwork
@@ -78,13 +73,11 @@ randomMnist = randomNetwork
 convTest :: Int -> FilePath -> LearningParameters -> IO ()
 convTest iterations dataDir rate = do
   net0      <- randomMnist
-
   trainData <- readMNIST (mkFilePath "train-images-idx3-ubyte.gz")
                          (mkFilePath "train-labels-idx1-ubyte.gz")
 
   validateData <- readMNIST (mkFilePath "t10k-images-idx3-ubyte.gz")
                             (mkFilePath "t10k-labels-idx1-ubyte.gz")
-
   foldM_ (runIteration trainData validateData) net0 [1 .. iterations]
 
  where
