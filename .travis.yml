@@ -29,6 +29,6 @@ script:
  - cabal-3.0 test --test-show-details=direct -j1
  # - cabal-3.0 run feedforward
  # - cabal-3.0 run recurrent
- - ./runGAN-MNIST.sh
+ - ./runGAN-MNIST,sh
  - ./runMNIST.sh
 
