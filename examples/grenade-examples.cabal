@@ -41,7 +41,6 @@ executable             mnist
     build-depends:     base
                      , grenade
                      , optparse-applicative            >= 0.13       && < 0.16
-                     , text                            == 1.2.*
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.21
                      , transformers
@@ -58,20 +57,20 @@ executable             gan-mnist
     ghc-options:       -Wall -threaded -O2
     main-is:           main/gan-mnist.hs
     build-depends:     base
+                     , cereal
                      , grenade
                      , attoparsec
                      , bytestring
-                     , cereal
-                     , either
                      , optparse-applicative            >= 0.13       && < 0.16
-                     , text                            == 1.2.*
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.21
                      , transformers
                      , semigroups
                      , singletons
+                     , split
                      , MonadRandom
                      , vector
+                     , zlib
 
 executable             recurrent
     ghc-options:       -Wall -threaded -O2

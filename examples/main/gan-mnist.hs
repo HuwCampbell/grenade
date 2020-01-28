@@ -39,17 +39,25 @@
 import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Random
-import           Control.Monad.Trans.Except
 
-import qualified Data.Attoparsec.Text as A
-import qualified Data.ByteString as B
+import           Codec.Compression.GZip         ( decompress )
+import           Data.Serialize                 ( get
+                                                , put
+                                                , Get
+                                                , getLazyByteString
+                                                , getWord32be
+                                                , runGetLazy
+                                                , runPutLazy
+                                                )
+import qualified Data.ByteString.Lazy           as B
+
 import           Data.List ( foldl' )
+import           Data.List.Split ( chunksOf )
+import           Data.Maybe ( fromMaybe )
 #if ! MIN_VERSION_base(4,13,0)
 import           Data.Semigroup ( (<>) )
 #endif
-import           Data.Serialize
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
+import           Data.Word ( Word32 , Word8 )
 import qualified Data.Vector.Storable as V
 
 import qualified Numeric.LinearAlgebra.Static as SA
@@ -104,13 +112,17 @@ trainExample rate discriminator generator realExample noiseSource
    in ( newDiscriminator, newGenerator )
 
 
-ganTest :: (Discriminator, Generator) -> Int -> FilePath -> LearningParameters -> ExceptT String IO (Discriminator, Generator)
-ganTest (discriminator0, generator0) iterations trainFile rate = do
-  trainData      <- fmap fst <$> readMNIST trainFile
+ganTest :: (Discriminator, Generator) -> Int -> FilePath -> LearningParameters -> IO (Discriminator, Generator)
+ganTest (discriminator0, generator0) iterations dataDir rate = do
+  trainData      <- fmap fst <$> readMNIST (mkFilePath "train-images-idx3-ubyte.gz")
+                                           (mkFilePath "train-labels-idx1-ubyte.gz")
 
-  lift $ foldM (runIteration trainData) ( discriminator0, generator0 ) [1..iterations]
+  foldM (runIteration trainData) ( discriminator0, generator0 ) [1..iterations]
 
     where
+
+  mkFilePath :: String -> FilePath
+  mkFilePath s = dataDir ++ '/' : s
 
   showShape' :: S ('D2 a b) -> IO ()
   showShape' (S2D mm) = putStrLn $
@@ -127,10 +139,9 @@ ganTest (discriminator0, generator0) iterations trainFile rate = do
 
   runIteration :: [S ('D2 28 28)] -> (Discriminator, Generator) -> Int -> IO (Discriminator, Generator)
   runIteration trainData ( !discriminator, !generator ) _ = do
-    trained'    <- foldM ( \(!discriminatorX, !generatorX ) realExample -> do
-                      fakeExample <- randomOfShape
-                      return $ trainExample rate discriminatorX generatorX realExample fakeExample
-                     ) ( discriminator, generator ) trainData
+    trained'    <- foldM ( \(!discriminatorX, !generatorX ) realExample ->
+                             trainExample rate discriminatorX generatorX realExample <$> randomOfShape )
+                         ( discriminator, generator ) trainData
 
 
     showShape' . snd . runNetwork (snd trained') =<< randomOfShape
@@ -140,7 +151,7 @@ ganTest (discriminator0, generator0) iterations trainFile rate = do
 data GanOpts = GanOpts FilePath Int LearningParameters (Maybe FilePath) (Maybe FilePath)
 
 mnist' :: Parser GanOpts
-mnist' = GanOpts <$> argument str (metavar "TRAIN")
+mnist' = GanOpts <$> argument str (metavar "DATADIR")
                  <*> option auto (long "iterations" <> short 'i' <> value 15)
                  <*> (LearningParameters
                        <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
@@ -159,27 +170,66 @@ main = do
     Just loadFile -> netLoad loadFile
     Nothing -> (,) <$> randomDiscriminator <*> randomGenerator
 
-  res <- runExceptT $ ganTest nets0 iter mnist rate
-  case res of
-    Right nets1 -> case save of
-      Just saveFile -> B.writeFile saveFile $ runPut (put nets1)
-      Nothing -> return ()
+  nets1 <- ganTest nets0 iter mnist rate
+  case save of
+    Just saveFile -> B.writeFile saveFile $ runPutLazy (put nets1)
+    Nothing -> return ()
 
-    Left err -> putStrLn err
 
-readMNIST :: FilePath -> ExceptT String IO [(S ('D2 28 28), S ('D1 10))]
-readMNIST mnist = ExceptT $ do
-  mnistdata <- T.readFile mnist
-  return $ traverse (A.parseOnly parseMNIST) (T.lines mnistdata)
+-- Adapted from https://github.com/tensorflow/haskell/blob/master/tensorflow-mnist/src/TensorFlow/Examples/MNIST/Parse.hs
+-- Could also have used Data.IDX, although that uses a different Vector variant from that need for fromStorable
+readMNIST :: FilePath -> FilePath -> IO [(S ( 'D2 28 28), S ( 'D1 10))]
+readMNIST iFP lFP = do
+  labels  <- readMNISTLabels lFP
+  samples <- readMNISTSamples iFP
+  return $ zip
+    (fmap (fromMaybe (error "bad samples") . fromStorable) samples)
+    (fromMaybe (error "bad labels") . oneHot . fromIntegral <$> labels)
 
-parseMNIST :: A.Parser (S ('D2 28 28), S ('D1 10))
-parseMNIST = do
-  Just lab <- oneHot <$> A.decimal
-  pixels   <- many (A.char ',' >> A.double)
-  image    <- maybe (fail "Parsed row was of an incorrect size") pure (fromStorable . V.fromList $ pixels)
-  return (image, lab)
+-- | Check's the file's endianess, throwing an error if it's not as expected.
+checkEndian :: Get ()
+checkEndian = do
+  magic <- getWord32be
+  when (magic `notElem` ([2049, 2051] :: [Word32]))
+    $ error "Expected big endian, but image file is little endian."
+
+-- | Reads an MNIST file and returns a list of samples.
+readMNISTSamples :: FilePath -> IO [V.Vector Double]
+readMNISTSamples path = do
+  raw <- decompress <$> B.readFile path
+  either fail ( return . fmap (V.map normalize) ) $ runGetLazy getMNIST raw
+ where
+  getMNIST :: Get [V.Vector Word8]
+  getMNIST = do
+    checkEndian
+    -- Parse header data.
+    cnt    <- fromIntegral <$> getWord32be
+    rows   <- fromIntegral <$> getWord32be
+    cols   <- fromIntegral <$> getWord32be
+    -- Read all of the data, then split into samples.
+    pixels <- getLazyByteString $ fromIntegral $ cnt * rows * cols
+    return $ V.fromList <$> chunksOf (rows * cols) (B.unpack pixels)
+
+  normalize :: Word8 -> Double
+  normalize = (/ 255) . fromIntegral
+  --normalize = (/ 0.3081) . (`subtract` 0.1307) . (/ 255) . fromIntegral
+
+-- | Reads a list of MNIST labels from a file and returns them.
+readMNISTLabels :: FilePath -> IO [Word8]
+readMNISTLabels path = do
+  raw <- decompress <$> B.readFile path
+  either fail return $ runGetLazy getLabels raw
+ where
+  getLabels :: Get [Word8]
+  getLabels = do
+    checkEndian
+    -- Parse header data.
+    cnt <- fromIntegral <$> getWord32be
+    -- Read all of the labels.
+    B.unpack <$> getLazyByteString cnt
+
 
 netLoad :: FilePath -> IO (Discriminator, Generator)
 netLoad modelPath = do
   modelData <- B.readFile modelPath
-  either fail return $ runGet (get :: Get (Discriminator, Generator)) modelData
+  either fail return $ runGetLazy (get :: Get (Discriminator, Generator)) modelData
