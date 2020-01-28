@@ -37,10 +37,10 @@ executable             mnist
     ghc-options:       -Wall -threaded -O2
     main-is:           main/mnist.hs
     build-depends:     base
-                     , cereal
                      , grenade
                      , filepath
                      , bytestring
+                     , optparse-applicative            >= 0.13       && < 0.16
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.21
                      , transformers
@@ -48,10 +48,25 @@ executable             mnist
                      , singletons
                      , MonadRandom
                      , vector
-                     , zlib
-                     , bytestring
-                     , binary
                      , split
+
+executable             iris
+    ghc-options:       -Wall -threaded -O2
+    main-is:           main/iris.hs
+    build-depends:     base
+                     , MonadRandom
+                     , bytestring
+                     , cassava
+                     , filepath
+                     , grenade
+                     , hmatrix                         >= 0.18       && < 0.21
+                     , mtl                             >= 2.2.1      && < 2.3
+                     , optparse-applicative            >= 0.13       && < 0.16
+                     , random-shuffle
+                     , semigroups
+                     , singletons
+                     , transformers
+                     , vector
 
 executable             gan-mnist
     ghc-options:       -Wall -threaded -O2

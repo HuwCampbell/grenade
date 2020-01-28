@@ -30,4 +30,4 @@ script:
  # - cabal-3.0 run feedforward
  # - cabal-3.0 run recurrent
  - ./runMNIST.sh data -l 5000 -i 3
- - ./runGAN-MNIST,sh data -i 3
+ - ./runGAN-MNIST.sh data -i 3

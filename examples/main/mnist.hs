@@ -17,7 +17,6 @@ import qualified Data.Serialize as Serialize
 import qualified Data.ByteString.Lazy as B
 
 import           Data.List ( foldl' )
-<<<<<<< HEAD
 import           Data.List.Split ( chunksOf )
 import           Data.Maybe ( fromMaybe )
 #if ! MIN_VERSION_base(4,13,0)
