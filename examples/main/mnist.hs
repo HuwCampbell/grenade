@@ -18,7 +18,6 @@ import qualified Data.Serialize as Serialize
 import qualified Data.ByteString.Lazy as B
 
 import           Data.List ( foldl' )
-<<<<<<< HEAD
 import           Data.List.Split ( chunksOf )
 import           Data.Maybe ( fromMaybe )
 #if ! MIN_VERSION_base(4,13,0)
@@ -87,6 +86,7 @@ convTest iterations dataDir nSamples rate = do
 =======
 convTest :: Int -> FilePath -> LearningParameters -> IO ()
 convTest iterations dataDir rate = do
+<<<<<<< HEAD
   net0      <- randomMnist
   trainData <- readMNIST (mkFilePath "train-images-idx3-ubyte.gz")
                          (mkFilePath "train-labels-idx1-ubyte.gz")
@@ -162,45 +162,60 @@ readMNIST iFP lFP = do
             (maxIndex (SA.extract label), maxIndex (SA.extract prediction))
           )
           res
+=======
+  net0         <- randomMnist
+  trainData    <- readMNIST (dataDir </> "train-images-idx3-ubyte.gz")
+                            (dataDir </> "train-labels-idx1-ubyte.gz")
+  validateData <- readMNIST (dataDir </> "t10k-images-idx3-ubyte.gz")
+                            (dataDir </> "t10k-labels-idx1-ubyte.gz")
+  -- reduce the number of training samples used from 60,000 to avoid running out of memory
+  foldM_ (runIteration (take 10000 trainData) validateData) net0 [1..iterations]
+
+    where
+  trainEach rate' !network (i, o) = train rate' network i o
+
+  runIteration trainRows validateRows net i = do
+    let trained' = foldl' (trainEach ( rate { learningRate = learningRate rate * 0.9 ^ i} )) net trainRows
+>>>>>>> Convert gen-mnist example to use LeCun training data; works
     print trained'
-    putStrLn
-      $  "Iteration "
-      ++ show i
-      ++ ": "
-      ++ show (length (filter ((==) <$> fst <*> snd) res'))
-      ++ " of "
-      ++ show (length res')
+
+    putStrLn "Checking..."
+    let res      = fmap (\(rowP,rowL) -> (rowL,) $ runNet trained' rowP) validateRows
+    let res'     = fmap (\(S1D label, S1D prediction) -> (maxIndex (SA.extract label), maxIndex (SA.extract prediction))) res
+    let matched   = length $ filter ((==) <$> fst <*> snd) res'
+    let total     = length res'
+    let matchedpc = fromIntegral matched / fromIntegral total * 100.0 :: Float
+    putStrLn $ "Iteration " ++ show i ++ ": " ++ show matched ++ " of " ++ show total ++ " (" ++ show matchedpc ++ "%)" 
     return trained'
 
 data MnistOpts = MnistOpts FilePath Int LearningParameters
 
 mnist' :: Parser MnistOpts
-mnist' =
-  MnistOpts
-    <$> argument str (metavar "DATADIR")
-    <*> option auto (long "iterations" <> short 'i' <> value 15)
-    <*> (   LearningParameters
-        <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
-        <*> option auto (long "momentum" <> value 0.9)
-        <*> option auto (long "l2" <> value 0.0005)
-        )
+mnist' = MnistOpts <$> argument str (metavar "DATADIR")
+                   <*> option auto (long "iterations" <> short 'i' <> value 15)
+                   <*> (LearningParameters
+                       <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
+                       <*> option auto (long "momentum" <> value 0.9)
+                       <*> option auto (long "l2" <> value 0.0005)
+                       )
 
 main :: IO ()
 main = do
-  MnistOpts mnistDir iter rate <- execParser (info (mnist' <**> helper) idm)
-  putStrLn "Training convolutional neural network..."
+    MnistOpts dataDir iter rate <- execParser (info (mnist' <**> helper) idm)
+    putStrLn "Training convolutional neural network..."
 
-  convTest iter mnistDir rate
+    convTest iter dataDir rate
+
 
 -- Adapted from https://github.com/tensorflow/haskell/blob/master/tensorflow-mnist/src/TensorFlow/Examples/MNIST/Parse.hs
 -- Could also have used Data.IDX, although that uses a different Vector variant from that need for fromStorable
-
 readMNIST :: FilePath -> FilePath -> IO [(S ( 'D2 28 28), S ( 'D1 10))]
 readMNIST iFP lFP = do
   labels  <- readMNISTLabels lFP
   samples <- readMNISTSamples iFP
   return $ zip
     (fmap (fromMaybe (error "bad samples") . fromStorable) samples)
+<<<<<<< HEAD
     ((fromMaybe (error "bad labels") . oneHot . fromIntegral) <$> labels)
 
 <<<<<<< HEAD
@@ -213,10 +228,14 @@ loadMNIST iFP lFP =  do
 >>>>>>> Work in progress
 =======
 >>>>>>> Adapt MNIST example to use original data files
+=======
+    (fromMaybe (error "bad labels") . oneHot . fromIntegral <$> labels)
+>>>>>>> Convert gen-mnist example to use LeCun training data; works
 
 -- | Check's the file's endianess, throwing an error if it's not as expected.
 checkEndian :: Get ()
 checkEndian = do
+<<<<<<< HEAD
 <<<<<<< HEAD
   magic <- Serialize.getWord32be
   when (magic `notElem` ([2049, 2051] :: [Word32]))
@@ -229,12 +248,16 @@ readMNISTSamples path = do
   either fail ( return . fmap (V.map normalize) ) $ Serialize.runGetLazy getMNIST raw
 =======
   magic <- getWord32be
+=======
+  magic <- Serialize.getWord32be
+>>>>>>> Convert gen-mnist example to use LeCun training data; works
   when (magic `notElem` ([2049, 2051] :: [Word32]))
-    $ fail "Expected big endian, but image file is little endian."
+    $ error "Expected big endian, but image file is little endian."
 
 -- | Reads an MNIST file and returns a list of samples.
 readMNISTSamples :: FilePath -> IO [V.Vector Double]
 readMNISTSamples path = do
+<<<<<<< HEAD
   raw <- decompress <$> BS.readFile path
 <<<<<<< HEAD
   return $ runGet getMNIST raw
@@ -242,11 +265,16 @@ readMNISTSamples path = do
 =======
   return . fmap (V.map normalize) $ runGet getMNIST raw
 >>>>>>> Adapt MNIST example to use original data files
+=======
+  raw <- decompress <$> B.readFile path
+  either fail ( return . fmap (V.map normalize) ) $ Serialize.runGetLazy getMNIST raw
+>>>>>>> Convert gen-mnist example to use LeCun training data; works
  where
   getMNIST :: Get [V.Vector Word8]
   getMNIST = do
     checkEndian
     -- Parse header data.
+<<<<<<< HEAD
 <<<<<<< HEAD
     cnt    <- fromIntegral <$> Serialize.getWord32be
     rows   <- fromIntegral <$> Serialize.getWord32be
@@ -268,14 +296,25 @@ readMNISTSamples path = do
     pixels <- getLazyByteString $ fromIntegral $ cnt * rows * cols
     return $ V.fromList <$> chunksOf (rows * cols) (BS.unpack pixels)
 >>>>>>> Work in progress
+=======
+    cnt    <- fromIntegral <$> Serialize.getWord32be
+    rows   <- fromIntegral <$> Serialize.getWord32be
+    cols   <- fromIntegral <$> Serialize.getWord32be
+    -- Read all of the data, then split into samples.
+    pixels <- Serialize.getLazyByteString $ fromIntegral $ cnt * rows * cols
+    return $ V.fromList <$> chunksOf (rows * cols) (B.unpack pixels)
+>>>>>>> Convert gen-mnist example to use LeCun training data; works
 
   normalize :: Word8 -> Double
   normalize = (/ 255) . fromIntegral
-  --normalize = (/ 0.3081) . (`subtract` 0.1307) . (/ 255) . fromIntegral
+  -- There are other normalization functions in the literature, such as
+  -- normalize = (/ 0.3081) . (`subtract` 0.1307) . (/ 255) . fromIntegral
+  -- but we need values in the range [0..1] for the showShape' pretty printer
 
 -- | Reads a list of MNIST labels from a file and returns them.
 readMNISTLabels :: FilePath -> IO [Word8]
 readMNISTLabels path = do
+<<<<<<< HEAD
 <<<<<<< HEAD
   raw <- decompress <$> B.readFile path
   either fail return $ Serialize.runGetLazy getLabels raw
@@ -283,11 +322,16 @@ readMNISTLabels path = do
   raw <- decompress <$> BS.readFile path
   return $ runGet getLabels raw
 >>>>>>> Work in progress
+=======
+  raw <- decompress <$> B.readFile path
+  either fail return $ Serialize.runGetLazy getLabels raw
+>>>>>>> Convert gen-mnist example to use LeCun training data; works
  where
   getLabels :: Get [Word8]
   getLabels = do
     checkEndian
     -- Parse header data.
+<<<<<<< HEAD
 <<<<<<< HEAD
     cnt <- fromIntegral <$> Serialize.getWord32be
     -- Read all of the labels.
@@ -297,4 +341,9 @@ readMNISTLabels path = do
     -- Read all of the labels.
     BS.unpack <$> getLazyByteString cnt
 >>>>>>> Work in progress
+=======
+    cnt <- fromIntegral <$> Serialize.getWord32be
+    -- Read all of the labels.
+    B.unpack <$> Serialize.getLazyByteString cnt
+>>>>>>> Convert gen-mnist example to use LeCun training data; works
 

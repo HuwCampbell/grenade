@@ -1,4 +1,5 @@
-#!/bin/bash -eu 
+#!/bin/bash -eu
+>>>>>>> Convert gen-mnist example to use LeCun training data; works
 stack=cabal
 trainset=train-images-idx3-ubyte.gz
 trainlab=train-labels-idx1-ubyte.gz

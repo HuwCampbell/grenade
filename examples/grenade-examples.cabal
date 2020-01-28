@@ -41,6 +41,7 @@ executable             mnist
                      , grenade
                      , filepath
                      , bytestring
+                     , optparse-applicative            >= 0.13       && < 0.16
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.21
                      , transformers
