@@ -1,3 +1,4 @@
+#!/bin/bash -eu 
 stack=cabal
 datadir=data
 trainset=train-images-idx3-ubyte

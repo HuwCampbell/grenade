@@ -15,8 +15,6 @@ source-repository head
   type: git
   location: https://github.com/HuwCampbell/grenade.git
 
-library
-
 executable             feedforward
     ghc-options:       -Wall -threaded -O2
     main-is:           main/feedforward.hs
@@ -59,7 +57,7 @@ executable             gan-mnist
     build-depends:     base
                      , cereal
                      , grenade
-                     , attoparsec
+                     , filepath
                      , bytestring
                      , optparse-applicative            >= 0.13       && < 0.16
                      , mtl                             >= 2.2.1      && < 2.3

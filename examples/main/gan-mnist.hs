@@ -4,7 +4,6 @@
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TupleSections         #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE FlexibleContexts      #-}
 
@@ -40,16 +39,10 @@ import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Random
 
-import           Codec.Compression.GZip         ( decompress )
-import           Data.Serialize                 ( get
-                                                , put
-                                                , Get
-                                                , getLazyByteString
-                                                , getWord32be
-                                                , runGetLazy
-                                                , runPutLazy
-                                                )
-import qualified Data.ByteString.Lazy           as B
+import           Codec.Compression.GZip ( decompress )
+import           Data.Serialize ( Get )
+import qualified Data.Serialize as Serialize
+import qualified Data.ByteString.Lazy as B
 
 import           Data.List ( foldl' )
 import           Data.List.Split ( chunksOf )
@@ -64,6 +57,7 @@ import qualified Numeric.LinearAlgebra.Static as SA
 import           Numeric.LinearAlgebra.Data ( toLists )
 
 import           Options.Applicative
+import           System.FilePath ( (</>) ) 
 
 import           Grenade
 import           Grenade.Utils.OneHot
@@ -114,15 +108,13 @@ trainExample rate discriminator generator realExample noiseSource
 
 ganTest :: (Discriminator, Generator) -> Int -> FilePath -> LearningParameters -> IO (Discriminator, Generator)
 ganTest (discriminator0, generator0) iterations dataDir rate = do
-  trainData      <- fmap fst <$> readMNIST (mkFilePath "train-images-idx3-ubyte.gz")
-                                           (mkFilePath "train-labels-idx1-ubyte.gz")
+  -- Note that for this example we use only the samples, and not the labels
+  trainData      <- fmap fst <$> readMNIST (dataDir </> "train-images-idx3-ubyte.gz")
+                                           (dataDir </> "train-labels-idx1-ubyte.gz")
 
   foldM (runIteration trainData) ( discriminator0, generator0 ) [1..iterations]
 
     where
-
-  mkFilePath :: String -> FilePath
-  mkFilePath s = dataDir ++ '/' : s
 
   showShape' :: S ('D2 a b) -> IO ()
   showShape' (S2D mm) = putStrLn $
@@ -172,7 +164,7 @@ main = do
 
   nets1 <- ganTest nets0 iter mnist rate
   case save of
-    Just saveFile -> B.writeFile saveFile $ runPutLazy (put nets1)
+    Just saveFile -> B.writeFile saveFile $ Serialize.runPutLazy (Serialize.put nets1)
     Nothing -> return ()
 
 
@@ -189,7 +181,7 @@ readMNIST iFP lFP = do
 -- | Check's the file's endianess, throwing an error if it's not as expected.
 checkEndian :: Get ()
 checkEndian = do
-  magic <- getWord32be
+  magic <- Serialize.getWord32be
   when (magic `notElem` ([2049, 2051] :: [Word32]))
     $ error "Expected big endian, but image file is little endian."
 
@@ -197,39 +189,42 @@ checkEndian = do
 readMNISTSamples :: FilePath -> IO [V.Vector Double]
 readMNISTSamples path = do
   raw <- decompress <$> B.readFile path
-  either fail ( return . fmap (V.map normalize) ) $ runGetLazy getMNIST raw
+  either fail ( return . fmap (V.map normalize) ) $ Serialize.runGetLazy getMNIST raw
  where
   getMNIST :: Get [V.Vector Word8]
   getMNIST = do
     checkEndian
     -- Parse header data.
-    cnt    <- fromIntegral <$> getWord32be
-    rows   <- fromIntegral <$> getWord32be
-    cols   <- fromIntegral <$> getWord32be
+    cnt    <- fromIntegral <$> Serialize.getWord32be
+    rows   <- fromIntegral <$> Serialize.getWord32be
+    cols   <- fromIntegral <$> Serialize.getWord32be
     -- Read all of the data, then split into samples.
-    pixels <- getLazyByteString $ fromIntegral $ cnt * rows * cols
+    pixels <- Serialize.getLazyByteString $ fromIntegral $ cnt * rows * cols
     return $ V.fromList <$> chunksOf (rows * cols) (B.unpack pixels)
 
   normalize :: Word8 -> Double
   normalize = (/ 255) . fromIntegral
-  --normalize = (/ 0.3081) . (`subtract` 0.1307) . (/ 255) . fromIntegral
+  -- There are other normalization functions in the literature, such as
+  -- normalize = (/ 0.3081) . (`subtract` 0.1307) . (/ 255) . fromIntegral
+  -- but we need values in the range [0..1] for the showShape' pretty printer
 
 -- | Reads a list of MNIST labels from a file and returns them.
 readMNISTLabels :: FilePath -> IO [Word8]
 readMNISTLabels path = do
   raw <- decompress <$> B.readFile path
-  either fail return $ runGetLazy getLabels raw
+  either fail return $ Serialize.runGetLazy getLabels raw
  where
   getLabels :: Get [Word8]
   getLabels = do
     checkEndian
     -- Parse header data.
-    cnt <- fromIntegral <$> getWord32be
+    cnt <- fromIntegral <$> Serialize.getWord32be
     -- Read all of the labels.
-    B.unpack <$> getLazyByteString cnt
+    B.unpack <$> Serialize.getLazyByteString cnt
 
 
 netLoad :: FilePath -> IO (Discriminator, Generator)
 netLoad modelPath = do
   modelData <- B.readFile modelPath
-  either fail return $ runGetLazy (get :: Get (Discriminator, Generator)) modelData
+  either fail return $
+    Serialize.runGetLazy (Serialize.get :: Get (Discriminator, Generator)) modelData
