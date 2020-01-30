@@ -78,17 +78,23 @@ convTest iterations dataDir rate = do
                             (dataDir </> "train-labels-idx1-ubyte.gz")
   validateData <- readMNIST (dataDir </> "t10k-images-idx3-ubyte.gz")
                             (dataDir </> "t10k-labels-idx1-ubyte.gz")
-  foldM_ (runIteration trainData validateData) net0 [1..iterations]
+  -- reduce the number of training samples used from 60,000 to avoid running out of memory
+  foldM_ (runIteration (take 10000 trainData) validateData) net0 [1..iterations]
 
     where
   trainEach rate' !network (i, o) = train rate' network i o
 
   runIteration trainRows validateRows net i = do
     let trained' = foldl' (trainEach ( rate { learningRate = learningRate rate * 0.9 ^ i} )) net trainRows
+    print trained'
+
+    putStrLn "Checking..."
     let res      = fmap (\(rowP,rowL) -> (rowL,) $ runNet trained' rowP) validateRows
     let res'     = fmap (\(S1D label, S1D prediction) -> (maxIndex (SA.extract label), maxIndex (SA.extract prediction))) res
-    print trained'
-    putStrLn $ "Iteration " ++ show i ++ ": " ++ show (length (filter ((==) <$> fst <*> snd) res')) ++ " of " ++ show (length res')
+    let matched   = length $ filter ((==) <$> fst <*> snd) res'
+    let total     = length res'
+    let matchedpc = fromIntegral matched / fromIntegral total * 100.0 :: Float
+    putStrLn $ "Iteration " ++ show i ++ ": " ++ show matched ++ " of " ++ show total ++ " (" ++ show matchedpc ++ "%)" 
     return trained'
 
 data MnistOpts = MnistOpts FilePath Int LearningParameters
