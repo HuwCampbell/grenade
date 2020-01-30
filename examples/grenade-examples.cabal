@@ -37,7 +37,10 @@ executable             mnist
     ghc-options:       -Wall -threaded -O2
     main-is:           main/mnist.hs
     build-depends:     base
+                     , cereal
                      , grenade
+                     , filepath
+                     , bytestring
                      , optparse-applicative            >= 0.13       && < 0.16
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.21

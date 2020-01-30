@@ -11,24 +11,25 @@ import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.Random
 
+import           Codec.Compression.GZip ( decompress )
+import           Data.Serialize ( Get )
+import qualified Data.Serialize as Serialize
+import qualified Data.ByteString.Lazy as B
+
 import           Data.List ( foldl' )
 import           Data.List.Split ( chunksOf )
 import           Data.Maybe ( fromMaybe )
 #if ! MIN_VERSION_base(4,13,0)
 import           Data.Semigroup ( (<>) )
 #endif
-
-import qualified Data.Vector.Storable as V
-
-import           Codec.Compression.GZip ( decompress )
-import           Data.Binary.Get ( Get , getLazyByteString , getWord32be , runGet )
-import qualified Data.ByteString.Lazy as BS
 import           Data.Word ( Word32 , Word8 )
+import qualified Data.Vector.Storable as V
 
 import           Numeric.LinearAlgebra ( maxIndex )
 import qualified Numeric.LinearAlgebra.Static as SA
 
 import           Options.Applicative
+import           System.FilePath ( (</>) )
 
 import           Grenade
 import           Grenade.Utils.OneHot
@@ -72,114 +73,94 @@ randomMnist = randomNetwork
 
 convTest :: Int -> FilePath -> LearningParameters -> IO ()
 convTest iterations dataDir rate = do
-  net0      <- randomMnist
-  trainData <- readMNIST (mkFilePath "train-images-idx3-ubyte.gz")
-                         (mkFilePath "train-labels-idx1-ubyte.gz")
+  net0         <- randomMnist
+  trainData    <- readMNIST (dataDir </> "train-images-idx3-ubyte.gz")
+                            (dataDir </> "train-labels-idx1-ubyte.gz")
+  validateData <- readMNIST (dataDir </> "t10k-images-idx3-ubyte.gz")
+                            (dataDir </> "t10k-labels-idx1-ubyte.gz")
+  foldM_ (runIteration trainData validateData) net0 [1..iterations]
 
-  validateData <- readMNIST (mkFilePath "t10k-images-idx3-ubyte.gz")
-                            (mkFilePath "t10k-labels-idx1-ubyte.gz")
-  foldM_ (runIteration trainData validateData) net0 [1 .. iterations]
-
- where
-
-  mkFilePath :: String -> FilePath
-  mkFilePath s = dataDir ++ '/' : s
-
+    where
   trainEach rate' !network (i, o) = train rate' network i o
 
   runIteration trainRows validateRows net i = do
-    let trained' = foldl'
-          (trainEach (rate { learningRate = learningRate rate * 0.9 ^ i }))
-          net
-          trainRows
-    let res =
-          fmap (\(rowP, rowL) -> (rowL, ) $ runNet trained' rowP) validateRows
-    let res' = fmap
-          (\(S1D label, S1D prediction) ->
-            (maxIndex (SA.extract label), maxIndex (SA.extract prediction))
-          )
-          res
+    let trained' = foldl' (trainEach ( rate { learningRate = learningRate rate * 0.9 ^ i} )) net trainRows
+    let res      = fmap (\(rowP,rowL) -> (rowL,) $ runNet trained' rowP) validateRows
+    let res'     = fmap (\(S1D label, S1D prediction) -> (maxIndex (SA.extract label), maxIndex (SA.extract prediction))) res
     print trained'
-    putStrLn
-      $  "Iteration "
-      ++ show i
-      ++ ": "
-      ++ show (length (filter ((==) <$> fst <*> snd) res'))
-      ++ " of "
-      ++ show (length res')
+    putStrLn $ "Iteration " ++ show i ++ ": " ++ show (length (filter ((==) <$> fst <*> snd) res')) ++ " of " ++ show (length res')
     return trained'
 
 data MnistOpts = MnistOpts FilePath Int LearningParameters
 
 mnist' :: Parser MnistOpts
-mnist' =
-  MnistOpts
-    <$> argument str (metavar "DATADIR")
-    <*> option auto (long "iterations" <> short 'i' <> value 15)
-    <*> (   LearningParameters
-        <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
-        <*> option auto (long "momentum" <> value 0.9)
-        <*> option auto (long "l2" <> value 0.0005)
-        )
+mnist' = MnistOpts <$> argument str (metavar "DATADIR")
+                   <*> option auto (long "iterations" <> short 'i' <> value 15)
+                   <*> (LearningParameters
+                       <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
+                       <*> option auto (long "momentum" <> value 0.9)
+                       <*> option auto (long "l2" <> value 0.0005)
+                       )
 
 main :: IO ()
 main = do
-  MnistOpts mnistDir iter rate <- execParser (info (mnist' <**> helper) idm)
-  putStrLn "Training convolutional neural network..."
+    MnistOpts dataDir iter rate <- execParser (info (mnist' <**> helper) idm)
+    putStrLn "Training convolutional neural network..."
 
-  convTest iter mnistDir rate
+    convTest iter dataDir rate
+
 
 -- Adapted from https://github.com/tensorflow/haskell/blob/master/tensorflow-mnist/src/TensorFlow/Examples/MNIST/Parse.hs
 -- Could also have used Data.IDX, although that uses a different Vector variant from that need for fromStorable
-
 readMNIST :: FilePath -> FilePath -> IO [(S ( 'D2 28 28), S ( 'D1 10))]
 readMNIST iFP lFP = do
   labels  <- readMNISTLabels lFP
   samples <- readMNISTSamples iFP
   return $ zip
     (fmap (fromMaybe (error "bad samples") . fromStorable) samples)
-    ((fromMaybe (error "bad labels") . oneHot . fromIntegral) <$> labels)
-
+    (fromMaybe (error "bad labels") . oneHot . fromIntegral <$> labels)
 
 -- | Check's the file's endianess, throwing an error if it's not as expected.
 checkEndian :: Get ()
 checkEndian = do
-  magic <- getWord32be
+  magic <- Serialize.getWord32be
   when (magic `notElem` ([2049, 2051] :: [Word32]))
-    $ fail "Expected big endian, but image file is little endian."
+    $ error "Expected big endian, but image file is little endian."
 
 -- | Reads an MNIST file and returns a list of samples.
 readMNISTSamples :: FilePath -> IO [V.Vector Double]
 readMNISTSamples path = do
-  raw <- decompress <$> BS.readFile path
-  return . fmap (V.map normalize) $ runGet getMNIST raw
+  raw <- decompress <$> B.readFile path
+  either fail ( return . fmap (V.map normalize) ) $ Serialize.runGetLazy getMNIST raw
  where
   getMNIST :: Get [V.Vector Word8]
   getMNIST = do
     checkEndian
     -- Parse header data.
-    cnt    <- fromIntegral <$> getWord32be
-    rows   <- fromIntegral <$> getWord32be
-    cols   <- fromIntegral <$> getWord32be
+    cnt    <- fromIntegral <$> Serialize.getWord32be
+    rows   <- fromIntegral <$> Serialize.getWord32be
+    cols   <- fromIntegral <$> Serialize.getWord32be
     -- Read all of the data, then split into samples.
-    pixels <- getLazyByteString $ fromIntegral $ cnt * rows * cols
-    return $ V.fromList <$> chunksOf (rows * cols) (BS.unpack pixels)
+    pixels <- Serialize.getLazyByteString $ fromIntegral $ cnt * rows * cols
+    return $ V.fromList <$> chunksOf (rows * cols) (B.unpack pixels)
 
   normalize :: Word8 -> Double
   normalize = (/ 255) . fromIntegral
-  --normalize = (/ 0.3081) . (`subtract` 0.1307) . (/ 255) . fromIntegral
+  -- There are other normalization functions in the literature, such as
+  -- normalize = (/ 0.3081) . (`subtract` 0.1307) . (/ 255) . fromIntegral
+  -- but we need values in the range [0..1] for the showShape' pretty printer
 
 -- | Reads a list of MNIST labels from a file and returns them.
 readMNISTLabels :: FilePath -> IO [Word8]
 readMNISTLabels path = do
-  raw <- decompress <$> BS.readFile path
-  return $ runGet getLabels raw
+  raw <- decompress <$> B.readFile path
+  either fail return $ Serialize.runGetLazy getLabels raw
  where
   getLabels :: Get [Word8]
   getLabels = do
     checkEndian
     -- Parse header data.
-    cnt <- fromIntegral <$> getWord32be
+    cnt <- fromIntegral <$> Serialize.getWord32be
     -- Read all of the labels.
-    BS.unpack <$> getLazyByteString cnt
+    B.unpack <$> Serialize.getLazyByteString cnt
 
