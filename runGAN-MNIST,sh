@@ -1,24 +1,34 @@
 #!/bin/bash -eu 
 stack=cabal
-datadir=data
-trainset=train-images-idx3-ubyte
-trainlab=train-labels-idx1-ubyte
-testset=t10k-images-idx3-ubyte
-testlab=t10k-labels-idx1-ubyte
+trainset=train-images-idx3-ubyte.gz
+trainlab=train-labels-idx1-ubyte.gz
+testset=t10k-images-idx3-ubyte.gz
+testlab=t10k-labels-idx1-ubyte.gz
 url=http://yann.lecun.com/exdb/mnist
-exec="$stack exec gan-mnist $datadir -- +RTS -N -s"
-if [ -f $datadir/$trainset.gz ]
+datadir="data"
+args=""
+case $1 in
+  (-?*)
+    echo >&2 "Missing initial data directory argument"
+    exit 1;;
+  (*)
+    datadir=$1
+    shift
+    args="$@";;
+esac
+exec="$stack exec gan-mnist --RTS -- $datadir $args +RTS -N -s"
+if [ -f $datadir/$trainset ]
 then
   $stack build gan-mnist && $exec
  else
-  mkdir -p data
+  mkdir -p $datadir
   echo "Attempting to download MNIST data"
-  curl -o $datadir/$trainset.gz $url/$trainset.gz
-  curl -o $datadir/$trainlab.gz $url/$trainlab.gz
-  curl -o $datadir/$testset.gz $url/$testset.gz
-  curl -o $datadir/$testlab.gz $url/$testlab.gz
+  curl -o $datadir/$trainset $url/$trainset
+  curl -o $datadir/$trainlab $url/$trainlab
+  curl -o $datadir/$testset $url/$testset
+  curl -o $datadir/$testlab $url/$testlab
 
-  if [ -f $datadir/$trainset.gz ]
+  if [ -f $datadir/$trainset ]
    then
     $stack build gan-mnist && $exec
    else

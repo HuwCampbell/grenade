@@ -71,15 +71,15 @@ type MNIST =
 randomMnist :: MonadRandom m => m MNIST
 randomMnist = randomNetwork
 
-convTest :: Int -> FilePath -> LearningParameters -> IO ()
-convTest iterations dataDir rate = do
+convTest :: Int -> FilePath -> Maybe Int -> LearningParameters -> IO ()
+convTest iterations dataDir nSamples rate = do
   net0         <- randomMnist
   trainData    <- readMNIST (dataDir </> "train-images-idx3-ubyte.gz")
                             (dataDir </> "train-labels-idx1-ubyte.gz")
   validateData <- readMNIST (dataDir </> "t10k-images-idx3-ubyte.gz")
                             (dataDir </> "t10k-labels-idx1-ubyte.gz")
-  -- reduce the number of training samples used from 60,000 to avoid running out of memory
-  foldM_ (runIteration (take 10000 trainData) validateData) net0 [1..iterations]
+
+  foldM_ (runIteration (maybe trainData (`take` trainData) nSamples) validateData) net0 [1..iterations]
 
     where
   trainEach rate' !network (i, o) = train rate' network i o
@@ -94,13 +94,16 @@ convTest iterations dataDir rate = do
     let matched   = length $ filter ((==) <$> fst <*> snd) res'
     let total     = length res'
     let matchedpc = fromIntegral matched / fromIntegral total * 100.0 :: Float
-    putStrLn $ "Iteration " ++ show i ++ ": " ++ show matched ++ " of " ++ show total ++ " (" ++ show matchedpc ++ "%)" 
+    putStrLn $ "Iteration " ++ show i ++ ": matched " ++ show matched ++ " of " ++ show total ++ " (" ++ show matchedpc ++ "%)" 
     return trained'
 
-data MnistOpts = MnistOpts FilePath Int LearningParameters
+data MnistOpts = MnistOpts FilePath (Maybe Int) Int LearningParameters
 
 mnist' :: Parser MnistOpts
 mnist' = MnistOpts <$> argument str (metavar "DATADIR")
+                       -- option to reduce the number of training samples used from 60,000
+                       -- to avoid running out of memory
+                   <*> option (Just <$> auto) (long "limit_samples_to" <> short 'l' <> value Nothing)
                    <*> option auto (long "iterations" <> short 'i' <> value 15)
                    <*> (LearningParameters
                        <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
@@ -110,10 +113,12 @@ mnist' = MnistOpts <$> argument str (metavar "DATADIR")
 
 main :: IO ()
 main = do
-    MnistOpts dataDir iter rate <- execParser (info (mnist' <**> helper) idm)
-    putStrLn "Training convolutional neural network..."
+    MnistOpts dataDir nSamples iter rate <- execParser (info (mnist' <**> helper) idm)
+    putStr "Training convolutional neural network with "
+    putStr $ maybe "all" show nSamples
+    putStrLn " samples..."
 
-    convTest iter dataDir rate
+    convTest iter dataDir nSamples rate
 
 
 -- Adapted from https://github.com/tensorflow/haskell/blob/master/tensorflow-mnist/src/TensorFlow/Examples/MNIST/Parse.hs
