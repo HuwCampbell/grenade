@@ -37,6 +37,7 @@ executable             mnist
     ghc-options:       -Wall -threaded -O2
     main-is:           main/mnist.hs
     build-depends:     base
+                     , cereal
                      , grenade
                      , filepath
                      , bytestring
@@ -49,6 +50,7 @@ executable             mnist
                      , MonadRandom
                      , vector
                      , split
+                     , zlib
 
 executable             iris
     ghc-options:       -Wall -threaded -O2

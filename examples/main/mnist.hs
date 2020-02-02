@@ -34,10 +34,12 @@ import           System.FilePath ( (</>) )
 import           Grenade
 import           Grenade.Utils.OneHot
 
+#ifdef COMPLEX
 -- It's logistic regression!
 --
 -- This network is used to show how we can embed a Network as a layer in the larger MNIST
 -- type.
+--
 type FL i o =
   Network
     '[ FullyConnected i o, Logit ]
@@ -53,7 +55,7 @@ type FL i o =
 -- With the mnist data from Kaggle normalised to doubles between 0 and 1, learning rate of 0.01 and 15 iterations,
 -- this network should get down to about a 1.3% error rate.
 --
--- /NOTE:/ This model is actually too complex for MNIST, and one should use the type given in the readme instead.
+-- /NOTE:/ This model is actually too complex for MNIST, and one should use the type given belowe instead.
 --         This one is just here to demonstrate Inception layers in use.
 --
 type MNIST =
@@ -67,6 +69,21 @@ type MNIST =
        'D3 28 28 15, 'D3 14 14 15, 'D3 14 14 15, 'D3 14 14 18,
        'D3 12 12 18, 'D3 4 4 18, 'D3 4 4 18,
        'D1 288, 'D1 80, 'D1 10 ]
+
+#else
+
+-- The simpler network can just be dropped in without changing any of the other code
+--
+type MNIST
+  = Network
+    '[ Convolution 1 10 5 5 1 1, Pooling 2 2 2 2, Relu
+     , Convolution 10 16 5 5 1 1, Pooling 2 2 2 2, Reshape, Relu
+     , FullyConnected 256 80, Logit, FullyConnected 80 10, Logit]
+    '[ 'D2 28 28, 'D3 24 24 10, 'D3 12 12 10, 'D3 12 12 10
+     , 'D3 8 8 16, 'D3 4 4 16, 'D1 256, 'D1 256
+     , 'D1 80, 'D1 80, 'D1 10, 'D1 10]
+
+#endif
 
 randomMnist :: MonadRandom m => m MNIST
 randomMnist = randomNetwork
