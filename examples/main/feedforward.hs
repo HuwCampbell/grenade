@@ -91,9 +91,7 @@ feedForward' =
 main :: IO ()
 main = do
     FeedForwardOpts examples rate load save <- execParser (info (feedForward' <**> helper) idm)
-    net0 <- case load of
-      Just loadFile -> netLoad loadFile
-      Nothing -> randomNet
+    net0 <- maybe randomNet netLoad load
 
     net <- netTrain net0 rate examples
     netScore net
