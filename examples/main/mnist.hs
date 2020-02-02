@@ -74,6 +74,7 @@ type MNIST =
 
 -- The simpler network can just be dropped in without changing any of the other code
 --
+
 type MNIST
   = Network
     '[ Convolution 1 10 5 5 1 1, Pooling 2 2 2 2, Relu
@@ -82,6 +83,15 @@ type MNIST
     '[ 'D2 28 28, 'D3 24 24 10, 'D3 12 12 10, 'D3 12 12 10
      , 'D3 8 8 16, 'D3 4 4 16, 'D1 256, 'D1 256
      , 'D1 80, 'D1 80, 'D1 10, 'D1 10]
+
+
+-- ... and this is an even simpler network from  https://crypto.stanford.edu/~blynn/haskell/brain.html
+{-
+type MNIST
+  = Network
+      '[Reshape, FullyConnected 784 30, Relu, FullyConnected 30 10, Logit]
+      '[ 'D2 28 28, 'D1 784, 'D1 30, 'D1 30, 'D1 10, 'D1 10]
+-}
 
 #endif
 
