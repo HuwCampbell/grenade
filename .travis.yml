@@ -18,7 +18,7 @@ before_install:
 install:
  - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
  - travis_retry cabal-3.0 update
- - cabal-3.0 install hlint
+# - cabal-3.0 install hlint
 
 notifications:
   email: false
@@ -33,4 +33,4 @@ script:
  - ./runMNIST.sh data -l 5000 -i 3
  - ./runGAN-MNIST.sh data -i 3
  - ./runIris.sh
- - hlint .
+   #- hlint .
