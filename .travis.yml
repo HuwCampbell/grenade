@@ -32,11 +32,10 @@ before_install:
 - mkdir -p ~/.local/bin
 - export PATH=$HOME/.local/bin:$PATH
 - travis_retry curl -L https://get.haskellstack.org/stable/linux-x86_64.tar.gz | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-- stack --install-ghc
 
 install:
 # Build dependencies
-- stack test --no-terminal --only-dependencies
+- stack --install-ghc test --no-terminal --only-dependencies
 
 script:
 # Build the package, its tests, and its docs and run the tests
