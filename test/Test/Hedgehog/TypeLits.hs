@@ -1,30 +1,32 @@
-{-# LANGUAGE CPP                   #-}
-{-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE PolyKinds             #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE CPP                 #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE PolyKinds           #-}
+{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators       #-}
 module Test.Hedgehog.TypeLits where
 
-import           Data.Constraint (Dict (..))
-import           Data.Singletons (Proxy (..), Sing (..), SomeSing (..), sing)
+import           Data.Constraint             (Dict (..))
+import           Data.Singletons             (Proxy (..), Sing (..), SomeSing (..), sing)
 #if MIN_VERSION_singletons(2,6,0)
-import           Data.Singletons.TypeLits (SNat (..))
+import           Data.Singletons.TypeLits    (SNat (..))
 #endif
 
-import           Hedgehog (Gen)
-import qualified Hedgehog.Gen as Gen
+import           Hedgehog                    (Gen)
+import qualified Hedgehog.Gen                as Gen
 
 import           Grenade
 
-import           GHC.TypeLits (SomeNat (..), natVal, someNatVal)
-import           GHC.TypeLits.Witnesses ((%*), natDict)
-import           Test.Hedgehog.Compat (choose)
+import           Data.Singletons
+import           Data.Singletons.Prelude.Num ((%*))
+import           GHC.TypeLits                (natVal, someNatVal)
+import           GHC.TypeNats
+import           Test.Hedgehog.Compat        (choose)
 
 genNat :: Gen SomeNat
 genNat = do
-  ~(Just n) <- someNatVal <$> choose 1 10
+  ~(Just n) <- GHC.TypeLits.someNatVal <$> choose 1 10
   return n
 
 genShape :: Gen (SomeSing Shape)
@@ -43,23 +45,27 @@ genD1 = do
 
 genD2 :: Gen (SomeSing Shape)
 genD2 = do
-  n <- genNat
   m <- genNat
-  return $ case (n, m) of
+  n <- genNat
+  return $ case (m, n) of
     (SomeNat (_ :: Proxy x), SomeNat (_ :: Proxy y)) -> SomeSing (sing :: Sing ('D2 x y))
 
 genD3 :: Gen (SomeSing Shape)
 genD3 = do
-  n <- genNat
   m <- genNat
+  n <- genNat
   o <- genNat
-  return $ case (n, m, o) of
+  return $ case (m, n, o) of
     (SomeNat (px :: Proxy x), SomeNat (_ :: Proxy y), SomeNat (pz :: Proxy z)) ->
-        case natDict px %* natDict pz of
-          Dict -> SomeSing (sing :: Sing ('D3 x y z))
+      case singByProxy px %* singByProxy pz of
+        SNat -> SomeSing (sing :: Sing ('D3 x y z))
+
 
 rss :: SomeSing Shape -> String
-rss (SomeSing (r :: Sing s)) = case r of
-  (D1Sing a@SNat) -> "D1 " ++ show (natVal a)
-  (D2Sing a@SNat b@SNat) -> "D2 " ++ show (natVal a) ++ " " ++ show (natVal b)
-  (D3Sing a@SNat b@SNat c@SNat) -> "D3 " ++ show (natVal a) ++ " " ++ show (natVal b) ++ " " ++ show (natVal c)
+rss (SomeSing (r :: Sing s)) =
+  case r of
+    (D1Sing a@SNat)               -> "D1 " ++ show (GHC.TypeLits.natVal a)
+    (D2Sing a@SNat b@SNat)        -> "D2 " ++ show (GHC.TypeLits.natVal a) ++ " " ++ show (GHC.TypeLits.natVal b)
+    (D3Sing a@SNat b@SNat c@SNat) -> "D3 " ++ show (GHC.TypeLits.natVal a) ++ " " ++ show (GHC.TypeLits.natVal b) ++ " " ++ show (GHC.TypeLits.natVal c)
+
+
