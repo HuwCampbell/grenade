@@ -21,10 +21,12 @@ module Grenade.Layers.Crop (
     Crop (..)
   ) where
 
+import           Control.DeepSeq              (NFData)
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons.TypeLits
+import           GHC.Generics                 (Generic)
 
 #if MIN_VERSION_base(4,11,0)
 import           GHC.TypeLits                 hiding (natVal)

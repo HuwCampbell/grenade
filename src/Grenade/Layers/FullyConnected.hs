@@ -18,10 +18,10 @@ module Grenade.Layers.FullyConnected (
   ) where
 
 import           Control.DeepSeq
+import           Control.Monad.Primitive        (PrimBase, PrimState)
+import           GHC.Generics                   (Generic)
 import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
-
-import           Control.Monad.Primitive        (PrimBase, PrimState)
 import           System.Random.MWC              hiding (create)
 
 

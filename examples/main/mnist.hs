@@ -25,6 +25,11 @@ import qualified Data.Text                    as T
 import qualified Data.Text.IO                 as T
 import qualified Data.Vector.Storable         as V
 
+import           Data.Semigroup               ((<>))
+import qualified Data.Text                    as T
+import qualified Data.Text.IO                 as T
+import qualified Data.Vector.Storable         as V
+
 import           Numeric.LinearAlgebra        (maxIndex)
 import qualified Numeric.LinearAlgebra.Static as SA
 

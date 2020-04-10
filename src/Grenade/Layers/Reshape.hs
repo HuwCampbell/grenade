@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveAnyClass        #-}
+{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveAnyClass        #-}
 {-# LANGUAGE DeriveGeneric         #-}
@@ -24,6 +26,8 @@ import           Control.DeepSeq              (NFData (..))
 import           Data.Singletons.TypeLits
 import           GHC.Generics                 (Generic)
 import           GHC.TypeLits
+import           Control.DeepSeq              (NFData (..))
+import           GHC.Generics                 (Generic)
 
 import           Numeric.LinearAlgebra.Data   as LA (flatten)
 import           Numeric.LinearAlgebra.Static

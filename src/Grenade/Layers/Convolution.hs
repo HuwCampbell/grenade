@@ -36,6 +36,7 @@ import           Data.Singletons.TypeLits
 #if MIN_VERSION_base(4,11,0)
 import           GHC.TypeLits                        hiding (natVal)
 #else
+import           Control.DeepSeq                     (NFData (..))
 import           GHC.TypeLits
 #endif
 #if MIN_VERSION_base(4,9,0)

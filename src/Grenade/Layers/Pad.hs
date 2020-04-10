@@ -21,6 +21,7 @@ module Grenade.Layers.Pad (
     Pad (..)
   ) where
 
+import           Control.DeepSeq
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
@@ -32,6 +33,7 @@ import           GHC.TypeLits                 hiding (natVal)
 import           Data.Singletons.TypeLits     hiding (natVal)
 import           GHC.TypeLits
 #endif
+
 #if MIN_VERSION_base(4,9,0)
 import           Data.Kind                    (Type)
 #endif

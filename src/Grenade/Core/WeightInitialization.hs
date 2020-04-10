@@ -33,7 +33,10 @@ import           GHC.TypeLits                    hiding (natVal)
 import           GHC.TypeLits
 #endif
 
-import           Data.Singletons.TypeLits
+import           Control.Monad
+import           Data.Proxy
+
+import           GHC.TypeLits
 
 import           Control.Monad.Primitive         (PrimBase, PrimState)
 import           System.Random.MWC
@@ -71,6 +74,4 @@ getRandomMatrix i o method gen = do
              UniformInit -> (1/sqrt (fromIntegral i)) * unifRands
              Xavier      -> (sqrt 6/sqrt (fromIntegral i + fromIntegral o)) * unifRands
              HeEtAl      -> (sqrt (2/fromIntegral i)) * gaussRands
-
-
   where nr = fromIntegral $ natVal (Proxy :: Proxy nr)

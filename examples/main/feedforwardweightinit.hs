@@ -68,6 +68,26 @@ renderClass = do
                               in if v `inCircle` (fromRational 0.50, 0.50)  || v `inCircle` (fromRational (-0.50), 0.50)
                                  then '1'
                                  else ' '
+-- netLoad :: FilePath -> IO FFNet
+-- netLoad modelPath = do
+--   modelData <- B.readFile modelPath
+--   either fail return $ runGet (get :: Get FFNet) modelData
+
+-- renderClass :: IO ()
+-- renderClass = do
+--   let testIns = [ [ (x,y)  | x <- [0..50] ]
+--                            | y <- [0..20] ]
+--   let outMat  = fmap (fmap (\(x,y) -> (render (x/25-1) (y/10-1)))) testIns
+--   putStrLn $ unlines outMat
+
+--   where
+--     render x y  | x == 0 && y == 0 = '+'
+--                 | y == 0 = '-'
+--                 | x == 0 = '|'
+--                 | otherwise = let v = SA.vector [x,y] :: SA.R 2
+--                               in if v `inCircle` (fromRational 0.50, 0.50)  || v `inCircle` (fromRational (-0.50), 0.50)
+--                                  then '1'
+--                                  else ' '
 
 
 netScore :: FFNet -> IO ()
