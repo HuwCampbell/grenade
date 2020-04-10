@@ -15,6 +15,7 @@
 {-# LANGUAGE TypeOperators       #-}
 >>>>>>> started BatchNorm layer
 import           Control.Monad
+import           Control.Monad.IO.Class
 import           Control.Monad.Random
 import           Data.List                    (foldl')
 
@@ -46,7 +47,7 @@ import           Grenade
 type FFNet = Network '[ FullyConnected 2 40, Tanh, FullyConnected 40 10, Relu, FullyConnected 10 1, Logit ]
                      '[ 'D1 2, 'D1 40, 'D1 40, 'D1 10, 'D1 10, 'D1 1, 'D1 1]
 
-randomNet :: IO FFNet
+randomNet :: (MonadIO m) => m FFNet
 randomNet = randomNetwork
 
 netTrain :: FFNet -> LearningParameters -> Int -> IO FFNet

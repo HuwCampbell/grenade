@@ -81,8 +81,8 @@ data Deconvolution :: Nat -- Number of channels, for the first layer this could 
                  -> !(L kernelFlattened channels) -- The last kernel update (or momentum)
                  -> Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns
 
-instance NFData (Deconvolution c f k k' s s') where
-  rnf (Deconvolution a b) = rnf a `seq` rnf b `seq` ()
+instance NFData (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) where
+  rnf (Deconvolution a b) = rnf a `seq` rnf b
 
 
 data Deconvolution' :: Nat -- Number of channels, for the first layer this could be RGB for instance.
@@ -93,17 +93,17 @@ data Deconvolution' :: Nat -- Number of channels, for the first layer this could
                     -> Nat -- The columns stride of the Deconvolution filter
                     -> Type where
   Deconvolution' :: ( KnownNat channels
-                  , KnownNat filters
-                  , KnownNat kernelRows
-                  , KnownNat kernelColumns
-                  , KnownNat strideRows
-                  , KnownNat strideColumns
-                  , KnownNat kernelFlattened
-                  , kernelFlattened ~ (kernelRows * kernelColumns * filters))
-               => !(L kernelFlattened channels) -- The kernel filter gradient
-               -> Deconvolution' channels filters kernelRows kernelColumns strideRows strideColumns
+                    , KnownNat filters
+                    , KnownNat kernelRows
+                    , KnownNat kernelColumns
+                    , KnownNat strideRows
+                    , KnownNat strideColumns
+                    , KnownNat kernelFlattened
+                    , kernelFlattened ~ (kernelRows * kernelColumns * filters))
+                 => !(L kernelFlattened channels) -- The kernel filter gradient
+                 -> Deconvolution' channels filters kernelRows kernelColumns strideRows strideColumns
 
-instance NFData (Deconvolution' c f k k' s s') where
+instance NFData (Deconvolution' channels filters kernelRows kernelColumns strideRows strideColumns) where
   rnf (Deconvolution' a) = rnf a `seq` ()
 
 
@@ -111,34 +111,40 @@ instance Show (Deconvolution c f k k' s s') where
   show (Deconvolution a _) = renderConv a
     where
       renderConv mm =
-        let m  = extract mm
+        let m = extract mm
             ky = fromIntegral $ natVal (Proxy :: Proxy k)
             rs = LA.toColumns m
             ms = map (take ky) $ toLists . reshape ky <$> rs
-
-            render n'  | n' <= 0.2  = ' '
-                       | n' <= 0.4  = '.'
-                       | n' <= 0.6  = '-'
-                       | n' <= 0.8  = '='
-                       | otherwise =  '#'
-
+            render n'
+              | n' <= 0.2 = ' '
+              | n' <= 0.4 = '.'
+              | n' <= 0.6 = '-'
+              | n' <= 0.8 = '='
+              | otherwise = '#'
             px = (fmap . fmap . fmap) render ms
-        in unlines $ foldl1 (zipWith (\a' b' -> a' ++ "   |   " ++ b')) $ px
+         in unlines $ foldl1 (zipWith (\a' b' -> a' ++ "   |   " ++ b')) px
 
-instance ( KnownNat c
-         , KnownNat f
-         , KnownNat k
-         , KnownNat k'
-         , KnownNat s
-         , KnownNat s'
-         , KnownNat ((k * k') * f)
-         , KnownNat ((k * k') * c)
-         , KnownNat (c * ((k * k') * f))) => RandomLayer (Deconvolution c f k k' s s') where
+instance ( KnownNat channels
+         , KnownNat filters
+         , KnownNat kernelRows
+         , KnownNat kernelColumns
+         , KnownNat strideRows
+         , KnownNat strideColumns
+         , KnownNat ((kernelRows * kernelColumns) * filters)
+         , KnownNat ((kernelRows * kernelColumns) * channels)
+         , KnownNat (channels * ((kernelRows * kernelColumns) * filters))
+         ) =>
+         RandomLayer (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) where
   createRandomWith m gen = do
     wN <- getRandomMatrix i i m gen
     let mm = konst 0
     return $ Deconvolution wN mm
+<<<<<<< HEAD
     where i = naturalToInteger $ natVal (Proxy :: Proxy ((k * k') * c))
+=======
+    where
+      i = natVal (Proxy :: Proxy ((kernelRows * kernelColumns) * channels))
+>>>>>>> improved readability
 
 instance ( KnownNat channels
          , KnownNat filters
@@ -306,17 +312,31 @@ instance ( KnownNat kernelRows
 -------------------- GNum instances --------------------
 
 
-instance (KnownNat strideCols,KnownNat strideRows,KnownNat kernelCols,KnownNat kernelRows,KnownNat filters,KnownNat channels,KnownNat ((kernelRows * kernelCols) * filters),KnownNat
-                          ((kernelRows * kernelCols) * channels)) => GNum (Deconvolution channels filters kernelRows kernelCols strideRows strideCols) where
+instance ( KnownNat strideCols
+         , KnownNat strideRows
+         , KnownNat kernelCols
+         , KnownNat kernelRows
+         , KnownNat filters
+         , KnownNat channels
+         , KnownNat ((kernelRows * kernelCols) * filters)
+         , KnownNat ((kernelRows * kernelCols) * channels)
+         ) =>
+         GNum (Deconvolution channels filters kernelRows kernelCols strideRows strideCols) where
   n |* (Deconvolution w m) = Deconvolution (fromRational n * w) m
-  (Deconvolution w m) |+ (Deconvolution w2 m2)  = Deconvolution (fromRational 0.5 * (w+w2)) (fromRational 0.5 * (m+m2))
+  (Deconvolution w m) |+ (Deconvolution w2 m2) = Deconvolution (fromRational 0.5 * (w + w2)) (fromRational 0.5 * (m + m2))
   gFromRational r = Deconvolution (fromRational r) (fromRational r)
 
 
-instance (KnownNat strideCols,KnownNat strideRows,KnownNat kernelCols,KnownNat kernelRows,KnownNat filters,KnownNat channels,KnownNat ((kernelRows * kernelCols) * filters),KnownNat
-                          ((kernelRows * kernelCols) * channels)) => GNum (Deconvolution' channels filters kernelRows kernelCols strideRows strideCols) where
+instance ( KnownNat strideCols
+         , KnownNat strideRows
+         , KnownNat kernelCols
+         , KnownNat kernelRows
+         , KnownNat filters
+         , KnownNat channels
+         , KnownNat ((kernelRows * kernelCols) * filters)
+         , KnownNat ((kernelRows * kernelCols) * channels)
+         ) =>
+         GNum (Deconvolution' channels filters kernelRows kernelCols strideRows strideCols) where
   _ |* (Deconvolution' g) = Deconvolution' g
-  (Deconvolution' g) |+ (Deconvolution' g2)  = Deconvolution' (fromRational 0.5 * (g+g2)) 
+  (Deconvolution' g) |+ (Deconvolution' g2) = Deconvolution' (fromRational 0.5 * (g + g2))
   gFromRational r = Deconvolution' (fromRational r)
-
-  

@@ -30,7 +30,7 @@ import           Control.Monad.Random                hiding (fromList)
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits hiding (natVal)
+import           Data.Singletons.TypeLits            hiding (natVal)
 
 #if MIN_VERSION_base(4,11,0)
 import           GHC.TypeLits                        hiding (natVal)
@@ -81,7 +81,7 @@ data Convolution :: Nat -- Number of channels, for the first layer this could be
               -> !(L kernelFlattened filters) -- The last kernel update (or momentum)
               -> Convolution channels filters kernelRows kernelColumns strideRows strideColumns
 
-instance NFData (Convolution c f k k' s s') where
+instance NFData (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) where
   rnf (Convolution a b) = rnf a `seq` rnf b
 
 
@@ -111,34 +111,36 @@ instance Show (Convolution c f k k' s s') where
   show (Convolution a _) = renderConv a
     where
       renderConv mm =
-        let m  = extract mm
+        let m = extract mm
             ky = fromIntegral $ natVal (Proxy :: Proxy k)
             rs = LA.toColumns m
             ms = map (take ky) $ toLists . reshape ky <$> rs
-
-            render n'  | n' <= 0.2  = ' '
-                       | n' <= 0.4  = '.'
-                       | n' <= 0.6  = '-'
-                       | n' <= 0.8  = '='
-                       | otherwise =  '#'
-
+            render n'
+              | n' <= 0.2 = ' '
+              | n' <= 0.4 = '.'
+              | n' <= 0.6 = '-'
+              | n' <= 0.8 = '='
+              | otherwise = '#'
             px = (fmap . fmap . fmap) render ms
-        in unlines $ foldl1 (zipWith (\a' b' -> a' ++ "   |   " ++ b')) $ px
+         in unlines $ foldl1 (zipWith (\a' b' -> a' ++ "   |   " ++ b')) px
 
 
-instance ( KnownNat c
-         , KnownNat f
-         , KnownNat k
-         , KnownNat k'
-         , KnownNat s
-         , KnownNat s'
-         , KnownNat ((k * k') * c)
-         , KnownNat (f * ((k * k') * c))) => RandomLayer (Convolution c f k k' s s') where
+instance ( KnownNat channels
+         , KnownNat filters
+         , KnownNat kernelRows
+         , KnownNat kernelColumns
+         , KnownNat strideRows
+         , KnownNat strideColumns
+         , KnownNat ((kernelRows * kernelColumns) * channels)
+         , KnownNat (filters * ((kernelRows * kernelColumns) * channels))
+         ) =>
+         RandomLayer (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) where
   createRandomWith m gen = do
     wN <- getRandomMatrix i i m gen
     let mm = konst 0
     return $ Convolution wN mm
-    where i = natVal (Proxy :: Proxy ((k * k') * c))
+    where
+      i = natVal (Proxy :: Proxy ((kernelRows * kernelColumns) * channels))
 
 
 instance ( KnownNat channels
@@ -308,17 +310,15 @@ instance ( KnownNat kernelRows
 -------------------- GNum instances --------------------
 
 
-instance (KnownNat strideCols,KnownNat strideRows,KnownNat kernelCols,KnownNat kernelRows,KnownNat filters,KnownNat channels,KnownNat
-                          ((kernelRows * kernelCols) * channels)) => GNum (Convolution channels filters kernelRows kernelCols strideRows strideCols) where
+instance (KnownNat strideCols, KnownNat strideRows, KnownNat kernelCols, KnownNat kernelRows, KnownNat filters, KnownNat channels, KnownNat ((kernelRows * kernelCols) * channels)) =>
+         GNum (Convolution channels filters kernelRows kernelCols strideRows strideCols) where
   n |* (Convolution w m) = Convolution (fromRational n * w) m
-  (Convolution w m) |+ (Convolution w2 m2)  = Convolution (fromRational 0.5 * (w+w2)) (fromRational 0.5 * (m+m2))
+  (Convolution w m) |+ (Convolution w2 m2) = Convolution (fromRational 0.5 * (w + w2)) (fromRational 0.5 * (m + m2))
   gFromRational r = Convolution (fromRational r) (fromRational r)
 
 
-instance (KnownNat strideCols,KnownNat strideRows,KnownNat kernelCols,KnownNat kernelRows,KnownNat filters,KnownNat channels,KnownNat
-                          ((kernelRows * kernelCols) * channels)) => GNum (Convolution' channels filters kernelRows kernelCols strideRows strideCols) where
+instance (KnownNat strideCols, KnownNat strideRows, KnownNat kernelCols, KnownNat kernelRows, KnownNat filters, KnownNat channels, KnownNat ((kernelRows * kernelCols) * channels)) =>
+         GNum (Convolution' channels filters kernelRows kernelCols strideRows strideCols) where
   _ |* (Convolution' g) = Convolution' g
-  (Convolution' g) |+ (Convolution' g2)  = Convolution' (fromRational 0.5 * (g+g2)) 
+  (Convolution' g) |+ (Convolution' g2) = Convolution' (fromRational 0.5 * (g + g2))
   gFromRational r = Convolution' (fromRational r)
-
-

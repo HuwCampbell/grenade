@@ -37,6 +37,7 @@ module Grenade.Core.Network (
   ) where
 
 import           Control.DeepSeq
+import           Control.Monad.IO.Class
 import           Control.Monad.Primitive           (PrimBase, PrimState)
 import           System.Random.MWC
 
@@ -190,12 +191,12 @@ class CreatableNetwork (xs :: [Type]) (ss :: [Shape]) where
   randomNetworkWith :: PrimBase m => WeightInitMethod -> Gen (PrimState m) -> m (Network xs ss)
 
 -- | Create a random network using uniform distribution.
-randomNetwork :: (CreatableNetwork xs ss) => IO (Network xs ss)
-randomNetwork = withSystemRandom . asGenST $ \gen -> randomNetworkWith UniformInit gen
+randomNetwork :: (MonadIO m, CreatableNetwork xs ss) => m (Network xs ss)
+randomNetwork = liftIO $ withSystemRandom . asGenST $ \gen -> randomNetworkWith UniformInit gen
 
 -- | Create a random network using the specified weight initialization method.
-randomNetworkInitWith :: (CreatableNetwork xs ss) => WeightInitMethod -> IO (Network xs ss)
-randomNetworkInitWith m = withSystemRandom . asGenST $ \gen -> randomNetworkWith m gen
+randomNetworkInitWith :: (MonadIO m, CreatableNetwork xs ss) => WeightInitMethod -> m (Network xs ss)
+randomNetworkInitWith m = liftIO $ withSystemRandom . asGenST $ \gen -> randomNetworkWith m gen
 
 
 instance SingI i => CreatableNetwork '[] '[i] where
