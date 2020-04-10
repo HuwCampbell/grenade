@@ -24,21 +24,16 @@ module Grenade.Layers.Convolution (
   , Convolution' (..)
   ) where
 
-import           Control.DeepSeq                     (NFData (..))
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits
-import           GHC.Natural                         (naturalToInteger)
-
-#if MIN_VERSION_base(4,11,0)
-import           GHC.TypeLits                        hiding (natVal)
-#else
 import           GHC.TypeLits
-#endif
+
 #if MIN_VERSION_base(4,9,0)
 import           Data.Kind                           (Type)
 #endif
+
+import           Control.DeepSeq                     (NFData (..))
 import           Numeric.LinearAlgebra               hiding (konst, uniformSample)
 import qualified Numeric.LinearAlgebra               as LA
 import           Numeric.LinearAlgebra.Static        hiding (build, toRows, (|||))
@@ -136,7 +131,7 @@ instance ( KnownNat channels
     let mm = konst 0
     return $ Convolution wN mm
     where
-      i = naturalToInteger $ natVal (Proxy :: Proxy ((kernelRows * kernelColumns) * channels))
+      i = natVal (Proxy :: Proxy ((kernelRows * kernelColumns) * channels))
 
 
 instance ( KnownNat channels

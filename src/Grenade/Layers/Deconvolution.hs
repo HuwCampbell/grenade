@@ -28,25 +28,16 @@ module Grenade.Layers.Deconvolution (
   , Deconvolution' (..)
   ) where
 
-import           Control.Monad.Random                hiding (fromList)
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
 import           GHC.TypeLits
 
-#if MIN_VERSION_base(4,11,0)
-import           GHC.TypeLits                        hiding (natVal)
-#else
-import           Control.DeepSeq                     (NFData (..))
-import           Data.Serialize
-#endif
-
 #if MIN_VERSION_base(4,9,0)
 import           Data.Kind                           (Type)
 #endif
+
 import           Control.DeepSeq                     (NFData (..))
-import           GHC.Generics                        (Generic)
-import           GHC.Natural                         (naturalToInteger)
 
 
 import           Numeric.LinearAlgebra               hiding (konst, uniformSample)
