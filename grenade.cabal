@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0dc778c2895d28a05d07f46b94ee738f5ea0afdd653e1c657c35f4771f290d11
+-- hash: 2716ebd5a58ab9740b2911be504fc171c437bb27c83576f962939f7096d6eb52
 
 name:           grenade
 version:        0.1.0
@@ -113,6 +113,8 @@ library
   if impl(ghc < 8.0)
     ghc-options: -fno-warn-incomplete-patterns
     cpp-options: -DType=*
+  if impl(ghc >= 8.6)
+    default-extensions: NoStarIsType
   if (flag(debug)) || (flag(fast))
     ghc-options: -O0
     cpp-options: -DDEBUG

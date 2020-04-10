@@ -5,7 +5,6 @@
 {-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE NoStarIsType          #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}

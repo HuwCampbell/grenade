@@ -1,5 +1,4 @@
 {-# LANGUAGE CPP                   #-}
-{-# LANGUAGE NoStarIsType          #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE DataKinds             #-}
