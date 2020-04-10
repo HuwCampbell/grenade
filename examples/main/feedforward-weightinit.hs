@@ -140,9 +140,9 @@ feedForward' :: Parser FeedForwardOpts
 feedForward' =
   FeedForwardOpts <$> option auto (long "examples" <> short 'e' <> value 1000)
                   <*> (LearningParameters
-                      <$> option auto (long "train_rate" <> short 'r' <> value 0.005)
-                      <*> option auto (long "momentum" <> value 0.0)
-                      <*> option auto (long "l2" <> value 0.0005)
+                       <$> option auto (long "train_rate" <> short 'r' <> value 0.005)
+                       <*> option auto (long "momentum" <> value 0.0)
+                       <*> option auto (long "l2" <> value 0.0005)
                       )
 
 
@@ -158,4 +158,4 @@ main = do
     net0 <- randomNet
     net <- netTrain net0 rate examples
     -- netScore net
-    testValues net) [1..nr]
+    testValues net) [0..nr-1]

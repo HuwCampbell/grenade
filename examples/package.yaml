@@ -51,7 +51,7 @@ executables:
 
   feedforward-weightinit:
     ghc-options:       -Wall -threaded -O2
-    main:              main/feedforwardweightinit.hs
+    main:              main/feedforward-weightinit.hs
 
   mnist:
     ghc-options:       -Wall -threaded -O2

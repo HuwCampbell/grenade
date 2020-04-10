@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 019aa67991882cdb8067774ebcfb4b95e375ca3eae21fbabdf38bb3dde38952b
+-- hash: 5af162fe468bce03267a865a272184a6221c056e12edf95e9a1969e1633b301d
 
 name:           grenade-examples
 version:        0.0.1.0
@@ -60,7 +60,7 @@ executable feedforward
   default-language: Haskell2010
 
 executable feedforward-weightinit
-  main-is: main/feedforwardweightinit.hs
+  main-is: main/feedforward-weightinit.hs
   other-modules:
       Paths_grenade_examples
   ghc-options: -Wall -threaded -O2
