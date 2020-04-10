@@ -1,8 +1,7 @@
 {-# LANGUAGE CPP                   #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE GADTs, DataKinds, PolyKinds, ScopedTypeVariables #-}
+{-# LANGUAGE NoStarIsType          #-}
+{-# LANGUAGE UndecidableInstances  #-}
+{-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE RankNTypes            #-}

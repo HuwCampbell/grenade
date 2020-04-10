@@ -1,10 +1,11 @@
+{-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveAnyClass        #-}
 {-# LANGUAGE DeriveGeneric         #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NoStarIsType          #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Layers.Reshape
@@ -19,13 +20,13 @@ module Grenade.Layers.Reshape (
 
 import           Data.Serialize
 
-import           Data.Singletons.TypeLits
-import           GHC.TypeLits
 import           Control.DeepSeq              (NFData (..))
+import           Data.Singletons.TypeLits
 import           GHC.Generics                 (Generic)
+import           GHC.TypeLits
 
+import           Numeric.LinearAlgebra.Data   as LA (flatten)
 import           Numeric.LinearAlgebra.Static
-import           Numeric.LinearAlgebra.Data as LA ( flatten )
 
 import           Grenade.Core
 

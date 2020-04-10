@@ -1,19 +1,10 @@
-<<<<<<< HEAD
-{-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE CPP                   #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TupleSections         #-}
-{-# LANGUAGE TypeFamilies          #-}
-=======
 {-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections       #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
->>>>>>> started BatchNorm layer
 import           Control.Monad
 import           Control.Monad.IO.Class
 import           Control.Monad.Random
@@ -22,13 +13,9 @@ import           Data.List                    (foldl')
 import qualified Data.ByteString              as B
 import           Data.Semigroup               ((<>))
 import           Data.Serialize
-<<<<<<< HEAD
 #if ! MIN_VERSION_base(4,13,0)
-import           Data.Semigroup ( (<>) )
+import           Data.Semigroup               ((<>))
 #endif
-=======
-
->>>>>>> started BatchNorm layer
 import           GHC.TypeLits
 
 import qualified Numeric.LinearAlgebra.Static as SA

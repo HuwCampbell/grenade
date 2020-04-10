@@ -5,6 +5,7 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NoStarIsType          #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE StandaloneDeriving    #-}
@@ -30,7 +31,7 @@ import           Control.Monad.Random                hiding (fromList)
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits            hiding (natVal)
+import           Data.Singletons.TypeLits
 
 #if MIN_VERSION_base(4,11,0)
 import           GHC.TypeLits                        hiding (natVal)
@@ -42,6 +43,7 @@ import           Data.Kind                           (Type)
 #endif
 import           Control.DeepSeq                     (NFData (..))
 import           GHC.Generics                        (Generic)
+import           GHC.Natural                         (naturalToInteger)
 
 import           Numeric.LinearAlgebra               hiding (konst, uniformSample)
 import qualified Numeric.LinearAlgebra               as LA
@@ -140,7 +142,7 @@ instance ( KnownNat channels
     let mm = konst 0
     return $ Convolution wN mm
     where
-      i = natVal (Proxy :: Proxy ((kernelRows * kernelColumns) * channels))
+      i = naturalToInteger $ natVal (Proxy :: Proxy ((kernelRows * kernelColumns) * channels))
 
 
 instance ( KnownNat channels

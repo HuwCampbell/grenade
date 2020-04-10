@@ -33,11 +33,7 @@ import           GHC.TypeLits                    hiding (natVal)
 import           GHC.TypeLits
 #endif
 
-<<<<<<< HEAD
-=======
-import           Data.Singletons.TypeLits hiding (natVal)
->>>>>>> natVal imports and no max versions in cabal file
-import           GHC.TypeLits
+import           Data.Singletons.TypeLits
 
 import           Control.Monad.Primitive         (PrimBase, PrimState)
 import           System.Random.MWC

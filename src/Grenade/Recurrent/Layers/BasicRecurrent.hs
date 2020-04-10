@@ -5,6 +5,7 @@
 {-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE KindSignatures        #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NoStarIsType          #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
@@ -18,10 +19,10 @@ module Grenade.Recurrent.Layers.BasicRecurrent (
 
 
 import           Data.Proxy
-import           Data.Singletons.TypeLits hiding (natVal)
+import           Data.Singletons.TypeLits     hiding (natVal)
 
 #if MIN_VERSION_base(4,9,0)
-import           Data.Kind (Type)
+import           Data.Kind                    (Type)
 #endif
 
 import           Numeric.LinearAlgebra.Static

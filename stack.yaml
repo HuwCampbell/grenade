@@ -44,8 +44,8 @@ packages:
 # - git: https://github.com/commercialhaskell/stack.git
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
 #
-extra-deps: []
-#  - typelits-witnesses-0.3.0.3
+extra-deps:
+  - typelits-witnesses-0.3.0.3
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

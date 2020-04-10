@@ -33,7 +33,7 @@ import           Control.Monad.Random                hiding (fromList)
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits hiding (natVal)
+import           Data.Singletons.TypeLits
 
 #if MIN_VERSION_base(4,11,0)
 import           GHC.TypeLits                        hiding (natVal)
@@ -139,12 +139,8 @@ instance ( KnownNat channels
     wN <- getRandomMatrix i i m gen
     let mm = konst 0
     return $ Deconvolution wN mm
-<<<<<<< HEAD
-    where i = naturalToInteger $ natVal (Proxy :: Proxy ((k * k') * c))
-=======
     where
-      i = natVal (Proxy :: Proxy ((kernelRows * kernelColumns) * channels))
->>>>>>> improved readability
+      i = naturalToInteger $ natVal (Proxy :: Proxy ((kernelRows * kernelColumns) * channels))
 
 instance ( KnownNat channels
          , KnownNat filters

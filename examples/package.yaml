@@ -49,7 +49,7 @@ executables:
     ghc-options:       -Wall -threaded -O2
     main:              main/feedforward.hs
 
-  feedforward:
+  feedforward-weightinit:
     ghc-options:       -Wall -threaded -O2
     main:              main/feedforwardweightinit.hs
 
