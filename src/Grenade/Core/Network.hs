@@ -175,19 +175,17 @@ applyUpdate :: LearningParameters
             -> Network layers shapes
             -> Gradients layers
             -> Network layers shapes
-applyUpdate rate (layer :~> rest) (gradient :/> grest)
-  = runUpdate rate layer gradient :~> applyUpdate rate rest grest
-
-applyUpdate _ NNil GNil
-  = NNil
+applyUpdate rate (layer :~> rest) (gradient :/> grest) = runUpdate rate layer gradient :~> applyUpdate rate rest grest
+applyUpdate _ NNil GNil = NNil
 
 -- | A network can easily be created by hand with (:~>), but an easy way to
 --   initialise a random network is with the randomNetwork.
-class CreatableNetwork (xs :: [Type]) (ss :: [Shape]) where
+class CreatableNetwork (xs :: [Type]) (ss :: [Shape])
   -- | Create a network with randomly initialised weights.
   --
   --   Calls to this function will not compile if the type of the neural
   --   network is not sound.
+  where
   randomNetworkWith :: PrimBase m => WeightInitMethod -> Gen (PrimState m) -> m (Network xs ss)
 
 -- | Create a random network using uniform distribution.
@@ -226,7 +224,7 @@ instance (SingI i, SingI o, Layer x i o, Serialize x, Serialize (Network xs (o '
 --   This allows a complete network to be treated as a layer in a larger network.
 instance CreatableNetwork sublayers subshapes => UpdateLayer (Network sublayers subshapes) where
   type Gradient (Network sublayers subshapes) = Gradients sublayers
-  runUpdate    = applyUpdate
+  runUpdate = applyUpdate
 
 instance  CreatableNetwork sublayers subshapes => RandomLayer (Network sublayers subshapes) where
   createRandomWith = randomNetworkWith

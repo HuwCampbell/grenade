@@ -1,6 +1,5 @@
 {-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
@@ -8,7 +7,6 @@
 {-# LANGUAGE NoStarIsType          #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE StandaloneDeriving    #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
@@ -27,25 +25,21 @@ module Grenade.Layers.Convolution (
   , Convolution' (..)
   ) where
 
-import           Control.Monad.Random                hiding (fromList)
+import           Control.DeepSeq                     (NFData (..))
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons.TypeLits
+import           GHC.Natural                         (naturalToInteger)
 
 #if MIN_VERSION_base(4,11,0)
 import           GHC.TypeLits                        hiding (natVal)
 #else
-import           Control.DeepSeq                     (NFData (..))
 import           GHC.TypeLits
 #endif
 #if MIN_VERSION_base(4,9,0)
 import           Data.Kind                           (Type)
 #endif
-import           Control.DeepSeq                     (NFData (..))
-import           GHC.Generics                        (Generic)
-import           GHC.Natural                         (naturalToInteger)
-
 import           Numeric.LinearAlgebra               hiding (konst, uniformSample)
 import qualified Numeric.LinearAlgebra               as LA
 import           Numeric.LinearAlgebra.Static        hiding (build, toRows, (|||))
