@@ -6,7 +6,8 @@ env:
  - GHCVER=8.2.2
  - GHCVER=8.4.4
  - GHCVER=8.6.5
- - GHCVER=8.8.2
+ - GHCVER=8.8.3
+ - GHCVER=8.10.1
 
 # Note: the distinction between `before_install` and `install` is not important.
 before_install:
