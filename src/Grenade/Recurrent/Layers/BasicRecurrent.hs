@@ -61,11 +61,11 @@ instance Show (BasicRecurrent i o) where
 instance (KnownNat i, KnownNat o, KnownNat (i + o)) => UpdateLayer (BasicRecurrent i o) where
   type Gradient (BasicRecurrent i o) = (BasicRecurrent' i o)
 
-  runUpdate LearningParameters {..} (BasicRecurrent oldBias oldBiasMomentum oldActivations oldMomentum) (BasicRecurrent' biasGradient activationGradient) =
-    let newBiasMomentum = konst learningMomentum * oldBiasMomentum - konst learningRate * biasGradient
+  runUpdate lp (BasicRecurrent oldBias oldBiasMomentum oldActivations oldMomentum) (BasicRecurrent' biasGradient activationGradient) =
+    let newBiasMomentum = konst (learningMomentum lp) * oldBiasMomentum - konst (learningRate lp) * biasGradient
         newBias         = oldBias + newBiasMomentum
-        newMomentum     = konst learningMomentum * oldMomentum - konst learningRate * activationGradient
-        regulariser     = konst (learningRegulariser * learningRate) * oldActivations
+        newMomentum     = konst (learningMomentum lp) * oldMomentum - konst (learningRate lp) * activationGradient
+        regulariser     = konst (learningRegulariser lp * learningRate lp) * oldActivations
         newActivations  = oldActivations + newMomentum - regulariser
     in BasicRecurrent newBias newBiasMomentum newActivations newMomentum
 

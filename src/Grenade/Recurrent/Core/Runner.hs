@@ -3,7 +3,6 @@
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE RankNTypes          #-}
-{-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
@@ -88,17 +87,11 @@ trainRecurrent :: forall shapes layers. (SingI (Last shapes), Fractional (Recurr
                -> (RecurrentNetwork layers shapes, RecurrentInputs layers)
 trainRecurrent rate network recinputs examples =
   let (gradients, recinputs') = backPropagateRecurrent network recinputs examples
-
       newInputs               = updateRecInputs rate recinputs recinputs'
-
       newNetwork              = foldl' (applyRecurrentUpdate rate) network gradients
-
   in  (newNetwork, newInputs)
 
 updateRecInputs :: LearningParameters -> RecurrentInputs sublayers -> RecurrentInputs sublayers -> RecurrentInputs sublayers
-updateRecInputs l@LearningParameters {..} (() :~~+> xs) (() :~~+> ys)
-  = () :~~+> updateRecInputs l xs ys
-updateRecInputs l@LearningParameters {..} (x :~@+> xs) (y :~@+> ys)
-  = (realToFrac (1 - learningRate * learningRegulariser) * x - realToFrac learningRate * y) :~@+> updateRecInputs l xs ys
-updateRecInputs _ RINil RINil
-  = RINil
+updateRecInputs lp (() :~~+> xs) (() :~~+> ys) = () :~~+> updateRecInputs lp xs ys
+updateRecInputs lp (x :~@+> xs) (y :~@+> ys) = (realToFrac (1 - learningRate lp * learningRegulariser lp) * x - realToFrac (learningRate lp) * y) :~@+> updateRecInputs lp xs ys
+updateRecInputs _ RINil RINil = RINil

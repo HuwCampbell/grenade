@@ -88,34 +88,34 @@ loadShakespeare path = do
   return (V.fromList hot, m, cs)
 
 trainSlice :: LearningParameters -> Shakespeare -> Shakespearian -> Vector Int -> Int -> Int -> (Shakespeare, Shakespearian)
-trainSlice !rate !net !recIns input offset size =
+trainSlice !lrate !net !recIns input offset size =
   let e = fmap (x . oneHot) . V.toList $ V.slice offset size input
   in case reverse e of
     (o : l : xs) ->
       let examples = reverse $ (l, Just o) : ((,Nothing) <$> xs)
-      in  trainRecurrent rate net recIns examples
+      in  trainRecurrent lrate net recIns examples
     _ -> error "Not enough input"
     where
       x = fromMaybe (error "Hot variable didn't fit.")
 
 runShakespeare :: ShakespeareOpts -> ExceptT String IO ()
-runShakespeare ShakespeareOpts {..} = do
-  (shakespeare, oneHotMap, oneHotDictionary) <- loadShakespeare trainingFile
+runShakespeare opts = do
+  (shakespeare, oneHotMap, oneHotDictionary) <- loadShakespeare $ trainingFile opts
   (net0, i0) <- lift $
-    case loadPath of
+    case loadPath opts of
       Just loadFile -> netLoad loadFile
       Nothing       -> (,0) <$> randomNet
 
   (trained, bestInput) <- lift $ foldM (\(!net, !io) size -> do
-    xs <- take (iterations `div` 10) <$> getRandomRs (0, length shakespeare - size - 1)
-    let (!trained, !bestInput) = foldl' (\(!n, !i) offset -> trainSlice rate n i shakespeare offset size) (net, io) xs
-    results <- take 1000 <$> generateParagraph trained bestInput temperature oneHotMap oneHotDictionary ( S1D $ konst 0)
+    xs <- take (iterations opts `div` 10) <$> getRandomRs (0, length shakespeare - size - 1)
+    let (!trained, !bestInput) = foldl' (\(!n, !i) offset -> trainSlice (rate opts) n i shakespeare offset size) (net, io) xs
+    results <- take 1000 <$> generateParagraph trained bestInput (temperature opts) oneHotMap oneHotDictionary ( S1D $ konst 0)
     putStrLn ("TRAINING STEP WITH SIZE: " ++ show size)
     putStrLn (unAnnotateCapitals results)
     return (trained, bestInput)
-    ) (net0, i0) $ replicate 10 sequenceSize
+    ) (net0, i0) $ replicate 10 (sequenceSize opts)
 
-  case savePath of
+  case savePath opts of
     Just saveFile -> lift . B.writeFile saveFile $ runPut (put trained >> put bestInput)
     Nothing       -> return ()
 
@@ -127,12 +127,12 @@ generateParagraph :: forall layers shapes n a. (Last shapes ~ 'D1 n, Head shapes
   -> Vector a
   -> S ('D1 n)
   -> IO [a]
-generateParagraph n s temperature hotmap hotdict =
+generateParagraph n s temp hotmap hotdict =
   go s
     where
   go x y =
     do let (_, ns, o) = runRecurrent n x y
-       un            <- sample temperature hotdict o
+       un            <- sample temp hotdict o
        Just re       <- return $ makeHot hotmap un
        rest          <- unsafeInterleaveIO $ go ns re
        return (un : rest)
