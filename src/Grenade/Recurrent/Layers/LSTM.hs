@@ -3,7 +3,6 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -75,7 +74,7 @@ instance (KnownNat i, KnownNat o) => UpdateLayer (LSTM i o) where
 
   -- Run the update function for each group matrix/vector of weights, momentums and gradients.
   -- Hmm, maybe the function should be used instead of passing in the learning parameters.
-  runUpdate LearningParameters {..} (LSTM w m) g =
+  runUpdate lp (LSTM w m) g =
     let (wf, wf') = u lstmWf w m g
         (uf, uf') = u lstmUf w m g
         (bf, bf') = v lstmBf w m g
@@ -92,11 +91,11 @@ instance (KnownNat i, KnownNat o) => UpdateLayer (LSTM i o) where
     -- Utility function for updating with the momentum, gradients, and weights.
     u :: forall x ix out. (KnownNat ix, KnownNat out) => (x -> (L out ix)) -> x -> x -> x -> ((L out ix), (L out ix))
     u e (e -> weights) (e -> momentum) (e -> gradient) =
-      descendMatrix learningRate learningMomentum learningRegulariser weights gradient momentum
+      descendMatrix (learningRate lp) (learningMomentum lp) (learningRegulariser lp) weights gradient momentum
 
     v :: forall x ix. (KnownNat ix) => (x -> (R ix)) -> x -> x -> x -> ((R ix), (R ix))
     v e (e -> weights) (e -> momentum) (e -> gradient) =
-      descendVector learningRate learningMomentum learningRegulariser weights gradient momentum
+      descendVector (learningRate lp) (learningMomentum lp) (learningRegulariser lp) weights gradient momentum
 
   -- There's a lot of updates here, so to try and minimise the number of data copies
   -- we'll create a mutable bucket for each.
@@ -137,18 +136,18 @@ instance (KnownNat i, KnownNat o) => RecurrentLayer (LSTM i o) ('D1 i) ('D1 o) w
   type RecTape (LSTM i o) ('D1 i) ('D1 o) = (R o, R i, R o, R o, R o, R o, R o, R o, R o, R o, R o)
   -- Forward propagation for the LSTM layer.
   -- The size of the cell state is also the size of the output.
-  runRecurrentForwards (LSTM (LSTMWeights {..}) _) (S1D cell) (S1D input) =
+  runRecurrentForwards (LSTM lw _) (S1D cell) (S1D input) =
     let -- Forget state vector
-        f_s = lstmBf + lstmWf #> input + lstmUf #> cell
+        f_s = lstmBf lw + lstmWf lw #> input + lstmUf lw #> cell
         f_t = sigmoid f_s
         -- Input state vector
-        i_s = lstmBi + lstmWi #> input + lstmUi #> cell
+        i_s = lstmBi lw + lstmWi lw #> input + lstmUi lw #> cell
         i_t = sigmoid i_s
         -- Output state vector
-        o_s = lstmBo + lstmWo #> input + lstmUo #> cell
+        o_s = lstmBo lw + lstmWo lw #> input + lstmUo lw #> cell
         o_t = sigmoid o_s
         -- Cell input state vector
-        c_s = lstmBc + lstmWc #> input
+        c_s = lstmBc lw + lstmWc lw #> input
         c_x = tanh c_s
         -- Cell state
         c_t = f_t * cell + i_t * c_x
@@ -162,7 +161,7 @@ instance (KnownNat i, KnownNat o) => RecurrentLayer (LSTM i o) ('D1 i) ('D1 o) w
   --
   -- There's a test version using the AD library without hmatrix in the test
   -- suite. These should match always.
-  runRecurrentBackwards (LSTM (LSTMWeights {..}) _) (cell, input, f_s, f_t, i_s, i_t, o_s, o_t, c_s, c_x, c_t) (S1D cellGrad) (S1D h_t') =
+  runRecurrentBackwards (LSTM lw _) (cell, input, f_s, f_t, i_s, i_t, o_s, o_t, c_s, c_x, c_t) (S1D cellGrad) (S1D h_t') =
     let -- Reverse Mode AD Derivitives
         c_t' = h_t' * o_t + cellGrad
 
@@ -179,8 +178,8 @@ instance (KnownNat i, KnownNat o) => RecurrentLayer (LSTM i o) ('D1 i) ('D1 o) w
         c_s' = tanh' c_s * c_x'
 
         -- The derivatives to pass sideways (recurrent) and downwards
-        cell'  = tr lstmUf #> f_s' + tr lstmUo #> o_s' + tr lstmUi #> i_s' + c_t' * f_t
-        input' = tr lstmWf #> f_s' + tr lstmWo #> o_s' + tr lstmWi #> i_s' + tr lstmWc #> c_s'
+        cell'  = tr (lstmUf lw) #> f_s' + tr (lstmUo lw) #> o_s' + tr (lstmUi lw) #> i_s' + c_t' * f_t
+        input' = tr (lstmWf lw) #> f_s' + tr (lstmWo lw) #> o_s' + tr (lstmWi lw) #> i_s' + tr (lstmWc lw) #> c_s'
 
         -- Calculate the gradient Matricies for the input
         lstmWf' = f_s' `outer` input
@@ -239,44 +238,34 @@ tanh' :: (Floating a) => a -> a
 tanh' t = 1 - s ^ (2 :: Int)  where s = tanh t
 
 instance (KnownNat i, KnownNat o) => Serialize (LSTM i o) where
-  put (LSTM LSTMWeights {..} _) = do
-    u lstmWf
-    u lstmUf
-    v lstmBf
-    u lstmWi
-    u lstmUi
-    v lstmBi
-    u lstmWo
-    u lstmUo
-    v lstmBo
-    u lstmWc
-    v lstmBc
-      where
-    u :: forall a b. (KnownNat a, KnownNat b) => Putter  (L b a)
-    u = putListOf put . LA.toList . LA.flatten . extract
-    v :: forall a. (KnownNat a) => Putter (R a)
-    v = putListOf put . LA.toList . extract
+  put (LSTM lw _) = do
+      u (lstmWf lw)
+      u (lstmUf lw)
+      v (lstmBf lw)
+      u (lstmWi lw)
+      u (lstmUi lw)
+      v (lstmBi lw)
+      u (lstmWo lw)
+      u (lstmUo lw)
+      v (lstmBo lw)
+      u (lstmWc lw)
+      v (lstmBc lw)
+    where
+      u :: forall a b. (KnownNat a, KnownNat b) => Putter  (L b a)
+      u = putListOf put . LA.toList . LA.flatten . extract
+      v :: forall a. (KnownNat a) => Putter (R a)
+      v = putListOf put . LA.toList . extract
 
   get = do
-    lstmWf <- u
-    lstmUf <- u
-    lstmBf <- v
-    lstmWi <- u
-    lstmUi <- u
-    lstmBi <- v
-    lstmWo <- u
-    lstmUo <- u
-    lstmBo <- v
-    lstmWc <- u
-    lstmBc <- v
-    return $ LSTM (LSTMWeights {..}) (LSTMWeights w0 u0 v0 w0 u0 v0 w0 u0 v0 w0 v0)
-      where
-    u :: forall a b. (KnownNat a, KnownNat b) => Get  (L b a)
-    u = let f = fromIntegral $ natVal (Proxy :: Proxy a)
-        in  maybe (fail "Vector of incorrect size") return . create . LA.reshape f . LA.fromList =<< getListOf get
-    v :: forall a. (KnownNat a) => Get (R a)
-    v = maybe (fail "Vector of incorrect size") return . create . LA.fromList =<< getListOf get
+      w <- LSTMWeights <$> u <*> u <*> v <*> u <*> u <*> v <*> u <*> u <*> v <*> u <*> v
+      return $ LSTM w (LSTMWeights w0 u0 v0 w0 u0 v0 w0 u0 v0 w0 v0)
+    where
+      u :: forall a b. (KnownNat a, KnownNat b) => Get  (L b a)
+      u = let f = fromIntegral $ natVal (Proxy :: Proxy a)
+          in  maybe (fail "Vector of incorrect size") return . create . LA.reshape f . LA.fromList =<< getListOf get
+      v :: forall a. (KnownNat a) => Get (R a)
+      v = maybe (fail "Vector of incorrect size") return . create . LA.fromList =<< getListOf get
 
-    w0 = konst 0
-    u0 = konst 0
-    v0 = konst 0
+      w0 = konst 0
+      u0 = konst 0
+      v0 = konst 0

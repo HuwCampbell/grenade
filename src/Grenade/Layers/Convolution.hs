@@ -1,7 +1,6 @@
 {-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -139,8 +138,8 @@ instance ( KnownNat channels
          , KnownNat (kernelRows * kernelColumns * channels)
          ) => UpdateLayer (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) where
   type Gradient (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) = (Convolution' channels filters kernelRows kernelColumns strideRows strideColumns)
-  runUpdate LearningParameters {..} (Convolution oldKernel oldMomentum) (Convolution' kernelGradient) =
-    let (newKernel, newMomentum) = descendMatrix learningRate learningMomentum learningRegulariser oldKernel kernelGradient oldMomentum
+  runUpdate lp (Convolution oldKernel oldMomentum) (Convolution' kernelGradient) =
+    let (newKernel, newMomentum) = descendMatrix (learningRate lp) (learningMomentum lp) (learningRegulariser lp) oldKernel kernelGradient oldMomentum
     in Convolution newKernel newMomentum
 
   createRandom = randomConvolution
