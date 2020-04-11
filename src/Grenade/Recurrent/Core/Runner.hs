@@ -6,7 +6,6 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE RecordWildCards       #-}
 
 module Grenade.Recurrent.Core.Runner (
     runRecurrentExamples
@@ -101,11 +100,11 @@ updateRecInputs :: Fractional (RecurrentInputs sublayers)
                 -> RecurrentInputs sublayers
                 -> RecurrentInputs sublayers
 
-updateRecInputs l@LearningParameters {..} (() :~~+> xs) (() :~~+> ys)
-  = () :~~+> updateRecInputs l xs ys
+updateRecInputs lp (() :~~+> xs) (() :~~+> ys)
+  = () :~~+> updateRecInputs lp xs ys
 
-updateRecInputs l@LearningParameters {..} (x :~@+> xs) (y :~@+> ys)
-  = (realToFrac (1 - learningRate * learningRegulariser) * x - realToFrac learningRate * y) :~@+> updateRecInputs l xs ys
+updateRecInputs lp (x :~@+> xs) (y :~@+> ys)
+  = (realToFrac (1 - learningRate lp * learningRegulariser lp) * x - realToFrac (learningRate lp) * y) :~@+> updateRecInputs lp xs ys
 
 updateRecInputs _ RINil RINil
   = RINil

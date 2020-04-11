@@ -6,7 +6,6 @@
 {-# LANGUAGE DeriveFunctor         #-}
 {-# LANGUAGE DeriveFoldable        #-}
 {-# LANGUAGE DeriveTraversable     #-}
-{-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE RankNTypes            #-}
 
@@ -15,9 +14,13 @@ module Test.Grenade.Recurrent.Layers.LSTM.Reference where
 
 import           Data.Reflection
 import           Numeric.AD.Mode.Reverse
-import           Numeric.AD.Internal.Reverse ( Tape )
+import           Numeric.AD.Internal.Reverse (Tape)
 
+import           GHC.TypeLits (KnownNat)
+
+import           Grenade.Recurrent.Layers.LSTM (LSTMWeights (..))
 import qualified Grenade.Recurrent.Layers.LSTM as LSTM
+
 import qualified Numeric.LinearAlgebra.Static as S
 import qualified Numeric.LinearAlgebra as H
 
@@ -54,31 +57,32 @@ data RefLSTM a = RefLSTM
     , refLstmBc :: Vector a -- Bias Cell         (b_c)
     } deriving (Functor, Foldable, Traversable, Eq, Show)
 
-lstmToReference :: LSTM.LSTMWeights a b -> RefLSTM Double
-lstmToReference LSTM.LSTMWeights {..} =
-    let refLstmWf = Matrix . H.toLists . S.extract $ lstmWf -- Weight Forget     (W_f)
-        refLstmUf = Matrix . H.toLists . S.extract $ lstmUf -- Cell State Forget (U_f)
-        refLstmBf = Vector . H.toList  . S.extract $ lstmBf -- Bias Forget       (b_f)
-        refLstmWi = Matrix . H.toLists . S.extract $ lstmWi -- Weight Input      (W_i)
-        refLstmUi = Matrix . H.toLists . S.extract $ lstmUi -- Cell State Input  (U_i)
-        refLstmBi = Vector . H.toList  . S.extract $ lstmBi -- Bias Input        (b_i)
-        refLstmWo = Matrix . H.toLists . S.extract $ lstmWo -- Weight Output     (W_o)
-        refLstmUo = Matrix . H.toLists . S.extract $ lstmUo -- Cell State Output (U_o)
-        refLstmBo = Vector . H.toList  . S.extract $ lstmBo -- Bias Output       (b_o)
-        refLstmWc = Matrix . H.toLists . S.extract $ lstmWc -- Weight Cell       (W_c)
-        refLstmBc = Vector . H.toList  . S.extract $ lstmBc -- Bias Cell         (b_c)
-    in RefLSTM {..}
+lstmToReference :: (KnownNat a, KnownNat b) => LSTM.LSTMWeights a b -> RefLSTM Double
+lstmToReference lw =
+    RefLSTM
+      { refLstmWf = Matrix . H.toLists . S.extract $ lstmWf lw -- Weight Forget     (W_f)
+      , refLstmUf = Matrix . H.toLists . S.extract $ lstmUf lw -- Cell State Forget (U_f)
+      , refLstmBf = Vector . H.toList  . S.extract $ lstmBf lw -- Bias Forget       (b_f)
+      , refLstmWi = Matrix . H.toLists . S.extract $ lstmWi lw -- Weight Input      (W_i)
+      , refLstmUi = Matrix . H.toLists . S.extract $ lstmUi lw -- Cell State Input  (U_i)
+      , refLstmBi = Vector . H.toList  . S.extract $ lstmBi lw -- Bias Input        (b_i)
+      , refLstmWo = Matrix . H.toLists . S.extract $ lstmWo lw -- Weight Output     (W_o)
+      , refLstmUo = Matrix . H.toLists . S.extract $ lstmUo lw -- Cell State Output (U_o)
+      , refLstmBo = Vector . H.toList  . S.extract $ lstmBo lw -- Bias Output       (b_o)
+      , refLstmWc = Matrix . H.toLists . S.extract $ lstmWc lw -- Weight Cell       (W_c)
+      , refLstmBc = Vector . H.toList  . S.extract $ lstmBc lw -- Bias Cell         (b_c)
+      }
 
 runLSTM :: Floating a => RefLSTM a -> Vector a -> Vector a -> (Vector a, Vector a)
-runLSTM RefLSTM {..} cell input =
+runLSTM rl cell input =
     let -- Forget state vector
-        f_t = sigmoid   $ refLstmBf #+ refLstmWf #> input #+ refLstmUf #> cell
+        f_t = sigmoid   $ refLstmBf rl #+ refLstmWf rl #> input #+ refLstmUf rl #> cell
         -- Input state vector
-        i_t = sigmoid   $ refLstmBi #+ refLstmWi #> input #+ refLstmUi #> cell
+        i_t = sigmoid   $ refLstmBi rl #+ refLstmWi rl #> input #+ refLstmUi rl #> cell
         -- Output state vector
-        o_t = sigmoid   $ refLstmBo #+ refLstmWo #> input #+ refLstmUo #> cell
+        o_t = sigmoid   $ refLstmBo rl #+ refLstmWo rl #> input #+ refLstmUo rl #> cell
         -- Cell input state vector
-        c_x = fmap tanh $ refLstmBc #+ refLstmWc #> input
+        c_x = fmap tanh $ refLstmBc rl #+ refLstmWc rl #> input
         -- Cell state
         c_t = f_t #* cell #+ i_t #* c_x
         -- Output (it's sometimes recommended to use tanh c_t)
