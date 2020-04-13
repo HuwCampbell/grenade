@@ -1,4 +1,6 @@
 {-# LANGUAGE CPP                   #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts    #-}
@@ -28,11 +30,17 @@ module Grenade.Core.DynamicNetwork
   , ToDynamicLayer (..)
   , SpecNet (..)
   , networkFromSpecification
-  -- -- Convenience functions for creating dynamic network specifications:
+  -- Convenience functions for creating dynamic network specifications:
+  , tripleFromSomeShape
   , (|=>)
   , specNil1D
   , specNil2D
   , specNil3D
+  -- Data types
+  , SpecFullyConnected (..)
+  , SpecConvolution (..)
+  , SpecDeconvolution (..)
+  , SpecDropout (..)
   ) where
 
 import           Control.DeepSeq
@@ -42,8 +50,10 @@ import           Data.Reflection (reifyNat)
 import Data.Typeable as T (typeOf, Typeable, cast) 
 import           Data.Serialize
 import           Data.Singletons
+import Data.Singletons.TypeLits (SNat (..))
 import           Data.Singletons.Prelude
 import           GHC.TypeLits
+import GHC.Generics
 import           System.Random.MWC
 import           Unsafe.Coerce                     (unsafeCoerce)
 
@@ -56,6 +66,19 @@ import           Grenade.Core.Layer
 import           Grenade.Core.Shape
 import           Grenade.Core.WeightInitialization
 
+
+-- | Create a runtime dynamic specification of a network. Dynamic layers (and networks), for storing and restoring specific network structures (e.g. in saving the network structures to a DB and
+-- restoring it from there) or simply generating them at runtime. This does not store the weights and biases! They have to be handled separately (see Serialize)!
+class FromDynamicLayer x where
+  fromDynamicLayer :: SomeSing Shape -> x -> SpecNet
+
+-- | Class for generating layers from a specification.
+class (Show spec) => ToDynamicLayer spec where
+  toDynamicLayer :: (PrimBase m) => WeightInitMethod -> Gen (PrimState m) -> spec -> m SpecNetwork 
+
+
+----------------------------------------
+-- Return value of toDynamicLayer
 
 -- | Specification of a network or layer.
 data SpecNetwork :: Type where
@@ -70,22 +93,10 @@ instance Show SpecNetwork where
   show (SpecLayer x _ _) = show x
 
 instance FromDynamicLayer SpecNetwork where
-  fromDynamicLayer (SpecNetwork net) = fromDynamicLayer net
-  fromDynamicLayer (SpecLayer x _ _) = fromDynamicLayer x
-  
-  
---------------------------------------------------
+  fromDynamicLayer inp (SpecNetwork net) = fromDynamicLayer inp net
+  fromDynamicLayer inp (SpecLayer x _ _) = fromDynamicLayer inp x
 
--- | Create a runtime dynamic specification of a network. Dynamic layers (and networks), for storing and restoring specific network structures (e.g. in saving the network structures to a DB and
--- restoring it from there) or simply generating them at runtime. This does not store the weights and biases! They have to be handled separately (see Serialize)!
-class FromDynamicLayer x where
-  fromDynamicLayer :: x -> SpecNet
-
--- | Class for generating layers from a specification.
-class (Show spec) => ToDynamicLayer spec where
-  toDynamicLayer :: (PrimBase m) => WeightInitMethod -> Gen (PrimState m) -> spec -> m SpecNetwork 
-
-
+----------------------------------------
 -- Specification of a network and its layers
 
 -- | Data structure for holding specifications for networks. Networks can be built dynamically with @toDynamicLayer@. Further see the functions @|=>@, @specNil1D@, @specNil2D@, @specNil3D@, and
@@ -95,7 +106,7 @@ data SpecNet
   | SpecNNil2D !Integer !Integer          -- ^ 2D network output
   | SpecNNil3D !Integer !Integer !Integer -- ^ 3D network output
   | SpecNCons !SpecNet !SpecNet           -- ^ x :~> xs, where x can also be a network
-  | forall spec . (ToDynamicLayer spec, Typeable spec, Ord spec, Eq spec, Show spec, Read spec, NFData spec) => SpecNetLayer !spec -- ^ Specification of a layer
+  | forall spec . (ToDynamicLayer spec, Typeable spec, Ord spec, Eq spec, Show spec, NFData spec) => SpecNetLayer !spec -- ^ Specification of a layer
 
 
 instance Eq SpecNet where
@@ -154,18 +165,19 @@ instance Show SpecNet where
 
 -- Network instances 
 
-instance (KnownNat nr) => FromDynamicLayer (Network '[] '[ 'D1 nr ]) where
-  fromDynamicLayer _ = SpecNNil1D (natVal (Proxy :: Proxy nr))
-
+instance (KnownNat rows) => FromDynamicLayer (Network '[] '[ 'D1 rows ]) where
+  fromDynamicLayer _ _ = SpecNNil1D nr
+    where nr = natVal (Proxy :: Proxy rows)
 instance (KnownNat rows, KnownNat cols) => FromDynamicLayer (Network '[] '[ 'D2 rows cols ]) where
-  fromDynamicLayer _ = SpecNNil2D (natVal (Proxy :: Proxy rows)) (natVal (Proxy :: Proxy cols))
+  fromDynamicLayer _ _ = SpecNNil2D (natVal (Proxy :: Proxy rows)) (natVal (Proxy :: Proxy cols))
 
 instance (KnownNat rows, KnownNat cols, KnownNat depth, KnownNat (rows GHC.TypeLits.* depth)) => FromDynamicLayer (Network '[] '[ 'D3 rows cols depth ]) where
-  fromDynamicLayer _ = SpecNNil3D (natVal (Proxy :: Proxy rows)) (natVal (Proxy :: Proxy cols)) (natVal (Proxy :: Proxy depth))
+  fromDynamicLayer _ _ = SpecNNil3D (natVal (Proxy :: Proxy rows)) (natVal (Proxy :: Proxy cols)) (natVal (Proxy :: Proxy depth))
 
 instance (FromDynamicLayer x, FromDynamicLayer (Network xs (h : rs)), SingI i, SingI h, Layer x i h) => FromDynamicLayer (Network (x ': xs) (i ': h ': rs)) where
-  fromDynamicLayer ((x :: x) :~> (xs :: Network xs (h ': rs))) = SpecNCons (fromDynamicLayer x) (fromDynamicLayer xs) 
-
+  fromDynamicLayer inp ((x :: x) :~> (xs :: Network xs (h ': rs))) = SpecNCons (fromDynamicLayer inp x) (fromDynamicLayer hShape xs) 
+    where hShape = SomeSing (sing :: Sing h)
+          
 instance ToDynamicLayer SpecNet where
   toDynamicLayer _ _ (SpecNNil1D nrOut) =
     reifyNat nrOut $ \(_ :: (KnownNat o') => Proxy o') ->
@@ -241,3 +253,32 @@ specNil3D :: Integer -> Integer -> Integer -> SpecNet
 specNil3D = SpecNNil3D 
 
 
+tripleFromSomeShape :: SomeSing Shape -> (Integer, Integer, Integer)
+tripleFromSomeShape someShape =
+  case someShape of
+    SomeSing (shape :: Sing shape) ->
+      withSingI shape $
+      case shape of
+        D1Sing r@SNat -> (natVal r, 0, 0)
+        D2Sing r@SNat c@SNat -> (natVal r, natVal c, 0)
+        D3Sing r@SNat c@SNat d@SNat -> (natVal r, natVal c, natVal d)
+
+
+-- Data structures instances for Layers (needs to be defined here)
+
+data SpecFullyConnected = SpecFullyConnected Integer Integer
+  deriving (Show, Eq, Ord, Serialize, Generic, NFData)
+
+-- data SpecConcat = SpecConcat SpecNet SpecNet
+--   deriving (Show, Eq, Ord, Serialize, Generic, NFData)
+
+data SpecConvolution =
+  SpecConvolution (Integer, Integer, Integer) Integer Integer Integer Integer Integer Integer
+  deriving (Show, Eq, Ord, Serialize, Generic, NFData)
+
+data SpecDeconvolution =
+  SpecDeconvolution (Integer, Integer, Integer) Integer Integer Integer Integer Integer Integer
+  deriving (Show, Eq, Ord, Serialize, Generic, NFData)
+
+data SpecDropout = SpecDropout Integer Double (Maybe Int)
+  deriving (Show, Eq, Ord, Serialize, Generic, NFData)

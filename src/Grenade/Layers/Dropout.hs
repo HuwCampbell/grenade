@@ -2,15 +2,20 @@
 {-# LANGUAGE DeriveAnyClass        #-}
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 module Grenade.Layers.Dropout (
     Dropout (..)
   , randomDropout
+  , specDropout
   ) where
 
 import           Control.DeepSeq
 import           Control.Monad.Primitive (PrimBase, PrimState)
+import           Data.Reflection         (reifyNat)
+import           Data.Singletons
 import           System.Random.MWC
 
 import           GHC.Generics
@@ -44,6 +49,28 @@ instance (KnownNat i) => Layer Dropout ('D1 i) ('D1 i) where
   type Tape Dropout ('D1 i) ('D1 i) = ()
   runForwards (Dropout _ _) (S1D x) = ((), S1D x)
   runBackwards (Dropout _ _) _ (S1D x) = ((),  S1D x)
+
+-------------------- DynamicNetwork instance --------------------
+
+instance FromDynamicLayer Dropout where
+  fromDynamicLayer inp (Dropout rate seed) = case tripleFromSomeShape inp of
+    (rows, 0, 0) -> SpecNetLayer $ SpecDropout rows rate (Just seed)
+    _ -> error "Error in specification: The layer Dropout may only be used with 1D input!"
+
+instance ToDynamicLayer SpecDropout where
+  toDynamicLayer _ gen (SpecDropout rows rate mSeed) =
+    reifyNat rows $ \(_ :: (KnownNat i) => Proxy i) ->
+    case mSeed of
+      Just seed -> return $ SpecLayer (Dropout rate seed) (SomeSing (sing :: Sing ('D1 i))) (SomeSing (sing :: Sing ('D1 i)))
+      Nothing -> do
+        layer <-  randomDropout rate gen
+        return $ SpecLayer layer (SomeSing (sing :: Sing ('D1 i))) (SomeSing (sing :: Sing ('D1 i)))
+
+
+-- | Create a specification for a droput layer by providing the input size of the vector (1D allowed only!), a rate of dropout (default: 0.95) and maybe a seed.
+specDropout :: Integer -> Double -> Maybe (Int) -> SpecNet
+specDropout i rate seed = SpecNetLayer $ SpecDropout i rate seed
+
 
 -------------------- GNum instance --------------------
 

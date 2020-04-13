@@ -21,19 +21,17 @@ module Grenade.Layers.FullyConnected (
 
 import           Control.DeepSeq
 import           Control.Monad.Primitive        (PrimBase, PrimState)
-import           Data.Reflection
+import           Data.Reflection                (reifyNat)
 import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
 import           System.Random.MWC              hiding (create)
 #if MIN_VERSION_singletons(2,6,0)
 import           Data.Singletons.TypeLits       (SNat (..))
 #endif
-import           Data.Constraint                (Dict (..))
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.Prelude.Num    ((%*))
-import           Unsafe.Coerce                  (unsafeCoerce)
 
 import qualified Numeric.LinearAlgebra          as LA
 import           Numeric.LinearAlgebra.Static
@@ -41,7 +39,6 @@ import           Numeric.LinearAlgebra.Static
 import           Grenade.Core
 import           Grenade.Layers.Internal.Update
 
-import           Debug.Trace
 
 -- | A basic fully connected (or inner product) neural network layer.
 data FullyConnected i o = FullyConnected
@@ -110,21 +107,17 @@ randomFullyConnected m gen = do
 
 -------------------- DynamicNetwork instance --------------------
 
-data SpecFullyConnected = SpecFullyConnected Integer Integer
-  deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
-
-
-instance (KnownNat i, KnownNat o, KnownNat (i * o)) => FromDynamicLayer (FullyConnected i o) where
-  fromDynamicLayer _ = SpecNetLayer $ SpecFullyConnected (natVal (Proxy :: Proxy i)) (natVal (Proxy :: Proxy o))
+instance (KnownNat i, KnownNat o) => FromDynamicLayer (FullyConnected i o) where
+  fromDynamicLayer _ _ = SpecNetLayer $ SpecFullyConnected (natVal (Proxy :: Proxy i)) (natVal (Proxy :: Proxy o))
 
 instance ToDynamicLayer SpecFullyConnected where
   toDynamicLayer wInit gen (SpecFullyConnected nrI nrO) =
-    reifyNat nrI $ \(pxInp :: (KnownNat i') => Proxy i') ->
+    reifyNat nrI $ \(pxInp :: (KnownNat i) => Proxy i) ->
       reifyNat nrO $ \(pxOut :: (KnownNat o') => Proxy o') ->
-        case (singByProxy pxInp %* singByProxy pxOut, unsafeCoerce (Dict :: Dict ()) :: Dict (i' ~ i), unsafeCoerce (Dict :: Dict ()) :: Dict (o' ~ o)) of
-          (SNat, Dict, Dict) -> do
-            (layer  :: FullyConnected i' o') <- randomFullyConnected wInit gen
-            return $ SpecLayer layer (SomeSing (sing :: Sing ('D1 i'))) (SomeSing (sing :: Sing ('D1 o')))
+        case singByProxy pxInp %* singByProxy pxOut of
+          SNat -> do
+            (layer :: FullyConnected i o') <- randomFullyConnected wInit gen
+            return $ SpecLayer layer (SomeSing (sing :: Sing ('D1 i))) (SomeSing (sing :: Sing ('D1 o')))
 
 
 specFullyConnected :: Integer -> Integer -> SpecNet
