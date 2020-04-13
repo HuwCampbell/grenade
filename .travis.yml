@@ -2,9 +2,9 @@
 
 # The following enables several GHC versions to be tested; often it's enough to test only against the last release in a major GHC version. Feel free to omit lines listings versions you don't need/want testing for.
 env:
- - GHCVER=8.0.2
- - GHCVER=8.2.2
- - GHCVER=8.4.4
+ # - GHCVER=8.0.2
+ # - GHCVER=8.2.2
+ # - GHCVER=8.4.4
  - GHCVER=8.6.5
  - GHCVER=8.8.2
 
@@ -24,7 +24,5 @@ notifications:
 
 # Here starts the actual work to be performed for the package under test; any command which exits with a non-zero exit code causes the build to fail.
 script:
- - cabal-3.0 configure --enable-tests
- - cabal-3.0 build all
- - cabal-3.0 test --test-show-details=direct -j1
+ - stack test
 
