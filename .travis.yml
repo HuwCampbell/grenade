@@ -89,7 +89,7 @@ before_install:
   mkdir -p $HOME/.cabal
   echo 'remote-repo: hackage.haskell.org:http://hackage.fpcomplete.com/' > $HOME/.cabal/config
   echo 'remote-repo-cache: $HOME/.cabal/packages' >> $HOME/.cabal/config
-  # apt install libblas-dev liblapack-dev libblas3 liblapack3 liblapack-dev libblas-dev
+  sudo apt install libblas-dev liblapack-dev libblas3 liblapack3
 
 install:
 - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
