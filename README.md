@@ -1,9 +1,15 @@
 Grenade
 =======
 
-[![Build Status](https://api.travis-ci.org/HuwCampbell/grenade.svg?branch=master)](https://travis-ci.org/HuwCampbell/grenade)
-[![Hackage page (downloads and API reference)][hackage-png]][hackage]
-[![Hackage-Deps][hackage-deps-png]][hackage-deps]
+[![Build Status](https://api.travis-ci.org/schnecki/grenade.svg?branch=master)](https://travis-ci.org/schnecki/grenade)
+<!-- [![Hackage page (downloads and API reference)][hackage-png]][hackage] -->
+<!-- [![Hackage-Deps][hackage-deps-png]][hackage-deps] -->
+
+This is a fork of the original Grenade library found at [[https://github.com/HuwCampbell/grenade]],
+but includes additional features:
+
+ - Initializing the weights in different ways
+ - Dynamically specifying networks
 
 
 ```
@@ -144,22 +150,21 @@ elu, tanh, and fully connected.
 
 Build Instructions
 ------------------
-Grenade is most easily built with the [mafia](https://github.com/ambiata/mafia)
-script that is located in the repository. You will also need the `lapack` and
+This version of Grenade is most easily built with the. You will also need the `lapack` and
 `blas` libraries and development tools. Once you have all that, Grenade can be
 build using:
 
 ```
-./mafia build
+stack build
 ```
 
 and the tests run using:
 
 ```
-./mafia test
+stack test
 ```
 
-Grenade builds with ghc 7.10, 8.0, 8.2 and 8.4.
+This version of Grenade builds with GHC 8.8.
 
 Thanks
 ------
