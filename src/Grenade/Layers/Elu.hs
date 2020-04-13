@@ -27,12 +27,11 @@ import           Data.Reflection              (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
 import           GHC.Generics                 (Generic)
-import           Unsafe.Coerce                (unsafeCoerce)
-
 import           GHC.TypeLits
 import           Grenade.Core
-
 import qualified Numeric.LinearAlgebra.Static as LAS
+import           Unsafe.Coerce                (unsafeCoerce)
+
 
 -- | An exponential linear unit.
 --   A layer which can act between any shape of the same dimension, acting as a
@@ -88,15 +87,7 @@ instance FromDynamicLayer Elu where
   fromDynamicLayer inp _ = SpecNetLayer $ SpecElu (tripleFromSomeShape inp)
 
 instance ToDynamicLayer SpecElu where
-  toDynamicLayer _ _ (SpecElu (rows, cols, depth)) =
-    reifyNat rows $ \(_ :: (KnownNat rows) => Proxy rows) ->
-    reifyNat cols $ \(_ :: (KnownNat cols) => Proxy cols) ->
-    reifyNat depth $ \(_ :: (KnownNat depth) => Proxy depth) ->
-    case (rows, cols, depth) of
-      (_, 0, 0)    -> return $ SpecLayer Elu (SomeSing (sing :: Sing ('D1 rows))) (SomeSing (sing :: Sing ('D1 rows)))
-      (_, _, 0) -> return $ SpecLayer Elu (SomeSing (sing :: Sing ('D2 rows cols))) (SomeSing (sing :: Sing ('D2 rows cols)))
-      _    -> case (unsafeCoerce (Dict :: Dict()) :: Dict (KnownNat (rows * depth))) of
-        Dict -> return $ SpecLayer Elu (SomeSing (sing :: Sing ('D3 rows cols depth))) (SomeSing (sing :: Sing ('D3 rows cols depth)))
+  toDynamicLayer _ _ (SpecElu inp) = mkToDynamicLayerForActiviationFunction Elu inp
 
 
 -- | Create a specification for a elu layer.

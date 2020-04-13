@@ -12,8 +12,12 @@ Copyright   : (c) Huw Campbell, 2016-2017
 License     : BSD2
 Stability   : experimental
 -}
-module Grenade.Layers.Trivial (
-    Trivial (..)
+module Grenade.Layers.Trivial
+  ( Trivial(..)
+  , SpecTrivial(..)
+  , specTrivial1D
+  , specTrivial2D
+  , specTrivial3D
   ) where
 
 import           Control.DeepSeq (NFData (..))
@@ -46,6 +50,25 @@ instance (a ~ b) => Layer Trivial a b where
   runForwards _ a = ((), a)
   runBackwards _ _ y = ((), y)
 
+-------------------- DynamicNetwork instance --------------------
+
+instance FromDynamicLayer Trivial where
+  fromDynamicLayer inp _ = SpecNetLayer $ SpecTrivial (tripleFromSomeShape inp)
+
+instance ToDynamicLayer SpecTrivial where
+  toDynamicLayer _ _ (SpecTrivial inp) = mkToDynamicLayerForActiviationFunction Trivial inp
+
+-- | Create a specification for a elu layer.
+specTrivial1D :: Integer -> SpecNet
+specTrivial1D i = specTrivial3D (i, 0, 0)
+
+-- | Create a specification for a elu layer.
+specTrivial2D :: (Integer, Integer) -> SpecNet
+specTrivial2D (i,j) = specTrivial3D (i,j,0)
+
+-- | Create a specification for a elu layer.
+specTrivial3D :: (Integer, Integer, Integer) -> SpecNet
+specTrivial3D = SpecNetLayer . SpecTrivial
 
 -------------------- GNum instances --------------------
 
@@ -53,4 +76,5 @@ instance GNum Trivial where
   _ |* Trivial = Trivial
   _ |+ Trivial  = Trivial
   gFromRational _ = Trivial
+
 

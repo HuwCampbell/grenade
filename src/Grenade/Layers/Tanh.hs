@@ -12,8 +12,12 @@ Copyright   : (c) Huw Campbell, 2016-2017
 License     : BSD2
 Stability   : experimental
 -}
-module Grenade.Layers.Tanh (
-    Tanh (..)
+module Grenade.Layers.Tanh
+  ( Tanh(..)
+  , SpecTanh (..)
+  , specTanh1D
+  , specTanh2D
+  , specTanh3D
   ) where
 
 import           Control.DeepSeq (NFData (..))
@@ -46,6 +50,27 @@ instance (a ~ b, SingI a) => Layer Tanh a b where
 
 tanh' :: (Floating a) => a -> a
 tanh' t = 1 - s ^ (2 :: Int)  where s = tanh t
+
+-------------------- DynamicNetwork instance --------------------
+
+instance FromDynamicLayer Tanh where
+  fromDynamicLayer inp _ = SpecNetLayer $ SpecTanh (tripleFromSomeShape inp)
+
+instance ToDynamicLayer SpecTanh where
+  toDynamicLayer _ _ (SpecTanh inp) = mkToDynamicLayerForActiviationFunction Tanh inp
+
+-- | Create a specification for a elu layer.
+specTanh1D :: Integer -> SpecNet
+specTanh1D i = specTanh3D (i, 0, 0)
+
+-- | Create a specification for a elu layer.
+specTanh2D :: (Integer, Integer) -> SpecNet
+specTanh2D (i,j) = specTanh3D (i,j,0)
+
+-- | Create a specification for a elu layer.
+specTanh3D :: (Integer, Integer, Integer) -> SpecNet
+specTanh3D = SpecNetLayer . SpecTanh
+
 
 -------------------- GNum instances --------------------
 

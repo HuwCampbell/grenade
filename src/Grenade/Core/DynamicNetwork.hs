@@ -32,7 +32,6 @@ module Grenade.Core.DynamicNetwork
   , networkFromSpecification
   , networkToSpecification
   -- Convenience functions for creating dynamic network specifications:
-  , tripleFromSomeShape
   , (|=>)
   , specNil1D
   , specNil2D
@@ -43,22 +42,29 @@ module Grenade.Core.DynamicNetwork
   , SpecDeconvolution (..)
   , SpecDropout (..)
   , SpecElu (..)
+  , SpecLogit (..)
+  , SpecRelu (..)
+  , SpecSinusoid (..)
+  , SpecTanh (..)
+  , SpecTrivial (..)
+  -- Helpers
+  , tripleFromSomeShape 
+  , mkToDynamicLayerForActiviationFunction
   ) where
 
 import           Control.DeepSeq
 import           Control.Monad.Primitive           (PrimBase, PrimState)
 import           Data.Constraint                   (Dict (..))
 import           Data.Reflection (reifyNat)
-import Data.Typeable as T (typeOf, Typeable, cast) 
+import           Data.Typeable as T (typeOf, Typeable, cast) 
 import           Data.Serialize
 import           Data.Singletons
-import Data.Singletons.TypeLits (SNat (..))
+import           Data.Singletons.TypeLits (SNat (..))
 import           Data.Singletons.Prelude
 import           GHC.TypeLits
-import GHC.Generics
+import           GHC.Generics
 import           System.Random.MWC
 import           Unsafe.Coerce                     (unsafeCoerce)
-
 #if MIN_VERSION_base(4,9,0)
 import           Data.Kind                         (Type)
 #endif
@@ -258,7 +264,7 @@ specNil2D = SpecNNil2D
 specNil3D :: Integer -> Integer -> Integer -> SpecNet
 specNil3D = SpecNNil3D 
 
-
+-- | Helper functions to convert a given shape into a triple, where nonused dimensions are set to 0.
 tripleFromSomeShape :: SomeSing Shape -> (Integer, Integer, Integer)
 tripleFromSomeShape someShape =
   case someShape of
@@ -268,6 +274,18 @@ tripleFromSomeShape someShape =
         D1Sing r@SNat -> (natVal r, 0, 0)
         D2Sing r@SNat c@SNat -> (natVal r, natVal c, 0)
         D3Sing r@SNat c@SNat d@SNat -> (natVal r, natVal c, natVal d)
+
+-- | Helper for implementing instances of @ToDynamicLayer@ for activation functions. 
+mkToDynamicLayerForActiviationFunction :: (Show layer, FromDynamicLayer layer, PrimBase m) => layer -> (Integer, Integer, Integer) -> m SpecNetwork
+mkToDynamicLayerForActiviationFunction f (rows, cols, depth) = 
+  reifyNat rows $ \(_ :: (KnownNat rows) => Proxy rows) ->
+  reifyNat cols $ \(_ :: (KnownNat cols) => Proxy cols) ->
+  reifyNat depth $ \(_ :: (KnownNat depth) => Proxy depth) ->
+  case (rows, cols, depth) of
+      (_, 0, 0)    -> return $ SpecLayer f (SomeSing (sing :: Sing ('D1 rows))) (SomeSing (sing :: Sing ('D1 rows)))
+      (_, _, 0) -> return $ SpecLayer f (SomeSing (sing :: Sing ('D2 rows cols))) (SomeSing (sing :: Sing ('D2 rows cols)))
+      _    -> case (unsafeCoerce (Dict :: Dict()) :: Dict (KnownNat (rows GHC.TypeLits.* depth))) of
+        Dict -> return $ SpecLayer f (SomeSing (sing :: Sing ('D3 rows cols depth))) (SomeSing (sing :: Sing ('D3 rows cols depth)))
 
 
 -- Data structures instances for Layers (needs to be defined here)
@@ -280,16 +298,31 @@ data SpecFullyConnected = SpecFullyConnected Integer Integer
 
 data SpecConvolution =
   SpecConvolution (Integer, Integer, Integer) Integer Integer Integer Integer Integer Integer
-  deriving (Show, Eq, Ord, Serialize, Generic, NFData)
+  deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 data SpecDeconvolution =
   SpecDeconvolution (Integer, Integer, Integer) Integer Integer Integer Integer Integer Integer
-  deriving (Show, Eq, Ord, Serialize, Generic, NFData)
+  deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 data SpecDropout = SpecDropout Integer Double (Maybe Int)
-  deriving (Show, Eq, Ord, Serialize, Generic, NFData)
+  deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 newtype SpecElu = SpecElu (Integer, Integer, Integer)
-  deriving (Show, Eq, Ord, Serialize, Generic, NFData)
+  deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
+
+newtype SpecLogit = SpecLogit (Integer, Integer, Integer)
+  deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
+
+newtype SpecRelu = SpecRelu (Integer, Integer, Integer)
+  deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
+
+newtype SpecSinusoid = SpecSinusoid (Integer, Integer, Integer)
+  deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
+
+newtype SpecTanh = SpecTanh (Integer, Integer, Integer)
+  deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
+
+newtype SpecTrivial = SpecTrivial (Integer, Integer, Integer)
+  deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 

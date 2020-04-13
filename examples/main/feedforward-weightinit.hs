@@ -159,3 +159,19 @@ main = do
     net <- netTrain net0 rate examples
     -- netScore net
     testValues net) [0..nr-1]
+
+
+  n2 <- randomNetwork :: IO (Network '[FullyConnected 1 10] '[ 'D1 1, 'D1 10 ])
+  let spec = networkToSpecification n2
+  print spec
+
+  SpecNetwork n3 <- networkFromSpecification spec
+  print $ networkToSpecification n3
+
+  let spec' = SpecNCons (specFullyConnected 10 30) (specNil1D 30)
+      spec'' = specFullyConnected 7 30 |=> specElu1D 30 |=> (specFullyConnected 30 50 |=> specRelu1D 50 |=> specFullyConnected 50 30) |=>
+               specNil1D 30
+  print spec'
+  print spec''
+  n4 <- networkFromSpecification spec''
+  print n4

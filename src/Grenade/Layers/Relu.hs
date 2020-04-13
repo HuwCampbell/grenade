@@ -2,6 +2,8 @@
 {-# LANGUAGE DeriveAnyClass        #-}
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-|
@@ -13,14 +15,21 @@ Stability   : experimental
 -}
 module Grenade.Layers.Relu (
     Relu (..)
+  , SpecRelu (..)
+  , specRelu1D
+  , specRelu2D
+  , specRelu3D
   ) where
 
-import           Data.Serialize
-
 import           Control.DeepSeq              (NFData (..))
+import           Data.Constraint              (Dict (..))
+import           Data.Reflection              (reifyNat)
+import           Data.Serialize
+import           Data.Singletons
 import           GHC.Generics                 (Generic)
 import           GHC.TypeLits
 import           Grenade.Core
+import           Unsafe.Coerce                (unsafeCoerce)
 
 import qualified Numeric.LinearAlgebra.Static as LAS
 
@@ -71,6 +80,29 @@ instance (KnownNat i, KnownNat j, KnownNat k) => Layer Relu ('D3 i j k) ('D3 i j
   runBackwards _ (S3D y) (S3D dEdy) = ((), S3D (relu' y * dEdy))
     where
       relu' = LAS.dmmap (\a -> if a <= 0 then 0 else 1)
+
+
+-------------------- DynamicNetwork instance --------------------
+
+instance FromDynamicLayer Relu where
+  fromDynamicLayer inp _ = SpecNetLayer $ SpecRelu (tripleFromSomeShape inp)
+
+instance ToDynamicLayer SpecRelu where
+  toDynamicLayer _ _ (SpecRelu inp) = mkToDynamicLayerForActiviationFunction Relu inp
+
+
+-- | Create a specification for a elu layer.
+specRelu1D :: Integer -> SpecNet
+specRelu1D i = specRelu3D (i, 0, 0)
+
+-- | Create a specification for a elu layer.
+specRelu2D :: (Integer, Integer) -> SpecNet
+specRelu2D (i,j) = specRelu3D (i,j,0)
+
+-- | Create a specification for a elu layer.
+specRelu3D :: (Integer, Integer, Integer) -> SpecNet
+specRelu3D = SpecNetLayer . SpecRelu
+
 
 -------------------- GNum instances --------------------
 

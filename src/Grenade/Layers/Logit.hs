@@ -3,6 +3,8 @@
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-|
@@ -14,15 +16,21 @@ Stability   : experimental
 -}
 module Grenade.Layers.Logit (
     Logit (..)
+  , SpecLogit (..)
+  , specLogit1D
+  , specLogit2D
+  , specLogit3D
   ) where
 
 
+import           Control.DeepSeq (NFData)
+import           Data.Constraint (Dict (..))
+import           Data.Reflection
 import           Data.Serialize
 import           Data.Singletons
-
-import           Control.DeepSeq (NFData)
 import           GHC.Generics    (Generic)
-
+import           GHC.TypeLits
+import           Unsafe.Coerce   (unsafeCoerce)
 
 import           Grenade.Core
 
@@ -63,6 +71,28 @@ instance Serialize Logit where
 
 sigmoid :: Floating a => a -> a
 sigmoid x = 1 / (1 + exp (-x))
+
+
+-------------------- DynamicNetwork instance --------------------
+
+instance FromDynamicLayer Logit where
+  fromDynamicLayer inp _ = SpecNetLayer $ SpecLogit (tripleFromSomeShape inp)
+
+instance ToDynamicLayer SpecLogit where
+  toDynamicLayer _ _ (SpecLogit inp) = mkToDynamicLayerForActiviationFunction Logit inp
+
+
+-- | Create a specification for a elu layer.
+specLogit1D :: Integer -> SpecNet
+specLogit1D i = specLogit3D (i, 0, 0)
+
+-- | Create a specification for a elu layer.
+specLogit2D :: (Integer, Integer) -> SpecNet
+specLogit2D (i,j) = specLogit3D (i,j,0)
+
+-- | Create a specification for a elu layer.
+specLogit3D :: (Integer, Integer, Integer) -> SpecNet
+specLogit3D = SpecNetLayer . SpecLogit
 
 
 -------------------- GNum instances --------------------
