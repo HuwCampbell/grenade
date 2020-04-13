@@ -33,18 +33,18 @@ module Grenade.Core.Network (
   , applyUpdate
   , randomNetwork
   , randomNetworkInitWith
-
   ) where
 
 import           Control.DeepSeq
 import           Control.Monad.IO.Class
 import           Control.Monad.Primitive           (PrimBase, PrimState)
+import           GHC.Types                         (Constraint)
 import           System.Random.MWC
+import           Type.Reflection
 
 import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.Prelude
-import           Data.Typeable
 
 #if MIN_VERSION_base(4,9,0)
 import           Data.Kind                         (Type)
@@ -212,13 +212,6 @@ instance (SingI i, SingI o, Layer x i o, Serialize x, Serialize (Network xs (o '
   put (x :~> r) = put x >> put r
   get = (:~>) <$> get <*> get
 
--- | Typeable networks, for storing and restoring specific network structures (e.g. in saving the network strucutre to a
--- DB and restoring it from there). This does not store the weights and biases! They have to be handled seperately (see
--- Serialize)!
--- instance Typeable (Network '[] '[i]) where
---   typeOf NNil = typeOf ("NNil" :: String)
-
-
 -- | Ultimate composition.
 --
 --   This allows a complete network to be treated as a layer in a larger network.
@@ -237,6 +230,8 @@ instance (CreatableNetwork sublayers subshapes, i ~ (Head subshapes), o ~ (Last 
   runForwards  = runNetwork
   runBackwards = runGradient
 
+
+--------------------------------------------------
 
 -- | Grenade Num class.
 --

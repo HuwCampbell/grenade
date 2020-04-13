@@ -33,8 +33,10 @@ import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons.TypeLits
-#if MIN_VERSION_base(4,11,0)
+#if MIN_VERSION_base(4,12,0)
 import           GHC.Natural                         (naturalToInteger)
+#endif
+#if MIN_VERSION_base(4,11,0)
 import           GHC.TypeLits                        hiding (natVal)
 #else
 import           GHC.TypeLits
@@ -135,7 +137,7 @@ instance ( KnownNat channels
     return $ Deconvolution wN mm
     where
       i =
-#if MIN_VERSION_base(4,11,0)
+#if MIN_VERSION_base(4,12,0)
         naturalToInteger $
 #endif
         natVal (Proxy :: Proxy ((kernelRows * kernelColumns) * channels))

@@ -60,6 +60,9 @@ dependencies:
  - vector                          >= 0.11        && < 0.13
  - base >= 4.7 && < 5
  - mwc-random                      >= 0.13
+ - reflection                      >= 0.11.2
+ - constraints                     >= 0.11.2
+ - ghc-prim                        >= 0.5.3
 
 library:
   source-dirs:

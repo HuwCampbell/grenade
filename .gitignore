@@ -7,3 +7,4 @@ dist-newstyle/
 /.dir-locals.el
 /TAGS
 /stack.yaml.lock
+grenade.cabal

@@ -32,7 +32,6 @@ module Grenade.Core.Shape (
   ) where
 
 import           Control.DeepSeq              (NFData (..))
-import           Control.Monad.Random         (MonadRandom, getRandom)
 import           System.Random.MWC
 
 #if MIN_VERSION_base(4,13,0)

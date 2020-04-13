@@ -1,5 +1,6 @@
 module Grenade.Core (
     module Grenade.Core.Layer
+  , module Grenade.Core.DynamicNetwork
   , module Grenade.Core.LearningParameters
   , module Grenade.Core.Network
   , module Grenade.Core.Runner
@@ -7,6 +8,7 @@ module Grenade.Core (
   , module Grenade.Core.WeightInitialization
   ) where
 
+import           Grenade.Core.DynamicNetwork
 import           Grenade.Core.Layer
 import           Grenade.Core.LearningParameters
 import           Grenade.Core.Network

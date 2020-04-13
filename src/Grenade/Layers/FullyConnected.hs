@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveAnyClass        #-}
 {-# LANGUAGE DeriveGeneric         #-}
@@ -5,6 +6,7 @@
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE RecordWildCards       #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -14,25 +16,32 @@ module Grenade.Layers.FullyConnected (
     FullyConnected (..)
   , FullyConnected' (..)
   , randomFullyConnected
+  , specFullyConnected
   ) where
 
 import           Control.DeepSeq
 import           Control.Monad.Primitive        (PrimBase, PrimState)
-import           GHC.Generics                   (Generic)
+import           Data.Reflection
 import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
 import           System.Random.MWC              hiding (create)
-
-
+#if MIN_VERSION_singletons(2,6,0)
+import           Data.Singletons.TypeLits       (SNat (..))
+#endif
+import           Data.Constraint                (Dict (..))
 import           Data.Proxy
 import           Data.Serialize
+import           Data.Singletons
+import           Data.Singletons.Prelude.Num    ((%*))
+import           Unsafe.Coerce                  (unsafeCoerce)
 
 import qualified Numeric.LinearAlgebra          as LA
 import           Numeric.LinearAlgebra.Static
 
 import           Grenade.Core
-
 import           Grenade.Layers.Internal.Update
+
+import           Debug.Trace
 
 -- | A basic fully connected (or inner product) neural network layer.
 data FullyConnected i o = FullyConnected
@@ -99,6 +108,28 @@ randomFullyConnected m gen = do
   where i = natVal (Proxy :: Proxy i)
         o = natVal (Proxy :: Proxy o)
 
+-------------------- DynamicNetwork instance --------------------
+
+data SpecFullyConnected = SpecFullyConnected Integer Integer
+  deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
+
+
+instance (KnownNat i, KnownNat o, KnownNat (i * o)) => FromDynamicLayer (FullyConnected i o) where
+  fromDynamicLayer _ = SpecNetLayer $ SpecFullyConnected (natVal (Proxy :: Proxy i)) (natVal (Proxy :: Proxy o))
+
+instance ToDynamicLayer SpecFullyConnected where
+  toDynamicLayer wInit gen (SpecFullyConnected nrI nrO) =
+    reifyNat nrI $ \(pxInp :: (KnownNat i') => Proxy i') ->
+      reifyNat nrO $ \(pxOut :: (KnownNat o') => Proxy o') ->
+        case (singByProxy pxInp %* singByProxy pxOut, unsafeCoerce (Dict :: Dict ()) :: Dict (i' ~ i), unsafeCoerce (Dict :: Dict ()) :: Dict (o' ~ o)) of
+          (SNat, Dict, Dict) -> do
+            (layer  :: FullyConnected i' o') <- randomFullyConnected wInit gen
+            return $ SpecLayer layer (SomeSing (sing :: Sing ('D1 i'))) (SomeSing (sing :: Sing ('D1 o')))
+
+
+specFullyConnected :: Integer -> Integer -> SpecNet
+specFullyConnected nrI nrO = SpecNetLayer $ SpecFullyConnected nrI nrO
+
 
 -------------------- GNum instances --------------------
 
@@ -111,4 +142,5 @@ instance (KnownNat i, KnownNat o) => GNum (FullyConnected' i o) where
   s |* FullyConnected' i o = FullyConnected' (fromRational s * i) o
   FullyConnected' i o |+ FullyConnected' i2 o2 = FullyConnected' (0.5 * (i + i2)) (0.5 * (o + o2))
   gFromRational r = FullyConnected' (fromRational r) (fromRational r)
+
 
