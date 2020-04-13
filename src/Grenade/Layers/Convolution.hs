@@ -29,7 +29,6 @@ module Grenade.Layers.Convolution (
   ) where
 
 import           Control.DeepSeq                     (NFData (..))
-import           Data.Constraint                     (Dict (..))
 import           Data.Kind                           (Type)
 import           Data.Maybe
 import           Data.Proxy

@@ -18,6 +18,7 @@ import           Data.Reflection         (reifyNat)
 import           Data.Singletons
 import           System.Random.MWC
 
+
 import           GHC.Generics
 
 import           GHC.TypeLits

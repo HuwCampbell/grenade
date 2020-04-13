@@ -2,6 +2,8 @@
 {-# LANGUAGE DeriveAnyClass        #-}
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-|
@@ -11,13 +13,21 @@ Copyright   : (c) Huw Campbell, 2016-2017
 License     : BSD2
 Stability   : experimental
 -}
-module Grenade.Layers.Elu (
-    Elu (..)
+module Grenade.Layers.Elu
+  ( Elu(..)
+  , SpecElu (..)
+  , specElu1D
+  , specElu2D
+  , specElu3D
   ) where
 
 import           Control.DeepSeq              (NFData)
+import           Data.Constraint              (Dict (..))
+import           Data.Reflection              (reifyNat)
 import           Data.Serialize
+import           Data.Singletons
 import           GHC.Generics                 (Generic)
+import           Unsafe.Coerce                (unsafeCoerce)
 
 import           GHC.TypeLits
 import           Grenade.Core
@@ -71,6 +81,35 @@ instance (KnownNat i, KnownNat j, KnownNat k) => Layer Elu ('D3 i j k) ('D3 i j 
   runBackwards _ (S3D y) (S3D dEdy) = ((), S3D (elu' y * dEdy))
     where
       elu' = LAS.dmmap (\a -> if a <= 0 then exp a else 1)
+
+-------------------- DynamicNetwork instance --------------------
+
+instance FromDynamicLayer Elu where
+  fromDynamicLayer inp _ = SpecNetLayer $ SpecElu (tripleFromSomeShape inp)
+
+instance ToDynamicLayer SpecElu where
+  toDynamicLayer _ _ (SpecElu (rows, cols, depth)) =
+    reifyNat rows $ \(_ :: (KnownNat rows) => Proxy rows) ->
+    reifyNat cols $ \(_ :: (KnownNat cols) => Proxy cols) ->
+    reifyNat depth $ \(_ :: (KnownNat depth) => Proxy depth) ->
+    case (rows, cols, depth) of
+      (_, 0, 0)    -> return $ SpecLayer Elu (SomeSing (sing :: Sing ('D1 rows))) (SomeSing (sing :: Sing ('D1 rows)))
+      (_, _, 0) -> return $ SpecLayer Elu (SomeSing (sing :: Sing ('D2 rows cols))) (SomeSing (sing :: Sing ('D2 rows cols)))
+      _    -> case (unsafeCoerce (Dict :: Dict()) :: Dict (KnownNat (rows * depth))) of
+        Dict -> return $ SpecLayer Elu (SomeSing (sing :: Sing ('D3 rows cols depth))) (SomeSing (sing :: Sing ('D3 rows cols depth)))
+
+
+-- | Create a specification for a elu layer.
+specElu1D :: Integer -> SpecNet
+specElu1D i = specElu3D (i, 0, 0)
+
+-- | Create a specification for a elu layer.
+specElu2D :: (Integer, Integer) -> SpecNet
+specElu2D (i,j) = specElu3D (i,j,0)
+
+-- | Create a specification for a elu layer.
+specElu3D :: (Integer, Integer, Integer) -> SpecNet
+specElu3D = SpecNetLayer . SpecElu
 
 
 -------------------- GNum instances --------------------

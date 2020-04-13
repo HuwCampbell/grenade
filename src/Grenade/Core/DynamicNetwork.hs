@@ -30,6 +30,7 @@ module Grenade.Core.DynamicNetwork
   , ToDynamicLayer (..)
   , SpecNet (..)
   , networkFromSpecification
+  , networkToSpecification
   -- Convenience functions for creating dynamic network specifications:
   , tripleFromSomeShape
   , (|=>)
@@ -41,6 +42,7 @@ module Grenade.Core.DynamicNetwork
   , SpecConvolution (..)
   , SpecDeconvolution (..)
   , SpecDropout (..)
+  , SpecElu (..)
   ) where
 
 import           Control.DeepSeq
@@ -228,14 +230,18 @@ instance ToDynamicLayer SpecNet where
 
 -- Some Convenience functions
 
--- | Create a network according to the given specification. See @DynamicNetwork@. This version uses UniformInit and the system random number generator.
--- networkFromSpecification :: forall layers shapes . (DynamicLayer (Network layers shapes) (Head shapes) (Last shapes)) => Specification -> IO SpecNetwork
--- networkFromSpecification :: forall (pxLayers :: [Type]) (pxShapes :: [Shape]) (layersOut :: [Type]) (shapesOut :: [Shape]) . Specification -> IO SpecNetwork
+-- | Create a network according to the given specification. See @DynamicNetwork@. This version uses UniformInit and the system random number generator. WARNING: This also allows to build unsafe
+-- networks where input and output layers do not match! Thus use with care!
 networkFromSpecification :: SpecNet -> IO SpecNetwork
 networkFromSpecification spec = withSystemRandom . asGenST $ \gen -> toDynamicLayer UniformInit gen spec
 
+-- | Create a network according to the given specification. See @DynamicNetwork@. This version uses UniformInit and the system random number generator.
+networkToSpecification :: forall layers shapes . (SingI (Head shapes), FromDynamicLayer (Network layers shapes)) => Network layers shapes -> SpecNet
+networkToSpecification = fromDynamicLayer (SomeSing (sing :: Sing (Head shapes))) 
 
--- | Combine specifications together. This is (:~>) for specifications. This is simply SpecNCons as operator.
+
+-- | Combine specifications together. This is (:~>) for specifications. This is simply SpecNCons as operator. WARNING: This also allows to build unsafe networks where input and output layers do not
+-- match! Thus use with care!
 (|=>) :: SpecNet -> SpecNet -> SpecNet
 l |=> r = SpecNCons l r
 infixr 5 |=> 
@@ -282,3 +288,8 @@ data SpecDeconvolution =
 
 data SpecDropout = SpecDropout Integer Double (Maybe Int)
   deriving (Show, Eq, Ord, Serialize, Generic, NFData)
+
+newtype SpecElu = SpecElu (Integer, Integer, Integer)
+  deriving (Show, Eq, Ord, Serialize, Generic, NFData)
+
+
