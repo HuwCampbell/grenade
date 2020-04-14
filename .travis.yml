@@ -1,48 +1,18 @@
-# This is the complex Travis configuration, which is intended for use
-# on open source libraries which need compatibility across multiple GHC
-# versions, must work with cabal-install, and should be
-# cross-platform. For more information and other options, see:
-#
-# https://docs.haskellstack.org/en/stable/travis_ci/
-#
-# Copy these contents into the root directory of your Github project in a file
-# named .travis.yml
+# Adapted from https://github.com/commercialhaskell/stack
+language: nix
+sudo: false
 
-# Do not choose a language; we provide our own build tools.
-#   NOTE the above pertains to the GHC build tools, not the python build tools.
-language: python
-# NB: don't set `language: haskell` here
-
-# Use new container infrastructure to enable caching
-sudo: required
-
-dist: focal
-
-python:
-  - "3.8"
-
-# Caching so the next build will be fast too.
 cache:
-  directories:
-  - $HOME/.ghc
-  - $HOME/.cabal
-  - $HOME/.stack
-  - $TRAVIS_BUILD_DIR/.stack-work
+    directories:
+        - $HOME/.ghc
+        - $HOME/.cabal
+        - $HOME/.stack
+        - .stack-work
 
-# The different configurations we want to test. We have BUILD=cabal which uses
-# cabal-install, and BUILD=stack which uses Stack. More documentation on each
-# of those below.
-#
-# We set the compiler values here to tell Travis to use a different
-# cache file per set of arguments.
-#
-# If you need to have different apt packages for each combination in the
-# matrix, you can use a line such as:
-#     addons: {apt: {packages: [libfcgi-dev,libgmp-dev]}}
 matrix:
+  fast_finish: true
   include:
-  # The Stack builds. We can pass in arbitrary Stack arguments via the ARGS
-  # variable, such as using --stack-yaml to point to a different file.
+    # Add build targets here
   - env: BUILD=stack ARGS=""
     compiler: ": #stack default"
     addons: {apt: {packages: [ libblas3,liblapack3,liblapack-dev,libblas-dev,pkg-config]}}
@@ -65,43 +35,127 @@ matrix:
 
   allow_failures:
   - env: BUILD=stack ARGS="--resolver nightly"
-
-before_install:
-# Using compiler above sets CC to an invalid value, so unset it
-- unset CC
-
-# We want to always allow newer versions of packages when building on GHC HEAD
-- CABALARGS=""
-- if [ "x$GHCVER" = "xhead" ]; then CABALARGS=--allow-newer; fi
-
-# Download and unpack the stack executable
-- export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$HOME/.local/bin:/opt/alex/$ALEXVER/bin:/opt/happy/$HAPPYVER/bin:$HOME/.cabal/bin:$PATH
-- mkdir -p ~/.local/bin
-- |
-  if [ `uname` = "Darwin" ]
-  then
-    travis_retry curl --insecure -L https://get.haskellstack.org/stable/osx-x86_64.tar.gz | tar xz --strip-components=1 --include '*/stack' -C ~/.local/bin
-  else
-    travis_retry curl -L https://get.haskellstack.org/stable/linux-x86_64.tar.gz | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-  fi
-
-  # Use the more reliable S3 mirror of Hackage
-  mkdir -p $HOME/.cabal
-  echo 'remote-repo: hackage.haskell.org:http://hackage.fpcomplete.com/' > $HOME/.cabal/config
-  echo 'remote-repo-cache: $HOME/.cabal/packages' >> $HOME/.cabal/config
-  sudo apt install libblas-dev liblapack-dev libblas3 liblapack3
+  - env: BUILD=stack ARGS="--resolver lts-14.27"
 
 install:
-- echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
-- if [ -f configure.ac ]; then autoreconf -i; fi
-- |
-  stack --no-terminal --install-ghc $ARGS test --bench --only-dependencies
-
+ - unset CC
+ - export PATH=$HOME/.local/bin:/opt/ghc/$GHCVER/bin:$PATH
+ - ./.travis/install-ghr.sh
+ - ./.travis/install-stack.sh
 
 script:
-- |
-  PKG_CONFIG_PATH="${VIRTUAL_ENV}/lib/pkgconfig:${PKG_CONFIG_PATH}"
-  echo $PKG_CONFIG_PATH
-  export PKG_CONFIG_PATH
-  stack --no-terminal $ARGS test --bench --no-run-benchmarks --haddock --no-haddock-deps
+ - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
+ - GHC_OPTIONS="-Werror"
+ - |
+   set -ex
+   # Run tests
+   stack --no-terminal test --ghc-options="$GHC_OPTIONS"
+   set +ex
+
+# # This is the complex Travis configuration, which is intended for use
+# # on open source libraries which need compatibility across multiple GHC
+# # versions, must work with cabal-install, and should be
+# # cross-platform. For more information and other options, see:
+# #
+# # https://docs.haskellstack.org/en/stable/travis_ci/
+# #
+# # Copy these contents into the root directory of your Github project in a file
+# # named .travis.yml
+
+# # Do not choose a language; we provide our own build tools.
+# #   NOTE the above pertains to the GHC build tools, not the python build tools.
+# language: python
+# # NB: don't set `language: haskell` here
+
+# # Use new container infrastructure to enable caching
+# sudo: required
+
+# dist: focal
+
+# python:
+#   - "3.8"
+
+# # Caching so the next build will be fast too.
+# cache:
+#   directories:
+#   - $HOME/.ghc
+#   - $HOME/.cabal
+#   - $HOME/.stack
+#   - $TRAVIS_BUILD_DIR/.stack-work
+
+# # The different configurations we want to test. We have BUILD=cabal which uses
+# # cabal-install, and BUILD=stack which uses Stack. More documentation on each
+# # of those below.
+# #
+# # We set the compiler values here to tell Travis to use a different
+# # cache file per set of arguments.
+# #
+# # If you need to have different apt packages for each combination in the
+# # matrix, you can use a line such as:
+# #     addons: {apt: {packages: [libfcgi-dev,libgmp-dev]}}
+# matrix:
+#   include:
+#   # The Stack builds. We can pass in arbitrary Stack arguments via the ARGS
+#   # variable, such as using --stack-yaml to point to a different file.
+#   - env: BUILD=stack ARGS=""
+#     compiler: ": #stack default"
+#     addons: {apt: {packages: [ libblas3,liblapack3,liblapack-dev,libblas-dev,pkg-config]}}
+
+#   - env: BUILD=stack ARGS="--resolver lts-15.8"
+#     compiler: ": #stack 8.8.3"
+#     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config]}}
+
+#   - env: BUILD=stack ARGS="--resolver lts-15.3"
+#     compiler: ": #stack 8.8.2"
+#     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config]}}
+
+#   - env: BUILD=stack ARGS="--resolver lts-14.27"
+#     compiler: ": #stack 8.6.5"
+#     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config]}}
+
+#   - env: BUILD=stack ARGS="--resolver nightly"
+#     compiler: ": #stack nightly"
+#     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config]}}
+
+#   allow_failures:
+#   - env: BUILD=stack ARGS="--resolver nightly"
+
+# before_install:
+# # Using compiler above sets CC to an invalid value, so unset it
+# - unset CC
+
+# # We want to always allow newer versions of packages when building on GHC HEAD
+# - CABALARGS=""
+# - if [ "x$GHCVER" = "xhead" ]; then CABALARGS=--allow-newer; fi
+
+# # Download and unpack the stack executable
+# - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$HOME/.local/bin:/opt/alex/$ALEXVER/bin:/opt/happy/$HAPPYVER/bin:$HOME/.cabal/bin:$PATH
+# - mkdir -p ~/.local/bin
+# - |
+#   if [ `uname` = "Darwin" ]
+#   then
+#     travis_retry curl --insecure -L https://get.haskellstack.org/stable/osx-x86_64.tar.gz | tar xz --strip-components=1 --include '*/stack' -C ~/.local/bin
+#   else
+#     travis_retry curl -L https://get.haskellstack.org/stable/linux-x86_64.tar.gz | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+#   fi
+
+#   # Use the more reliable S3 mirror of Hackage
+#   mkdir -p $HOME/.cabal
+#   echo 'remote-repo: hackage.haskell.org:http://hackage.fpcomplete.com/' > $HOME/.cabal/config
+#   echo 'remote-repo-cache: $HOME/.cabal/packages' >> $HOME/.cabal/config
+#   sudo apt install libblas-dev liblapack-dev libblas3 liblapack3
+
+# install:
+# - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
+# - if [ -f configure.ac ]; then autoreconf -i; fi
+# - |
+#   stack --no-terminal --install-ghc $ARGS test --bench --only-dependencies
+
+
+# script:
+# - |
+#   PKG_CONFIG_PATH="${VIRTUAL_ENV}/lib/pkgconfig:${PKG_CONFIG_PATH}"
+#   echo $PKG_CONFIG_PATH
+#   export PKG_CONFIG_PATH
+#   stack --no-terminal $ARGS test --bench --no-run-benchmarks --haddock --no-haddock-deps
 
