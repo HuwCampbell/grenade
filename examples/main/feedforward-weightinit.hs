@@ -3,33 +3,21 @@
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-import           Control.DeepSeq
+
 import           Control.Monad
 import           Control.Monad.Random
 import           Data.Constraint              (Dict (..))
 import           Data.List                    (foldl')
-import           Data.Reflection              (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.Prelude.List
-import           Data.Typeable
 import           GHC.TypeLits
-import           System.IO
-import           Unsafe.Coerce                (unsafeCoerce)
-
-import qualified Data.ByteString              as B
-import           Data.Semigroup               ((<>))
-import           Data.Serialize
-
-import           GHC.TypeLits
-
 import qualified Numeric.LinearAlgebra.Static as SA
-
 import           Options.Applicative
+import           Unsafe.Coerce                (unsafeCoerce)
 
 import           Grenade
 
-import           Debug.Trace
 
 -- | The definition for a feed forward network using the dynamic module. Note the nested networks. This network clearly is over-engeneered for this example!
 netSpec :: SpecNet
@@ -57,43 +45,7 @@ netTrain net0 rate n = do
 
   where trainEach !network (i,o) = train rate network i o
 
-renderClass :: IO ()
-renderClass = do
-  let testIns = [ [ (x,y)  | x <- [0..50] ]
-                           | y <- [0..20] ]
-  let outMat  = fmap (fmap (\(x,y) -> (render (x/25-1) (y/10-1)))) testIns
-  putStrLn $ unlines outMat
-
-  where
-    render x y  | x == 0 && y == 0 = '+'
-                | y == 0 = '-'
-                | x == 0 = '|'
-                | otherwise = let v = SA.vector [x,y] :: SA.R 2
-                              in if v `inCircle` (fromRational 0.50, 0.50)  || v `inCircle` (fromRational (-0.50), 0.50)
-                                 then '1'
-                                 else ' '
--- netLoad :: FilePath -> IO FFNet
--- netLoad modelPath = do
---   modelData <- B.readFile modelPath
---   either fail return $ runGet (get :: Get FFNet) modelData
-
--- renderClass :: IO ()
--- renderClass = do
---   let testIns = [ [ (x,y)  | x <- [0..50] ]
---                            | y <- [0..20] ]
---   let outMat  = fmap (fmap (\(x,y) -> (render (x/25-1) (y/10-1)))) testIns
---   putStrLn $ unlines outMat
-
---   where
---     render x y  | x == 0 && y == 0 = '+'
---                 | y == 0 = '-'
---                 | x == 0 = '|'
---                 | otherwise = let v = SA.vector [x,y] :: SA.R 2
---                               in if v `inCircle` (fromRational 0.50, 0.50)  || v `inCircle` (fromRational (-0.50), 0.50)
---                                  then '1'
---                                  else ' '
-
-
+netScore :: (Show (Network layers shapes), KnownNat len, Head shapes ~ 'D1 len, Last shapes ~ 'D1 1) => Network layers shapes -> IO ()
 netScore network = do
     let testIns = [ [ (x,y)  | x <- [0..50] ]
                              | y <- [0..20] ]
