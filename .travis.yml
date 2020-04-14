@@ -3,11 +3,11 @@ language: nix
 sudo: false
 
 cache:
-    directories:
-        - $HOME/.ghc
-        - $HOME/.cabal
-        - $HOME/.stack
-        - .stack-work
+  directories:
+  - $HOME/.ghc
+  - $HOME/.cabal
+  - $HOME/.stack
+  - $TRAVIS_BUILD_DIR/.stack-work
 
 matrix:
   fast_finish: true
@@ -37,11 +37,47 @@ matrix:
   - env: BUILD=stack ARGS="--resolver nightly"
   - env: BUILD=stack ARGS="--resolver lts-14.27"
 
-install:
+before_install:
+ # Using compiler above sets CC to an invalid value, so unset it
  - unset CC
- - export PATH=$HOME/.local/bin:/opt/ghc/$GHCVER/bin:$PATH
- - ./.travis/install-ghr.sh
- - ./.travis/install-stack.sh
+
+ # We want to always allow newer versions of packages when building on GHC HEAD
+ - CABALARGS=""
+ - if [ "x$GHCVER" = "xhead" ]; then CABALARGS=--allow-newer; fi
+
+ # Download and unpack the stack executable
+ - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$HOME/.local/bin:/opt/alex/$ALEXVER/bin:/opt/happy/$HAPPYVER/bin:$HOME/.cabal/bin:$PATH
+ - mkdir -p ~/.local/bin
+ - |
+   if [ `uname` = "Darwin" ]
+   then
+     travis_retry curl --insecure -L https://get.haskellstack.org/stable/osx-x86_64.tar.gz | tar xz --strip-components=1 --include '*/stack' -C ~/.local/bin
+   else
+     travis_retry curl -L https://get.haskellstack.org/stable/linux-x86_64.tar.gz | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+   fi
+
+   # Use the more reliable S3 mirror of Hackage
+   mkdir -p $HOME/.cabal
+   echo 'remote-repo: hackage.haskell.org:http://hackage.fpcomplete.com/' > $HOME/.cabal/config
+   echo 'remote-repo-cache: $HOME/.cabal/packages' >> $HOME/.cabal/config
+
+# install:
+#  - unset CC
+#  - export PATH=$HOME/.local/bin:/opt/ghc/$GHCVER/bin:$PATH
+
+install:
+ - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
+ - if [ -f configure.ac ]; then autoreconf -i; fi
+ - |
+   stack --no-terminal --install-ghc $ARGS test --bench --only-dependencies
+
+
+# script:
+#  - |
+#    PKG_CONFIG_PATH="${VIRTUAL_ENV}/lib/pkgconfig:${PKG_CONFIG_PATH}"
+#    echo $PKG_CONFIG_PATH
+#    export PKG_CONFIG_PATH
+#    stack --no-terminal $ARGS test --bench --no-run-benchmarks --haddock --no-haddock-deps
 
 script:
  - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
@@ -51,6 +87,16 @@ script:
    # Run tests
    stack --no-terminal test --ghc-options="$GHC_OPTIONS"
    set +ex
+
+
+# script:
+#  - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
+#  - GHC_OPTIONS="-Werror"
+#  - |
+#    set -ex
+#    # Run tests
+#    stack --no-terminal test --ghc-options="$GHC_OPTIONS"
+#    set +ex
 
 # # This is the complex Travis configuration, which is intended for use
 # # on open source libraries which need compatibility across multiple GHC
