@@ -8,13 +8,20 @@ Grenade
 This is a fork of the original Grenade library found at https://github.com/HuwCampbell/grenade,
 but includes additional features:
 
- - Initializing the weights in different ways
- - Dynamically specifying networks. Currently only for feedforward networks composed of fully-connected layers, (de-)convolution layers and activation functions. Example:
+ - Initializing the weights in different ways. Currently implement: Uniform, HeEtAl, Xavier. The
+   default is Uniform!
+ - Dynamically specifying networks. Currently only for feedforward networks composed of
+   fully-connected layers, (de-)convolution layers and activation functions. Example (also see
+   `feedforward-netinit` in example folder):
 
 ```haskell
-
-
+let spec :: SpecNet
+    spec = specFullyConnected 40 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specNil1D 20
+SpecConcreteNetwork1D1D (net0 :: Network layers shapes) <- networkFromSpecificationWith HeEtAl spec
 ```
+
+  However, it is important to get the specification right, as otherwise the program will halt
+  abruptly. So at best do not use it manually, but write functions for creating specifications!
 
 
 ```

@@ -16,6 +16,7 @@ module Grenade.Layers.Dropout (
 import           Control.DeepSeq
 import           Control.Monad.Primitive (PrimBase, PrimState)
 import           Data.Reflection         (reifyNat)
+import           Data.Serialize
 import           Data.Singletons
 import           System.Random.MWC
 
@@ -33,7 +34,7 @@ import           Grenade.Core
 data Dropout = Dropout {
     dropoutRate :: Double
   , dropoutSeed :: Int
-  } deriving (Generic, NFData, Show)
+  } deriving (Generic, NFData, Show, Serialize)
 
 
 instance UpdateLayer Dropout where

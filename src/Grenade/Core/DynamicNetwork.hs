@@ -32,7 +32,8 @@ module Grenade.Core.DynamicNetwork
   , ToDynamicLayer (..)
   , SpecNet (..)
   , networkFromSpecification
-  , networkFromSpecificationGeneric
+  , networkFromSpecificationWith
+  , networkFromSpecificationGenericWith
   , networkToSpecification
   -- Convenience functions for creating dynamic network specifications:
   , (|=>)
@@ -108,11 +109,11 @@ class (Show spec) => ToDynamicLayer spec where
 data SpecNetwork :: Type where
   SpecNetwork
     :: (SingI shapes, SingI (Head shapes), SingI (Last shapes), Show (Network layers shapes), FromDynamicLayer (Network layers shapes), NFData (Network layers shapes)
-       , Layer (Network layers shapes) (Head shapes) (Last shapes), RandomLayer (Network layers shapes)
+       , Layer (Network layers shapes) (Head shapes) (Last shapes), RandomLayer (Network layers shapes), Serialize (Network layers shapes)
        )
     => !(Network layers shapes)
     -> SpecNetwork
-  SpecLayer :: (FromDynamicLayer x, RandomLayer x, NFData x, Show x, Layer x i o) => !x -> !(Sing i) -> !(Sing o) -> SpecNetwork
+  SpecLayer :: (FromDynamicLayer x, RandomLayer x, Serialize x, NFData x, Show x, Layer x i o) => !x -> !(Sing i) -> !(Sing o) -> SpecNetwork
 
 instance Show SpecNetwork where
   show (SpecNetwork net) = show net
@@ -135,11 +136,11 @@ data SpecNet
   | SpecNCons !SpecNet !SpecNet           -- ^ x :~> xs, where x can also be a network
   | forall spec . (ToDynamicLayer spec, Typeable spec, Ord spec, Eq spec, Show spec, Serialize spec, NFData spec) => SpecNetLayer !spec -- ^ Specification of a layer
 
--- | Get the last Nil specification of a network specification.
-getLastSpec :: SpecNet -> SpecNet
-getLastSpec (SpecNCons _ xs) = getLastSpec xs
-getLastSpec (SpecNetLayer layer) = error "Error in specification: Every network has to end in a Nil constructor, see SpecNNil1D, etc."
-getLastSpec x = x
+-- -- | Get the last Nil specification of a network specification.
+-- getLastSpec :: SpecNet -> SpecNet
+-- getLastSpec (SpecNCons _ xs) = getLastSpec xs
+-- getLastSpec (SpecNetLayer layer) = error "Error in specification: Every network has to end in a Nil constructor, see SpecNNil1D, etc."
+-- getLastSpec x = x
 
 
 instance Eq SpecNet where
@@ -259,52 +260,54 @@ instance ToDynamicLayer SpecNet where
 
 -- Some Convenience functions
 
+-- | Instances all networks implement.
+type GeneralConcreteNetworkInstances layers shapes = 
+  (SingI shapes, SingI (Head shapes), SingI (Last shapes), Show (Network layers shapes), FromDynamicLayer (Network layers shapes), NFData (Network layers shapes), Layer (Network layers shapes) (Head shapes) (Last shapes),
+         Serialize (Network layers shapes), RandomLayer (Network layers shapes))
+
 -- | This is the result type when calling @networkFromSpecification@. It specifies the input and output type. For a generic version (where input and output type are unknown) see @SpecNetwork@ and
 -- @networkFromSpecificationGeneric@.
 data SpecConcreteNetwork :: Type where
   SpecConcreteNetwork1D1D
-    :: ( SingI shapes, SingI (Head shapes), SingI (Last shapes), Show (Network layers shapes), FromDynamicLayer (Network layers shapes), NFData (Network layers shapes), Layer (Network layers shapes) (Head shapes) (Last shapes),
-         RandomLayer (Network layers shapes), Head shapes ~ 'D1 i, Last shapes ~ 'D1 o, KnownNat i, KnownNat o)
+    :: ( GeneralConcreteNetworkInstances layers shapes, Head shapes ~ 'D1 i1, Last shapes ~ 'D1 o1, KnownNat i1, KnownNat o1)
     => !(Network layers shapes) -> SpecConcreteNetwork
   SpecConcreteNetwork1D2D
-    :: ( SingI shapes, SingI (Head shapes), SingI (Last shapes), Show (Network layers shapes), FromDynamicLayer (Network layers shapes), NFData (Network layers shapes), Layer (Network layers shapes) (Head shapes) (Last shapes),
-         RandomLayer (Network layers shapes), Head shapes ~ 'D1 i, Last shapes ~ 'D2 o1 o2, KnownNat i, KnownNat o1, KnownNat o2)
+    :: ( GeneralConcreteNetworkInstances layers shapes, Head shapes ~ 'D1 i1, Last shapes ~ 'D2 o1 o2, KnownNat i1, KnownNat o1, KnownNat o2)
     => !(Network layers shapes) -> SpecConcreteNetwork
   SpecConcreteNetwork1D3D
-    :: ( SingI shapes, SingI (Head shapes), SingI (Last shapes), Show (Network layers shapes), FromDynamicLayer (Network layers shapes), NFData (Network layers shapes), Layer (Network layers shapes) (Head shapes) (Last shapes),
-         RandomLayer (Network layers shapes), Head shapes ~ 'D1 i, Last shapes ~ 'D3 o1 o2 o3, KnownNat i, KnownNat o1, KnownNat o2, KnownNat o3)
+    :: ( GeneralConcreteNetworkInstances layers shapes, Head shapes ~ 'D1 i1, Last shapes ~ 'D3 o1 o2 o3, KnownNat i1, KnownNat o1, KnownNat o2, KnownNat o3)
     => !(Network layers shapes) -> SpecConcreteNetwork
   SpecConcreteNetwork2D1D
-    :: ( SingI shapes, SingI (Head shapes), SingI (Last shapes), Show (Network layers shapes), FromDynamicLayer (Network layers shapes), NFData (Network layers shapes), Layer (Network layers shapes) (Head shapes) (Last shapes),
-         RandomLayer (Network layers shapes), Head shapes ~ 'D2 i1 i2, Last shapes ~ 'D1 o, KnownNat i1, KnownNat i2, KnownNat o)
+    :: ( GeneralConcreteNetworkInstances layers shapes, Head shapes ~ 'D2 i1 i2, Last shapes ~ 'D1 o, KnownNat i1, KnownNat i2, KnownNat o)
     => !(Network layers shapes) -> SpecConcreteNetwork
   SpecConcreteNetwork2D2D
-    :: ( SingI shapes, SingI (Head shapes), SingI (Last shapes), Show (Network layers shapes), FromDynamicLayer (Network layers shapes), NFData (Network layers shapes), Layer (Network layers shapes) (Head shapes) (Last shapes),
-         RandomLayer (Network layers shapes), Head shapes ~ 'D2 i1 i2, Last shapes ~ 'D2 o1 o2, KnownNat i1, KnownNat i2, KnownNat o1, KnownNat o2)
+    :: ( GeneralConcreteNetworkInstances layers shapes, Head shapes ~ 'D2 i1 i2, Last shapes ~ 'D2 o1 o2, KnownNat i1, KnownNat i2, KnownNat o1, KnownNat o2)
     => !(Network layers shapes) -> SpecConcreteNetwork
   SpecConcreteNetwork2D3D
-    :: ( SingI shapes, SingI (Head shapes), SingI (Last shapes), Show (Network layers shapes), FromDynamicLayer (Network layers shapes), NFData (Network layers shapes), Layer (Network layers shapes) (Head shapes) (Last shapes),
-         RandomLayer (Network layers shapes), Head shapes ~ 'D2 i1 i2, Last shapes ~ 'D3 o1 o2 o3, KnownNat i1, KnownNat i2, KnownNat o1, KnownNat o2, KnownNat o3)
+    :: ( GeneralConcreteNetworkInstances layers shapes, Head shapes ~ 'D2 i1 i2, Last shapes ~ 'D3 o1 o2 o3, KnownNat i1, KnownNat i2, KnownNat o1, KnownNat o2, KnownNat o3)
     => !(Network layers shapes) -> SpecConcreteNetwork
   SpecConcreteNetwork3D1D
-    :: ( SingI shapes, SingI (Head shapes), SingI (Last shapes), Show (Network layers shapes), FromDynamicLayer (Network layers shapes), NFData (Network layers shapes), Layer (Network layers shapes) (Head shapes) (Last shapes),
-         RandomLayer (Network layers shapes), Head shapes ~ 'D3 i1 i2 i3, Last shapes ~ 'D1 o, KnownNat i1, KnownNat i2, KnownNat i3, KnownNat o)
+    :: ( GeneralConcreteNetworkInstances layers shapes, Head shapes ~ 'D3 i1 i2 i3, Last shapes ~ 'D1 o, KnownNat i1, KnownNat i2, KnownNat i3, KnownNat o)
     => !(Network layers shapes) -> SpecConcreteNetwork
   SpecConcreteNetwork3D2D
-    :: ( SingI shapes, SingI (Head shapes), SingI (Last shapes), Show (Network layers shapes), FromDynamicLayer (Network layers shapes), NFData (Network layers shapes), Layer (Network layers shapes) (Head shapes) (Last shapes),
-         RandomLayer (Network layers shapes), Head shapes ~ 'D3 i1 i2 i3, Last shapes ~ 'D2 o1 o2, KnownNat i1, KnownNat i2, KnownNat i3, KnownNat o1, KnownNat o2)
+    :: ( GeneralConcreteNetworkInstances layers shapes, Head shapes ~ 'D3 i1 i2 i3, Last shapes ~ 'D2 o1 o2, KnownNat i1, KnownNat i2, KnownNat i3, KnownNat o1, KnownNat o2)
     => !(Network layers shapes) -> SpecConcreteNetwork
   SpecConcreteNetwork3D3D
-    :: ( SingI shapes, SingI (Head shapes), SingI (Last shapes), Show (Network layers shapes), FromDynamicLayer (Network layers shapes), NFData (Network layers shapes), Layer (Network layers shapes) (Head shapes) (Last shapes),
-         RandomLayer (Network layers shapes), Head shapes ~ 'D3 i1 i2 i3, Last shapes ~ 'D3 o1 o2 o3, KnownNat i1, KnownNat i2, KnownNat i3, KnownNat o1, KnownNat o2, KnownNat o3)
+    :: ( GeneralConcreteNetworkInstances layers shapes, Head shapes ~ 'D3 i1 i2 i3, Last shapes ~ 'D3 o1 o2 o3, KnownNat i1, KnownNat i2, KnownNat i3, KnownNat o1, KnownNat o2, KnownNat o3)
     => !(Network layers shapes) -> SpecConcreteNetwork
 
 
 -- | Create a network according to the given specification. See @DynamicNetwork@. This version uses UniformInit and the system random number generator. WARNING: This also allows to build unsafe
 -- networks where input and output layers do not match! Thus use with care!
 networkFromSpecification :: SpecNet -> IO SpecConcreteNetwork
-networkFromSpecification spec = do
-  SpecNetwork (net :: Network layers shapes) <- withSystemRandom . asGenST $ \gen -> toDynamicLayer UniformInit gen spec
+networkFromSpecification = networkFromSpecificationWith UniformInit
+
+
+-- | Create a network according to the given specification. See @DynamicNetwork@. This version uses UniformInit and the system random number generator. WARNING: This also allows to build unsafe
+-- networks where input and output layers do not match! Thus use with care!
+networkFromSpecificationWith :: WeightInitMethod -> SpecNet -> IO SpecConcreteNetwork
+networkFromSpecificationWith wInit spec = do
+  SpecNetwork (net :: Network layers shapes) <- withSystemRandom . asGenST $ \gen -> toDynamicLayer wInit gen spec
   case (sing :: Sing (Head shapes), sing :: Sing (Last shapes)) of
     (i :: Sing (Head shapes), o :: Sing (Last shapes)) ->
       withSingI i $
@@ -337,8 +340,8 @@ withConcreteNetwork = undefined -- (SpecConcreteNetwork1D1D (net :: Network laye
 
 -- | Create a network according to the given specification. See @DynamicNetwork@. This version uses UniformInit and the system random number generator. WARNING: This also allows to build unsafe
 -- networks where input and output layers do not match! Thus use with care!
-networkFromSpecificationGeneric :: SpecNet -> IO SpecNetwork
-networkFromSpecificationGeneric spec = withSystemRandom . asGenST $ \gen -> toDynamicLayer UniformInit gen spec
+networkFromSpecificationGenericWith :: WeightInitMethod -> SpecNet -> IO SpecNetwork
+networkFromSpecificationGenericWith wInit spec = withSystemRandom . asGenST $ \gen -> toDynamicLayer wInit gen spec
 
 
 -- | Create a network according to the given specification. See @DynamicNetwork@. This version uses UniformInit and the system random number generator.

@@ -1,11 +1,8 @@
 {-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE GADTs               #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections       #-}
-{-# LANGUAGE TypeFamilies        #-}
-{-# LANGUAGE TypeOperators       #-}
 import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.Random
@@ -34,17 +31,10 @@ import           Grenade
 
 import           Debug.Trace
 
--- The definition for our simple feed forward network.
--- The type level lists represents the layers and the shapes passed through the layers.
--- One can see that for this demonstration we are using relu, tanh and logit non-linear
--- units, which can be easily substitute for each other in and out.
---
--- With around 100000 examples, this should show two clear circles which have been learned by the network.
-type FFNet = Network '[ FullyConnected 2 40, Tanh, FullyConnected 40 30, Relu, FullyConnected 30 20, Relu, FullyConnected 20 10, Relu, FullyConnected 10 1, Logit ]
-                     '[ 'D1 2, 'D1 40, 'D1 40, 'D1 30, 'D1 30, 'D1 20, 'D1 20, 'D1 10, 'D1 10, 'D1 1, 'D1 1]
-
-randomNet :: IO FFNet
-randomNet = randomNetworkInitWith HeEtAl  -- you might want to try `Xavier` or `UniformInit` instead of `HeEtAl`
+-- | The definition for a feed forward network using the dynamic module. Note the nested networks. This network clearly is over-engeneered for this example!
+netSpec :: SpecNet
+netSpec = specFullyConnected 2 40 |=> specTanh1D 40 |=> netSpecInner |=> specFullyConnected 20 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specRelu1D 20 |=> specFullyConnected 20 10 |=> specRelu1D 10 |=> specFullyConnected 10 1 |=> specLogit1D 1 |=> specNil1D 1
+  where netSpecInner = specFullyConnected 40 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specNil1D 20
 
 
 netTrain ::
@@ -66,11 +56,6 @@ netTrain net0 rate n = do
     return trained
 
   where trainEach !network (i,o) = train rate network i o
-
-netLoad :: FilePath -> IO FFNet
-netLoad modelPath = do
-  modelData <- B.readFile modelPath
-  either fail return $ runGet (get :: Get FFNet) modelData
 
 renderClass :: IO ()
 renderClass = do
@@ -109,7 +94,6 @@ renderClass = do
 --                                  else ' '
 
 
-netScore :: FFNet -> IO ()
 netScore network = do
     let testIns = [ [ (x,y)  | x <- [0..50] ]
                              | y <- [0..20] ]
@@ -168,65 +152,34 @@ feedForward' =
 main :: IO ()
 main = do
   FeedForwardOpts examples rate <- execParser (info (feedForward' <**> helper) idm)
-
   putStrLn "| Nr | Correct | Incorrect | FalsePositives | FalseNegatives |"
   putStrLn "--------------------------------------------------------------"
-  let nr = 00 :: Int
-  mapM_ (\n -> do
-    putStr $ "| " ++ show n  ++ " | "
-    net0 <- randomNet
-    net <- netTrain net0 rate examples
-    -- netScore net
-    testValues net) [0..nr-1]
+  let nr = 100 :: Int
+  mapM_
+    (\n -> do
+       putStr $ "| " ++ show n ++ " | "
+       SpecConcreteNetwork1D1D (net0 :: Network layers shapes) <- networkFromSpecificationWith HeEtAl netSpec
+      -- We need to specify the actual number of output nodes, as our functions requiere that!
+       case (unsafeCoerce (Dict :: Dict ()) :: Dict (('D1 1) ~ Last shapes)) of
+         Dict -> do
+           net <- netTrain net0 rate examples
+           unsafeCoerce $ -- only needed as GADTs are enabled, which disallowes the type to escape and thus prevents the type inference to work. The result is not needed anyways.
+             testValues net)
+    [0 .. nr - 1]
 
 
-  testNet <- randomNetwork :: IO (Network '[FullyConnected 1 1, Relu] '[ 'D1 1, 'D1 1, 'D1 1 ])
-  let spec = networkToSpecification testNet
-      spec1 = SpecNCons (specFullyConnected 2 1) (specNil1D 1)
-      spec2 = specFullyConnected 2 30 |=> specElu1D 30 |=> (specFullyConnected 30 50 |=> specRelu1D 50 |=> specFullyConnected 50 1 |=> specNil1D 1) |=>
-               specNil1D 1
-
-
-  SpecConcreteNetwork1D1D (net :: Network layers shapes) <- networkFromSpecification spec2
-  -- print (force n1)
-
-
-  -- let inp = 0.4 :: S (Head shapes)
-  --     out = 0.5 :: S (Last shapes)
-  -- putStrLn ("nn inp: " ++ show inp)
-  -- putStrLn ("nn out: " ++ show out)
-  -- print $ trace ("start train") $ train rate n1 inp out
-
-  print (networkToSpecification net)
-  -- hFlush stdout
-
-  -- reifyNat 1 $ \(o :: (KnownNat o) => Proxy o) ->
-  case (unsafeCoerce (Dict :: Dict ()) :: Dict (('D1 1) ~ Last shapes)) of
-      Dict -> do
-        net <- netTrain net rate examples
-        testValues net
-        return ()
-
-  -- withConcreteNetwork specNet (Dict :: Dict (Last shapes ~ 1)) $ \net -> do
-  --   net <- netTrain net rate examples
-  --   testValues net
-  --   return ()
-
-
-  -- print spec''
-  -- n4 <- networkFromSpecification spec''
-  -- print n4
-
-  -- let ser = encode spec''
-  -- print ser
-
-  -- case decode ser of
-  --   Left err                 -> print err
-  --   Right (specS :: SpecNet) -> do
-  --     print specS
-  --     SpecNetwork (n5 :: Network layers shapes) <- networkFromSpecification specS
-  --     case (unsafeCoerce (Dict :: Dict ()) :: Dict (Head shapes ~ 'D1 2, Last shapes ~ 'D1 1)) of
-  --       Dict -> do
-  --         net <- netTrain n5 rate examples
-  --         print net
-  --         testValues net
+  -- Features of dynamic networks:
+  SpecConcreteNetwork1D1D (net' :: Network layers shapes) <- networkFromSpecificationWith HeEtAl netSpec
+  net' <- netTrain net' rate examples
+  let spec' = networkToSpecification net'
+  putStrLn "String represenation of the network: "
+  print spec'
+  let serializedSpec = encode spec'   -- only the specification (not the weights) are serialized here! The weights can be serialized using the networks serialize instance!
+  let weightsBs = encode net'         -- E.g. like this.
+  case decode serializedSpec of
+    Left err -> print err
+    Right spec'' -> do
+      SpecConcreteNetwork1D1D (net'' :: Network layers'' shapes'') <- networkFromSpecificationWith HeEtAl spec''
+      net'' <- foldM (\n _ -> netTrain n rate examples) net'' [1..30]
+      case (unsafeCoerce (Dict :: Dict ()) :: Dict (('D1 1) ~ Last shapes'')) of
+        Dict -> netScore net''
