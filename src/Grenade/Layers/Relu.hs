@@ -88,7 +88,15 @@ instance FromDynamicLayer Relu where
   fromDynamicLayer inp _ = SpecNetLayer $ SpecRelu (tripleFromSomeShape inp)
 
 instance ToDynamicLayer SpecRelu where
-  toDynamicLayer _ _ (SpecRelu inp) = mkToDynamicLayerForActiviationFunction Relu inp
+  toDynamicLayer _ _ (SpecRelu (rows, cols, depth)) =
+     reifyNat rows $ \(_ :: (KnownNat rows) => Proxy rows) ->
+     reifyNat cols $ \(_ :: (KnownNat cols) => Proxy cols) ->
+     reifyNat depth $ \(_ :: (KnownNat depth) => Proxy depth) ->
+     case (rows, cols, depth) of
+         (_, 0, 0)    -> return $ SpecLayer Relu (sing :: Sing ('D1 rows)) (sing :: Sing ('D1 rows))
+         (_, _, 0) -> return $ SpecLayer Relu (sing :: Sing ('D2 rows cols)) (sing :: Sing ('D2 rows cols))
+         _    -> case (unsafeCoerce (Dict :: Dict()) :: Dict (KnownNat (rows GHC.TypeLits.* depth))) of
+           Dict -> return $ SpecLayer Relu (sing :: Sing ('D3 rows cols depth)) (sing :: Sing ('D3 rows cols depth))
 
 
 -- | Create a specification for a elu layer.

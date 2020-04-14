@@ -3,6 +3,8 @@
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-|
@@ -20,12 +22,15 @@ module Grenade.Layers.Sinusoid
   , specSinusoid3D
   ) where
 
+import           Control.DeepSeq (NFData)
+import           Data.Constraint (Dict (..))
+import           Data.Reflection (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
-
-import           Control.DeepSeq (NFData)
 import           GHC.Generics    (Generic)
+import           GHC.TypeLits
 import           Grenade.Core
+import           Unsafe.Coerce   (unsafeCoerce)
 
 
 -- | A Sinusoid layer.
@@ -56,7 +61,15 @@ instance FromDynamicLayer Sinusoid where
   fromDynamicLayer inp _ = SpecNetLayer $ SpecSinusoid (tripleFromSomeShape inp)
 
 instance ToDynamicLayer SpecSinusoid where
-  toDynamicLayer _ _ (SpecSinusoid inp) = mkToDynamicLayerForActiviationFunction Sinusoid inp
+  toDynamicLayer _ _ (SpecSinusoid (rows, cols, depth)) =
+     reifyNat rows $ \(_ :: (KnownNat rows) => Proxy rows) ->
+     reifyNat cols $ \(_ :: (KnownNat cols) => Proxy cols) ->
+     reifyNat depth $ \(_ :: (KnownNat depth) => Proxy depth) ->
+     case (rows, cols, depth) of
+         (_, 0, 0)    -> return $ SpecLayer Sinusoid (sing :: Sing ('D1 rows)) (sing :: Sing ('D1 rows))
+         (_, _, 0) -> return $ SpecLayer Sinusoid (sing :: Sing ('D2 rows cols)) (sing :: Sing ('D2 rows cols))
+         _    -> case (unsafeCoerce (Dict :: Dict()) :: Dict (KnownNat (rows GHC.TypeLits.* depth))) of
+           Dict -> return $ SpecLayer Sinusoid (sing :: Sing ('D3 rows cols depth)) (sing :: Sing ('D3 rows cols depth))
 
 
 -- | Create a specification for a elu layer.

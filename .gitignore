@@ -8,3 +8,4 @@ dist-newstyle/
 /TAGS
 /stack.yaml.lock
 grenade.cabal
+/examples/TAGS

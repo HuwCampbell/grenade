@@ -16,6 +16,7 @@ module Grenade.Layers.FullyConnected (
     FullyConnected (..)
   , FullyConnected' (..)
   , randomFullyConnected
+  , SpecFullyConnected (..)
   , specFullyConnected
   ) where
 
@@ -117,7 +118,7 @@ instance ToDynamicLayer SpecFullyConnected where
         case singByProxy pxInp %* singByProxy pxOut of
           SNat -> do
             (layer :: FullyConnected i o') <- randomFullyConnected wInit gen
-            return $ SpecLayer layer (SomeSing (sing :: Sing ('D1 i))) (SomeSing (sing :: Sing ('D1 o')))
+            return $ SpecLayer layer (sing :: Sing ('D1 i)) (sing :: Sing ('D1 o'))
 
 
 specFullyConnected :: Integer -> Integer -> SpecNet

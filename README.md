@@ -5,11 +5,16 @@ Grenade
 <!-- [![Hackage page (downloads and API reference)][hackage-png]][hackage] -->
 <!-- [![Hackage-Deps][hackage-deps-png]][hackage-deps] -->
 
-This is a fork of the original Grenade library found at [[https://github.com/HuwCampbell/grenade]],
+This is a fork of the original Grenade library found at https://github.com/HuwCampbell/grenade,
 but includes additional features:
 
  - Initializing the weights in different ways
- - Dynamically specifying networks
+ - Dynamically specifying networks. Currently only for feedforward networks composed of fully-connected layers, (de-)convolution layers and activation functions. Example:
+
+```haskell
+
+
+```
 
 
 ```

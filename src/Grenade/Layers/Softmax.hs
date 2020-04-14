@@ -3,6 +3,8 @@
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-|
@@ -16,14 +18,22 @@ module Grenade.Layers.Softmax (
     Softmax (..)
   , softmax
   , softmax'
+  , SpecSoftmax (..)
+  , specSoftmax
   ) where
 
 import           Data.Serialize
 
 import           Control.DeepSeq              (NFData (..))
+import           Data.Constraint              (Dict (..))
+import           Data.Reflection              (reifyNat)
+import           Data.Singletons
 import           GHC.Generics                 (Generic)
 import           GHC.TypeLits
+import           GHC.TypeLits
 import           Grenade.Core
+import           Unsafe.Coerce                (unsafeCoerce)
+
 
 import           Numeric.LinearAlgebra.Static as LAS
 
@@ -68,6 +78,23 @@ softmax' x grad =
   in  g #> grad
     where
   sm = softmax x
+
+-------------------- DynamicNetwork instance --------------------
+
+instance FromDynamicLayer Softmax where
+  fromDynamicLayer inp Softmax = case tripleFromSomeShape inp of
+    (rows, 0, 0) -> SpecNetLayer $ SpecSoftmax rows
+    _ -> error "Error in specification: The layer Softmax may only be used with 1D input!"
+
+instance ToDynamicLayer SpecSoftmax where
+  toDynamicLayer _ gen (SpecSoftmax rows) =
+    reifyNat rows $ \(_ :: (KnownNat i) => Proxy i) ->
+    return $ SpecLayer Softmax (sing :: Sing ('D1 i)) (sing :: Sing ('D1 i))
+
+
+-- | Create a specification for a elu layer.
+specSoftmax :: Integer -> SpecNet
+specSoftmax = SpecNetLayer . SpecSoftmax
 
 
 -------------------- GNum instances --------------------

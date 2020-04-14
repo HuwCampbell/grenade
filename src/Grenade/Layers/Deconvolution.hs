@@ -33,6 +33,8 @@ module Grenade.Layers.Deconvolution (
   ) where
 
 import           Control.DeepSeq                     (NFData (..))
+import           Control.Monad.Primitive             (PrimBase, PrimState)
+import           Data.Constraint                     (Dict (..))
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Reflection                     (reifyNat)
@@ -40,6 +42,8 @@ import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.Prelude.Num         ((%*))
 import           Data.Singletons.TypeLits            hiding (natVal)
+import           System.Random.MWC                   (Gen)
+import           Unsafe.Coerce
 #if MIN_VERSION_base(4,12,0)
 import           GHC.Natural                         (naturalToInteger)
 #endif
@@ -139,6 +143,31 @@ instance ( KnownNat channels
          ) =>
          RandomLayer (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) where
   createRandomWith m gen = do
+    wN <- getRandomMatrix i i m gen
+    let mm = konst 0
+    return $ Deconvolution wN mm
+    where
+      i = natVal (Proxy :: Proxy ((kernelRows * kernelColumns) * channels))
+
+randomDeconvolutionShapes :: forall m i o channels filters kernelRows kernelColumns strideRows strideColumns  .
+     ( KnownNat channels
+     , KnownNat filters
+     , KnownNat kernelRows
+     , KnownNat kernelColumns
+     , KnownNat strideRows
+     , KnownNat strideColumns
+     , KnownNat ((kernelRows * kernelColumns) * filters)
+     , KnownNat ((kernelRows * kernelColumns) * channels)
+     , KnownNat (channels * ((kernelRows * kernelColumns) * filters))
+     , PrimBase m
+     , Layer (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) i o
+     )
+  => WeightInitMethod
+  -> Gen (PrimState m)
+  -> Sing i
+  -> Sing o
+  -> m (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns)
+randomDeconvolutionShapes m gen i o = do
     wN <- getRandomMatrix i i m gen
     let mm = konst 0
     return $ Deconvolution wN mm
@@ -325,44 +354,52 @@ instance (KnownNat channels, KnownNat filters, KnownNat kernelRows, KnownNat ker
 
 
 instance ToDynamicLayer SpecDeconvolution where
-  toDynamicLayer wInit gen (SpecDeconvolution inpTriple ch fil kerRows kerCols strRows strCols) =
+  toDynamicLayer  = toDynamicLayer'
+
+toDynamicLayer' :: (PrimBase m) => WeightInitMethod -> Gen (PrimState m) -> SpecDeconvolution -> m SpecNetwork
+toDynamicLayer' _ _ (SpecDeconvolution inp@(_, 0, 0) _ _ _ _ _ _) = error $ "1D input to a deconvolutional layer is not permited! you specified: " ++ show inp
+toDynamicLayer' wInit gen (SpecDeconvolution (rows, cols, depth) ch fil kerRows kerCols strRows strCols) =
     reifyNat ch $ \(pxCh :: (KnownNat channels) => Proxy channels) ->
     reifyNat fil $ \(pxFil :: (KnownNat filters) => Proxy filters) ->
     reifyNat kerRows $ \(pxKerRows :: (KnownNat kernelRows) => Proxy kernelRows) ->
-    reifyNat kerCols $ \(pxKerCols :: (KnownNat kernelColumns) => Proxy kernelColumns) ->
+    reifyNat kerCols $ \(pxKerCols :: (KnownNat kernelCols) => Proxy kernelCols) ->
     reifyNat strRows $ \(_ :: (KnownNat strideRows) => Proxy strideRows) ->
-    reifyNat strCols $ \(_ :: (KnownNat strideColumns) => Proxy strideColumns) ->
+    reifyNat strCols $ \(_ :: (KnownNat strideCols) => Proxy strideCols) ->
+    reifyNat rows $ \(pxRows :: (KnownNat rows) => Proxy rows) ->
+    reifyNat cols $ \(_ :: (KnownNat cols) => Proxy cols) ->
+    reifyNat depth $ \(_ :: (KnownNat depth) => Proxy depth) ->
+    reifyNat ((rows - 1) * strRows + kerRows) $ \(pxOutRows :: (KnownNat outRows) => Proxy outRows) ->
+    reifyNat ((cols - 1) * strCols + kerCols) $ \(_ :: (KnownNat outCols) => Proxy outCols) ->
     case ( (singByProxy pxKerRows %* singByProxy pxKerCols) %* singByProxy pxFil
-         , (singByProxy pxKerRows %* singByProxy pxKerCols) %* singByProxy pxCh
-         , singByProxy pxCh %* ((singByProxy pxKerRows %* singByProxy pxKerCols) %* singByProxy pxFil)) of
-      (SNat, SNat, SNat) -> do
-        (layer  :: Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) <- createRandomWith wInit gen
-        return $ case inpTriple of
-          (_, 0, 0) -> error "1D input to Convolutional networks is not permited!"
-          (rows, cols, 0) ->
-            reifyNat rows $ \(_ :: (KnownNat rows) => Proxy rows) ->
-            reifyNat cols $ \(_ :: (KnownNat cols) => Proxy cols) ->
-            reifyNat ((rows - 1) * strRows + kerRows) $ \(pxOutRows :: (KnownNat outRows) => Proxy outRows) ->
-            reifyNat ((cols - 1) * strCols + kerCols) $ \(pxOutCols :: (KnownNat outCols) => Proxy outCols) ->
-            case singByProxy pxOutRows %* singByProxy pxFil of
-              SNat ->
-                if ch == 1 && fil == 1
-                then SpecLayer layer (SomeSing ( sing :: Sing ('D2 rows cols))) (SomeSing ( sing :: Sing ('D2 outRows outCols)))
-                else SpecLayer layer (SomeSing ( sing :: Sing ('D2 rows cols))) (SomeSing ( sing :: Sing ('D3 outRows outCols filters)))
-          (rows, cols, depth) ->
-            reifyNat rows $ \(pxRows :: (KnownNat rows) => Proxy rows) ->
-            reifyNat cols $ \(_ :: (KnownNat cols) => Proxy cols) ->
-            reifyNat ((rows - 1) * strRows + kerRows) $ \(pxOutRows :: (KnownNat outRows) => Proxy outRows) ->
-            reifyNat ((cols - 1) * strCols + kerCols) $ \(pxOutCols :: (KnownNat outCols) => Proxy outCols) ->
-            case (singByProxy pxRows %* singByProxy pxCh, singByProxy pxOutRows %* singByProxy pxFil) of
-              (SNat, SNat) ->
-                if fil == 1
-                then SpecLayer layer (SomeSing ( sing :: Sing ('D3 rows cols channels))) (SomeSing ( sing :: Sing ('D2 outRows outCols)))
-                else SpecLayer layer (SomeSing ( sing :: Sing ('D3 rows cols channels))) (SomeSing ( sing :: Sing ('D3 outRows outCols filters)))
+         , (singByProxy pxKerRows %* singByProxy pxKerCols) %* singByProxy pxCh -- this is the input: i = (kernelRows * kernelCols) * channels)
+         , singByProxy pxCh %* ((singByProxy pxKerRows %* singByProxy pxKerCols) %* singByProxy pxFil)
+         , singByProxy pxOutRows %* singByProxy pxFil -- 'D3 representation
+         , singByProxy pxRows %* singByProxy pxCh -- 'D3 representation
+         ) of
+      (SNat, SNat, SNat, SNat, SNat) | ch == 1 && fil == 1 && depth == 0 ->
+        case (unsafeCoerce (Dict :: Dict()) :: Dict (channels ~ 1, filters ~ 1, ((rows - 1) * strideRows) ~ (outRows - kernelRows), ((cols - 1) * strideCols) ~ (outCols - kernelCols)) ) of
+          Dict -> do
+            (layer  :: Deconvolution 1 1 kernelRows kernelCols strideRows strideCols) <- createRandomWith wInit gen
+            return $ SpecLayer layer (sing :: Sing ('D2 rows cols)) (sing :: Sing ('D2 outRows outCols))
+      (SNat, SNat, SNat, SNat, SNat) | ch == 1 ->
+        case (unsafeCoerce (Dict :: Dict()) :: Dict (channels ~ 1, ((rows - 1) * strideRows) ~ (outRows - kernelRows), ((cols - 1) * strideCols) ~ (outCols - kernelCols)) ) of
+          Dict -> do
+            (layer  :: Deconvolution 1 filters kernelRows kernelCols strideRows strideCols) <- createRandomWith wInit gen
+            return $ SpecLayer layer (sing :: Sing ('D2 rows cols)) (sing :: Sing ('D3 outRows outCols filters))
+      (SNat, SNat, SNat, SNat, SNat) | fil == 1 ->
+        case (unsafeCoerce (Dict :: Dict()) :: Dict (filters ~ 1, ((rows - 1) * strideRows) ~ (outRows - kernelRows), ((cols - 1) * strideCols) ~ (outCols - kernelCols)) ) of
+          Dict -> do
+            (layer  :: Deconvolution channels 1 kernelRows kernelCols strideRows strideCols) <- createRandomWith wInit gen
+            return $ SpecLayer layer (sing :: Sing ('D3 rows cols channels)) ( sing :: Sing ('D2 outRows outCols))
+      (SNat, SNat, SNat, SNat, SNat) ->
+        case (unsafeCoerce (Dict :: Dict()) :: Dict (((rows - 1) * strideRows) ~ (outRows - kernelRows), ((cols - 1) * strideCols) ~ (outCols - kernelCols)) ) of
+          Dict -> do
+            (layer :: Deconvolution channels filters kernelRows kernelCols strideRows strideCols) <- createRandomWith wInit gen
+            return $ SpecLayer layer (sing :: Sing ('D3 rows cols channels)) ( sing :: Sing ('D3 outRows outCols filters))
 
 
 -- | Creates a specification for a deconvolutional layer with 2D input to the layer. If channels and filters are both 1 then the output is 2D otherwise it is 3D. The output sizes are `out = (in - 1) *
--- stride + kernel`, for rows and columns and the depth is filters for 3D output.
+-- stride + kernel`, for rows and cols and the depth is filters for 3D output.
 specDeconvolution2DInput ::
      (Integer, Integer) -- ^ Number of input rows.
   -> Integer -- ^ Number of channels, for the first layer this could be RGB for instance.
@@ -370,23 +407,23 @@ specDeconvolution2DInput ::
   -> Integer -- ^ The number of rows in the kernel filter
   -> Integer -- ^ The number of column in the kernel filter
   -> Integer -- ^ The row stride of the deconvolution filter
-  -> Integer -- ^ The columns stride of the deconvolution filter
+  -> Integer -- ^ The cols stride of the deconvolution filter
   -> SpecNet
 specDeconvolution2DInput (rows, cols) = specDeconvolution3DInput (rows, cols, 0)
 
 -- | Creates a specification for a deconvolutional layer with 3D input to the layer. If the filter is 1 then the output is 2D, otherwise it is 3D. The output sizes are `out = (in - 1) * stride +
--- kernel`, for rows and columns and the depth is filters for 3D output.
+-- kernel`, for rows and cols and the depth is filters for 3D output.
 specDeconvolution3DInput ::
-     (Integer, Integer, Integer) -- ^ Input to layer (rows, columns, depths). Use 0 if not used or the function @specDeconvolution1DInput@ and @specDeconvolution2DInput@.
+     (Integer, Integer, Integer) -- ^ Input to layer (rows, cols, depths). Use 0 if not used or the function @specDeconvolution1DInput@ and @specDeconvolution2DInput@.
   -> Integer -- ^ Number of channels, for the first layer this could be RGB for instance.
   -> Integer -- ^ Number of filters, this is the number of channels output by the layer.
   -> Integer -- ^ The number of rows in the kernel filter
   -> Integer -- ^ The number of column in the kernel filter
   -> Integer -- ^ The row stride of the deconvolution filter
-  -> Integer -- ^ The columns stride of the deconvolution filter
+  -> Integer -- ^ The cols stride of the deconvolution filter
   -> SpecNet
-specDeconvolution3DInput inp channels filters kernelRows kernelColumns strideRows strideColumns =
-  SpecNetLayer $ SpecDeconvolution inp channels filters kernelRows kernelColumns strideRows strideColumns
+specDeconvolution3DInput inp channels filters kernelRows kernelCols strideRows strideCols =
+  SpecNetLayer $ SpecDeconvolution inp channels filters kernelRows kernelCols strideRows strideCols
 
 
 -------------------- GNum instances --------------------

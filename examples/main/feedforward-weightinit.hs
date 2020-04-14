@@ -1,12 +1,24 @@
 {-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections       #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
+import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.Random
+import           Data.Constraint              (Dict (..))
 import           Data.List                    (foldl')
+import           Data.Reflection              (reifyNat)
+import           Data.Serialize
+import           Data.Singletons
+import           Data.Singletons.Prelude.List
+import           Data.Typeable
+import           GHC.TypeLits
+import           System.IO
+import           Unsafe.Coerce                (unsafeCoerce)
 
 import qualified Data.ByteString              as B
 import           Data.Semigroup               ((<>))
@@ -19,6 +31,8 @@ import qualified Numeric.LinearAlgebra.Static as SA
 import           Options.Applicative
 
 import           Grenade
+
+import           Debug.Trace
 
 -- The definition for our simple feed forward network.
 -- The type level lists represents the layers and the shapes passed through the layers.
@@ -33,7 +47,12 @@ randomNet :: IO FFNet
 randomNet = randomNetworkInitWith HeEtAl  -- you might want to try `Xavier` or `UniformInit` instead of `HeEtAl`
 
 
-netTrain :: FFNet -> LearningParameters -> Int -> IO FFNet
+netTrain ::
+     (SingI (Last shapes), Show (Network layers shapes), MonadRandom m, KnownNat len1, KnownNat len2, Head shapes ~ 'D1 len1, Last shapes ~ 'D1 len2)
+  => Network layers shapes
+  -> LearningParameters
+  -> Int
+  -> m (Network layers shapes)
 netTrain net0 rate n = do
     inps <- replicateM n $ do
       s  <- getRandom
@@ -110,7 +129,7 @@ netScore network = do
 normx :: S ('D1 1) -> Double
 normx (S1D r) = SA.mean r
 
-testValues :: FFNet -> IO ()
+testValues :: (KnownNat len, Show (Network layers shapes), Head shapes ~ 'D1 len, Last shapes ~ 'D1 1) => Network layers shapes -> IO ()
 testValues network = do
   inps <- replicateM 1000 $ do
       s  <- getRandom
@@ -152,7 +171,7 @@ main = do
 
   putStrLn "| Nr | Correct | Incorrect | FalsePositives | FalseNegatives |"
   putStrLn "--------------------------------------------------------------"
-  let nr = 100 :: Int
+  let nr = 00 :: Int
   mapM_ (\n -> do
     putStr $ "| " ++ show n  ++ " | "
     net0 <- randomNet
@@ -161,17 +180,53 @@ main = do
     testValues net) [0..nr-1]
 
 
-  n2 <- randomNetwork :: IO (Network '[FullyConnected 1 10] '[ 'D1 1, 'D1 10 ])
-  let spec = networkToSpecification n2
-  print spec
+  testNet <- randomNetwork :: IO (Network '[FullyConnected 1 1, Relu] '[ 'D1 1, 'D1 1, 'D1 1 ])
+  let spec = networkToSpecification testNet
+      spec1 = SpecNCons (specFullyConnected 2 1) (specNil1D 1)
+      spec2 = specFullyConnected 2 30 |=> specElu1D 30 |=> (specFullyConnected 30 50 |=> specRelu1D 50 |=> specFullyConnected 50 1 |=> specNil1D 1) |=>
+               specNil1D 1
 
-  SpecNetwork n3 <- networkFromSpecification spec
-  print $ networkToSpecification n3
 
-  let spec' = SpecNCons (specFullyConnected 10 30) (specNil1D 30)
-      spec'' = specFullyConnected 7 30 |=> specElu1D 30 |=> (specFullyConnected 30 50 |=> specRelu1D 50 |=> specFullyConnected 50 30) |=>
-               specNil1D 30
-  print spec'
-  print spec''
-  n4 <- networkFromSpecification spec''
-  print n4
+  SpecConcreteNetwork1D1D (net :: Network layers shapes) <- networkFromSpecification spec2
+  -- print (force n1)
+
+
+  -- let inp = 0.4 :: S (Head shapes)
+  --     out = 0.5 :: S (Last shapes)
+  -- putStrLn ("nn inp: " ++ show inp)
+  -- putStrLn ("nn out: " ++ show out)
+  -- print $ trace ("start train") $ train rate n1 inp out
+
+  print (networkToSpecification net)
+  -- hFlush stdout
+
+  -- reifyNat 1 $ \(o :: (KnownNat o) => Proxy o) ->
+  case (unsafeCoerce (Dict :: Dict ()) :: Dict (('D1 1) ~ Last shapes)) of
+      Dict -> do
+        net <- netTrain net rate examples
+        testValues net
+        return ()
+
+  -- withConcreteNetwork specNet (Dict :: Dict (Last shapes ~ 1)) $ \net -> do
+  --   net <- netTrain net rate examples
+  --   testValues net
+  --   return ()
+
+
+  -- print spec''
+  -- n4 <- networkFromSpecification spec''
+  -- print n4
+
+  -- let ser = encode spec''
+  -- print ser
+
+  -- case decode ser of
+  --   Left err                 -> print err
+  --   Right (specS :: SpecNet) -> do
+  --     print specS
+  --     SpecNetwork (n5 :: Network layers shapes) <- networkFromSpecification specS
+  --     case (unsafeCoerce (Dict :: Dict ()) :: Dict (Head shapes ~ 'D1 2, Last shapes ~ 'D1 1)) of
+  --       Dict -> do
+  --         net <- netTrain n5 rate examples
+  --         print net
+  --         testValues net

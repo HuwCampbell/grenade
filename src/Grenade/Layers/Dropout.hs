@@ -9,6 +9,7 @@
 module Grenade.Layers.Dropout (
     Dropout (..)
   , randomDropout
+  , SpecDropout (..)
   , specDropout
   ) where
 
@@ -62,14 +63,14 @@ instance ToDynamicLayer SpecDropout where
   toDynamicLayer _ gen (SpecDropout rows rate mSeed) =
     reifyNat rows $ \(_ :: (KnownNat i) => Proxy i) ->
     case mSeed of
-      Just seed -> return $ SpecLayer (Dropout rate seed) (SomeSing (sing :: Sing ('D1 i))) (SomeSing (sing :: Sing ('D1 i)))
+      Just seed -> return $ SpecLayer (Dropout rate seed) (sing :: Sing ('D1 i)) (sing :: Sing ('D1 i))
       Nothing -> do
         layer <-  randomDropout rate gen
-        return $ SpecLayer layer (SomeSing (sing :: Sing ('D1 i))) (SomeSing (sing :: Sing ('D1 i)))
+        return $ SpecLayer layer (sing :: Sing ('D1 i)) (sing :: Sing ('D1 i))
 
 
 -- | Create a specification for a droput layer by providing the input size of the vector (1D allowed only!), a rate of dropout (default: 0.95) and maybe a seed.
-specDropout :: Integer -> Double -> Maybe (Int) -> SpecNet
+specDropout :: Integer -> Double -> Maybe Int -> SpecNet
 specDropout i rate seed = SpecNetLayer $ SpecDropout i rate seed
 
 

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5af162fe468bce03267a865a272184a6221c056e12edf95e9a1969e1633b301d
+-- hash: 4fde5f17016580551f91b83a54a9073b0315484e3cf9205f50d31a89f903762a
 
 name:           grenade-examples
 version:        0.0.1.0
@@ -70,12 +70,15 @@ executable feedforward-weightinit
     , base
     , bytestring
     , cereal
+    , constraints
     , containers
+    , deepseq
     , either
     , grenade
     , hmatrix >=0.18 && <0.21
     , mtl >=2.2.1 && <2.3
     , optparse-applicative >=0.13 && <0.16
+    , reflection
     , semigroups
     , singletons
     , text ==1.2.*

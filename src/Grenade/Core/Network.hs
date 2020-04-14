@@ -38,9 +38,7 @@ module Grenade.Core.Network (
 import           Control.DeepSeq
 import           Control.Monad.IO.Class
 import           Control.Monad.Primitive           (PrimBase, PrimState)
-import           GHC.Types                         (Constraint)
 import           System.Random.MWC
-import           Type.Reflection
 
 import           Data.Serialize
 import           Data.Singletons
@@ -126,15 +124,16 @@ runNetwork :: forall layers shapes.
               Network layers shapes
            -> S (Head shapes)
            -> (Tapes layers shapes, S (Last shapes))
-runNetwork =
-  go
+runNetwork net inp = go net inp
     where
   go  :: forall js ss. (Last js ~ Last shapes)
       => Network ss js
       -> S (Head js)
       -> (Tapes ss js, S (Last js))
   go (layer :~> n) !x =
-    let (tape, forward) = runForwards layer x
+    let (tape, forward) =
+
+          runForwards layer x
         (tapes, answer) = go n forward
     in  (tape :\> tapes, answer)
 

@@ -52,6 +52,10 @@ executables:
   feedforward-weightinit:
     ghc-options:       -Wall -threaded -O2
     main:              main/feedforward-weightinit.hs
+    dependencies:
+      - constraints
+      - deepseq
+      - reflection
 
   mnist:
     ghc-options:       -Wall -threaded -O2
