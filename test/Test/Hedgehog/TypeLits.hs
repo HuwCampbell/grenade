@@ -7,7 +7,6 @@
 {-# LANGUAGE TypeOperators       #-}
 module Test.Hedgehog.TypeLits where
 
-import           Data.Constraint             (Dict (..))
 import           Data.Singletons             (Proxy (..), Sing (..), SomeSing (..), sing)
 #if MIN_VERSION_singletons(2,6,0)
 import           Data.Singletons.TypeLits    (SNat (..))

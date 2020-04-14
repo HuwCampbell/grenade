@@ -43,17 +43,11 @@ module Grenade.Core.DynamicNetwork
 
 import           Control.DeepSeq
 import           Control.Monad.Primitive           (PrimBase, PrimState)
-import           Data.Constraint                   (Dict (..))
-import           Data.Reflection (reifyNat)
-import           Data.Typeable as T (typeOf, Typeable, cast)
 import           Data.Serialize
 import           Data.Singletons
-import           Data.Singletons.TypeLits (SNat (..))
 import           Data.Singletons.Prelude
-import           GHC.TypeLits
-import           GHC.Generics
+import           Data.Typeable as T (Typeable)
 import           System.Random.MWC
-import           Unsafe.Coerce                     (unsafeCoerce)
 #if MIN_VERSION_base(4,9,0)
 import           Data.Kind                         (Type)
 #endif
@@ -63,7 +57,6 @@ import           Grenade.Core.Layer
 import           Grenade.Core.Shape
 import           Grenade.Core.WeightInitialization
 
-import Debug.Trace
 
 -- | Create a runtime dynamic specification of a network. Dynamic layers (and networks), for storing and restoring specific network structures (e.g. in saving the network structures to a DB and
 -- restoring it from there) or simply generating them at runtime. This does not store the weights and biases! They have to be handled separately (see Serialize)!

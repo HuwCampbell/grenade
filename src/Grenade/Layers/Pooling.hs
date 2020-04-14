@@ -21,25 +21,14 @@ module Grenade.Layers.Pooling (
     Pooling (..)
   ) where
 
+import           Control.DeepSeq                 (NFData)
+import           Data.Kind                       (Type)
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
--- import           Data.Singletons.TypeLits hiding (natVal)
-import           Control.DeepSeq                 (NFData)
-import           Data.Singletons.TypeLits
-import           GHC.Generics                    (Generic)
-
-#if MIN_VERSION_base(4,11,0)
-import           GHC.TypeLits                    hiding (natVal)
-#else
 import           Data.Singletons.TypeLits        hiding (natVal)
-import           GHC.TypeLits
-#endif
-#if MIN_VERSION_base(4,9,0)
-import           Data.Kind                       (Type)
-#endif
-import           Control.DeepSeq                 (NFData)
 import           GHC.Generics                    (Generic)
+import           GHC.TypeLits
 
 
 import           Grenade.Core

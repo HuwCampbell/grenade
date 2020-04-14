@@ -1,12 +1,12 @@
-{-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE RankNTypes            #-}
-{-# LANGUAGE RecordWildCards       #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE RecordWildCards     #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeOperators       #-}
 
 module Grenade.Recurrent.Core.Runner (
     runRecurrentExamples
@@ -17,7 +17,7 @@ module Grenade.Recurrent.Core.Runner (
   , RecurrentGradients
   ) where
 
-import           Data.List ( foldl' )
+import           Data.List                      (foldl')
 import           Data.Singletons.Prelude
 import           Grenade.Core
 
@@ -76,7 +76,7 @@ backPropagateRecurrent network recinputs examples =
   targets = snd <$> examples
 
   makeError :: (x, S (Last shapes)) -> Maybe (S (Last shapes)) -> (x, S (Last shapes))
-  makeError (x, _) Nothing = (x, 0)
+  makeError (x, _) Nothing  = (x, 0)
   makeError (x, y) (Just t) = (x, y - t)
 
 
@@ -95,17 +95,10 @@ trainRecurrent rate network recinputs examples =
 
   in  (newNetwork, newInputs)
 
-updateRecInputs :: Fractional (RecurrentInputs sublayers)
-                => LearningParameters
-                -> RecurrentInputs sublayers
-                -> RecurrentInputs sublayers
-                -> RecurrentInputs sublayers
-
+updateRecInputs :: LearningParameters -> RecurrentInputs sublayers -> RecurrentInputs sublayers -> RecurrentInputs sublayers
 updateRecInputs l@LearningParameters {..} (() :~~+> xs) (() :~~+> ys)
   = () :~~+> updateRecInputs l xs ys
-
 updateRecInputs l@LearningParameters {..} (x :~@+> xs) (y :~@+> ys)
   = (realToFrac (1 - learningRate * learningRegulariser) * x - realToFrac learningRate * y) :~@+> updateRecInputs l xs ys
-
 updateRecInputs _ RINil RINil
   = RINil

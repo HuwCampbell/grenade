@@ -56,17 +56,18 @@ module Grenade.Core.DynamicNetwork
   , tripleFromSomeShape 
   ) where
 
+
 import           Control.DeepSeq
 import           Control.Monad.Primitive           (PrimBase, PrimState)
-import           Data.Constraint                   (Dict (..), Constraint (..))
+import           Data.Constraint                   (Dict (..), Constraint)
 import           Data.Reflection (reifyNat)
 import           Data.Typeable as T (typeOf, Typeable, cast) 
 import           Data.Serialize
 import           Data.Singletons
-import           Data.Singletons.TypeLits (SNat (..))
 import           Data.Singletons.Prelude
 import           GHC.TypeLits
 import           GHC.Generics
+import           Data.Singletons.TypeLits hiding (natVal)
 import           System.Random.MWC
 import           Unsafe.Coerce                     (unsafeCoerce)
 #if MIN_VERSION_base(4,9,0)
@@ -202,10 +203,10 @@ instance (KnownNat rows) => FromDynamicLayer (Network '[] '[ 'D1 rows ]) where
 instance (KnownNat rows, KnownNat cols) => FromDynamicLayer (Network '[] '[ 'D2 rows cols ]) where
   fromDynamicLayer _ _ = SpecNNil2D (natVal (Proxy :: Proxy rows)) (natVal (Proxy :: Proxy cols))
 
-instance (KnownNat rows, KnownNat cols, KnownNat depth, KnownNat (rows GHC.TypeLits.* depth)) => FromDynamicLayer (Network '[] '[ 'D3 rows cols depth ]) where
+instance (KnownNat rows, KnownNat cols, KnownNat depth) => FromDynamicLayer (Network '[] '[ 'D3 rows cols depth ]) where
   fromDynamicLayer _ _ = SpecNNil3D (natVal (Proxy :: Proxy rows)) (natVal (Proxy :: Proxy cols)) (natVal (Proxy :: Proxy depth))
 
-instance (FromDynamicLayer x, FromDynamicLayer (Network xs (h : rs)), SingI i, SingI h, Layer x i h) => FromDynamicLayer (Network (x ': xs) (i ': h ': rs)) where
+instance (FromDynamicLayer x, FromDynamicLayer (Network xs (h : rs)), SingI h) => FromDynamicLayer (Network (x ': xs) (i ': h ': rs)) where
   fromDynamicLayer inp ((x :: x) :~> (xs :: Network xs (h ': rs))) = SpecNCons (fromDynamicLayer inp x) (fromDynamicLayer hShape xs) 
     where hShape = SomeSing (sing :: Sing h)
           

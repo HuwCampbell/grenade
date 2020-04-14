@@ -21,30 +21,19 @@ module Grenade.Layers.Pad (
   ) where
 
 import           Control.DeepSeq
+import           Data.Kind                    (Type)
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits
-
-#if MIN_VERSION_base(4,11,0)
-import           GHC.TypeLits                 hiding (natVal)
-#else
 import           Data.Singletons.TypeLits     hiding (natVal)
-import           GHC.TypeLits
-#endif
-
-#if MIN_VERSION_base(4,9,0)
-import           Data.Kind                    (Type)
-#endif
-import           Control.DeepSeq
 import           GHC.Generics
-
+import           GHC.TypeLits
+import           Numeric.LinearAlgebra        (diagBlock, konst, subMatrix)
+import           Numeric.LinearAlgebra.Static (create, extract)
 
 import           Grenade.Core
 import           Grenade.Layers.Internal.Pad
 
-import           Numeric.LinearAlgebra        (diagBlock, konst, subMatrix)
-import           Numeric.LinearAlgebra.Static (create, extract)
 
 -- | A padding layer for a neural network.
 --

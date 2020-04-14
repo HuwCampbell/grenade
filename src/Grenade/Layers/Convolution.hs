@@ -266,7 +266,6 @@ instance ( KnownNat kernelRows
          , KnownNat strideCols
          , KnownNat inputRows
          , KnownNat inputCols
-         , KnownNat outputRows
          , KnownNat outputCols
          , ((outputRows - 1) * strideRows) ~ (inputRows - kernelRows)
          , ((outputCols - 1) * strideCols) ~ (inputCols - kernelCols)
@@ -289,7 +288,6 @@ instance ( KnownNat kernelRows
          , KnownNat strideCols
          , KnownNat inputRows
          , KnownNat inputCols
-         , KnownNat outputRows
          , KnownNat outputCols
          , KnownNat channels
          , ((outputRows - 1) * strideRows) ~ (inputRows - kernelRows)

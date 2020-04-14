@@ -29,7 +29,7 @@ import           Grenade.Core.Shape
 --   For other loss functions, use runNetwork and runGradient
 --   with the back propagated gradient of your loss.
 --
-backPropagate :: (SingI (Last shapes), Show (Network layers shapes))
+backPropagate :: (SingI (Last shapes))
               => Network layers shapes
               -> S (Head shapes)
               -> S (Last shapes)
@@ -41,7 +41,7 @@ backPropagate network input target =
 
 
 -- | Update a network with new weights after training with an instance.
-train :: (SingI (Last shapes) , Show (Network layers shapes))
+train :: (SingI (Last shapes))
       => LearningParameters
       -> Network layers shapes
       -> S (Head shapes)
@@ -53,5 +53,5 @@ train rate network input output =
 
 
 -- | Run the network with input and return the given output.
-runNet :: (Show (Network layers shapes)) => Network layers shapes -> S (Head shapes) -> S (Last shapes)
+runNet :: Network layers shapes -> S (Head shapes) -> S (Last shapes)
 runNet net = snd . runNetwork net

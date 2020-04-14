@@ -61,7 +61,7 @@ dependencies:
  - base >= 4.7 && < 5
  - mwc-random                      >= 0.13
  - reflection                      >= 0.11.2
- - constraints                     >= 0.11.2
+ - constraints                     >= 0.10.1
  - ghc-prim                        >= 0.5.3
 
 library:
@@ -73,6 +73,9 @@ library:
     -Wincomplete-record-updates
     -Wincomplete-uni-patterns
     -Wredundant-constraints
+    -Werror
+    -Wno-orphans
+    -Wno-name-shadowing
     -fwarn-tabs
   when:
     - condition: impl(ghc < 8.0)
@@ -99,7 +102,7 @@ tests:
   test:
     main:                test.hs
     source-dirs:         test
-    ghc-options:         -Wall -threaded -O2
+    ghc-options:         -Wall -threaded -O2 -Werror
     when:
       - condition: impl(ghc < 8.0)
         ghc-options:       -fno-warn-incomplete-patterns

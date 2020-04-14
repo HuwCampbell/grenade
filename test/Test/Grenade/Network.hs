@@ -14,7 +14,6 @@ import           Control.Monad                   (guard)
 import           Control.Monad.ST                (runST)
 
 import           Data.Constraint
-import           Data.Singletons
 import           Data.Singletons.Prelude.List
 import           Data.Singletons.TypeLits
 import qualified Data.Vector.Storable            as VS

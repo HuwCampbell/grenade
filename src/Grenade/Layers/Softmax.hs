@@ -25,14 +25,11 @@ module Grenade.Layers.Softmax (
 import           Data.Serialize
 
 import           Control.DeepSeq              (NFData (..))
-import           Data.Constraint              (Dict (..))
 import           Data.Reflection              (reifyNat)
 import           Data.Singletons
 import           GHC.Generics                 (Generic)
 import           GHC.TypeLits
-import           GHC.TypeLits
 import           Grenade.Core
-import           Unsafe.Coerce                (unsafeCoerce)
 
 
 import           Numeric.LinearAlgebra.Static as LAS
@@ -87,7 +84,7 @@ instance FromDynamicLayer Softmax where
     _ -> error "Error in specification: The layer Softmax may only be used with 1D input!"
 
 instance ToDynamicLayer SpecSoftmax where
-  toDynamicLayer _ gen (SpecSoftmax rows) =
+  toDynamicLayer _ _ (SpecSoftmax rows) =
     reifyNat rows $ \(_ :: (KnownNat i) => Proxy i) ->
     return $ SpecLayer Softmax (sing :: Sing ('D1 i)) (sing :: Sing ('D1 i))
 
