@@ -102,7 +102,7 @@ tests:
   test:
     main:                test.hs
     source-dirs:         test
-    ghc-options:         -Wall -threaded -O2 -Werror
+    ghc-options:         -Wall -threaded -O2
     when:
       - condition: impl(ghc < 8.0)
         ghc-options:       -fno-warn-incomplete-patterns
