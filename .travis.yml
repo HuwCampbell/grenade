@@ -83,8 +83,8 @@ script:
  - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
  - |
    set -ex
-   # Run tests
-   stack build --no-terminal $ARGS --ghc-options=-Werror
+   # Run tests --ghc-options=-Werror
+   # stack build --no-terminal $ARGS
    stack test --no-terminal $ARGS
    set +ex
 
