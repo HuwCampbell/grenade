@@ -84,8 +84,7 @@ script:
  - |
    set -ex
    # Run tests
-   stack
-   stack build --no-terminal test --ghc-options="-Werror"
-   stack build --test --no-terminal"
+   stack build --no-terminal $ARGS --ghc-options=-Werror
+   stack test --no-terminal $ARGS
    set +ex
 
