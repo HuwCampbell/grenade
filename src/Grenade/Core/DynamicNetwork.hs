@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE CPP                    #-}
 {-# LANGUAGE ConstraintKinds        #-}
 {-# LANGUAGE DeriveAnyClass         #-}
@@ -61,7 +62,7 @@ import           Control.DeepSeq
 import           Control.Monad.Primitive           (PrimBase, PrimState)
 import           Data.Constraint                   (Dict (..), Constraint)
 import           Data.Reflection (reifyNat)
-import           Data.Typeable as T (typeOf, Typeable, cast) 
+import           Data.Typeable as T (typeOf, Typeable, cast, typeRep) 
 import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.Prelude
@@ -92,6 +93,7 @@ import {-# SOURCE #-} Grenade.Layers.Softmax ()
 import {-# SOURCE #-} Grenade.Layers.Tanh ()
 import {-# SOURCE #-} Grenade.Layers.Trivial ()
 #endif
+
 
 -- | Create a runtime dynamic specification of a network. Dynamic layers (and networks), for storing and restoring specific network structures (e.g. in saving the network structures to a DB and
 -- restoring it from there) or simply generating them at runtime. This does not store the weights and biases! They have to be handled separately (see Serialize)!
@@ -174,7 +176,7 @@ instance Serialize SpecNet where
   put (SpecNNil2D r1 c1)    = put (1 :: Int) >> put r1 >> put c1
   put (SpecNNil3D r1 c1 d1) = put (2 :: Int) >> put r1 >> put c1 >> put d1
   put (SpecNCons l1 r1)     = put (3 :: Int) >> put l1 >> put r1
-  put (SpecNetLayer spec1)  = put (4 :: Int) >> put (takeWhile (/= ' ') $  show spec1) >> put spec1
+  put (SpecNetLayer spec1)  = put (4 :: Int) >> put (show $ typeOf spec1) >> put spec1
   get = do
     (nr :: Int) <- get
     case nr of
@@ -189,8 +191,31 @@ instance Show SpecNet where
   show (SpecNNil1D o) = "SpecNNil1D " ++ show o
   show (SpecNNil2D r c) = "SpecNNil2D " ++ show r ++ "x" ++ show c
   show (SpecNNil3D x y z) = "SpecNNil3D " ++ show x ++ "x" ++ show y ++ "x" ++ show z
-  show (SpecNCons layer rest) = show layer ++ " :=> " ++ show rest
+  show (SpecNCons layer rest) = case layer of
+    SpecNCons{} -> "[ " ++ show layer ++ " ] :=> " ++ show rest
+    _ -> show layer ++ " :=> " ++ show rest
   show (SpecNetLayer layer) = show layer
+
+-- | Function to parse the known implemented types. Can only deserialise these!
+parseSpecDataConstructor :: String -> Get SpecNet
+parseSpecDataConstructor repStr 
+#ifdef FLYCHECK
+  = error "serialisation diabled in debug mode"
+#else
+  | repStr == show (typeRep (Proxy :: Proxy SpecFullyConnected)) = SpecNetLayer <$> (get :: Get SpecFullyConnected)
+  | repStr == show (typeRep (Proxy :: Proxy SpecConvolution))    = SpecNetLayer <$> (get :: Get SpecConvolution)
+  | repStr == show (typeRep (Proxy :: Proxy SpecDeconvolution))  = SpecNetLayer <$> (get :: Get SpecDeconvolution)
+  | repStr == show (typeRep (Proxy :: Proxy SpecDropout))        = SpecNetLayer <$> (get :: Get SpecDropout)
+  | repStr == show (typeRep (Proxy :: Proxy SpecElu))            = SpecNetLayer <$> (get :: Get SpecElu)
+  | repStr == show (typeRep (Proxy :: Proxy SpecLogit))          = SpecNetLayer <$> (get :: Get SpecLogit)
+  | repStr == show (typeRep (Proxy :: Proxy SpecRelu))           = SpecNetLayer <$> (get :: Get SpecRelu)
+  | repStr == show (typeRep (Proxy :: Proxy SpecSinusoid))       = SpecNetLayer <$> (get :: Get SpecSinusoid)
+  | repStr == show (typeRep (Proxy :: Proxy SpecSoftmax))        = SpecNetLayer <$> (get :: Get SpecSoftmax)
+  | repStr == show (typeRep (Proxy :: Proxy SpecTanh))           = SpecNetLayer <$> (get :: Get SpecTanh)
+  | repStr == show (typeRep (Proxy :: Proxy SpecTrivial))        = SpecNetLayer <$> (get :: Get SpecTrivial)
+  | repStr == show (typeRep (Proxy :: Proxy SpecNet))            = SpecNetLayer <$> (get :: Get SpecNet)
+  | otherwise                                          = error $ "unexpected input parseSpecDataConstructor: " ++ repStr
+#endif
 
 
 ---------------------------------------- 
@@ -247,7 +272,7 @@ instance ToDynamicLayer SpecNet where
                      case ( unsafeCoerce (Dict :: Dict ()) :: Dict (outShape ~ h)
                           , unsafeCoerce (Dict :: Dict ()) :: Dict (CreatableNetwork (xType ': restLayers) (inShape ': restShapes))) of
                        (Dict, Dict) -> return $ SpecNetwork (x :~> xs :: Network (xType ': restLayers) (inShape ': restShapes))
-              SpecNetwork (x :: Network xLayers xShapes) -> 
+              SpecNetwork (x :: Network xLayers xShapes) ->  
                 case (sing :: Sing xShapes) of 
                   SNil -> error "unexpected empty network (SpecNNil) as layer in specification. Cannot proceed."
                   SCons (i :: Sing i) (xHs :: Sing xHs) -> withSingI i $ withSingI xHs $
@@ -420,23 +445,3 @@ newtype SpecTrivial = SpecTrivial (Integer, Integer, Integer)
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 
--- | Function to parse the known implemented types. Can only deserialise these!
-parseSpecDataConstructor :: String -> Get SpecNet
-parseSpecDataConstructor str = 
-#ifdef FLYCHECK
-  error "serialisation diabled in debug mode"
-#else
-  case str of
-    "SpecFullyConnected" -> SpecNetLayer <$> (get :: Get SpecFullyConnected)
-    "SpecConvolution"    -> SpecNetLayer <$> (get :: Get SpecConvolution)
-    "SpecDeconvolution"  -> SpecNetLayer <$> (get :: Get SpecDeconvolution)
-    "SpecDropout"        -> SpecNetLayer <$> (get :: Get SpecDropout)
-    "SpecElu"            -> SpecNetLayer <$> (get :: Get SpecElu)
-    "SpecLogit"          -> SpecNetLayer <$> (get :: Get SpecLogit)
-    "SpecRelu"           -> SpecNetLayer <$> (get :: Get SpecRelu)
-    "SpecSinusoid"       -> SpecNetLayer <$> (get :: Get SpecSinusoid)
-    "SpecSoftmax"        -> SpecNetLayer <$> (get :: Get SpecSoftmax)
-    "SpecTanh"           -> SpecNetLayer <$> (get :: Get SpecTanh)
-    "SpecTrivial"        -> SpecNetLayer <$> (get :: Get SpecTrivial)
-    _                    -> error $ "unexpected input parseSpecDataConstructor: " ++ str
-#endif

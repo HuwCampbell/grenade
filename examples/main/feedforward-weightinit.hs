@@ -124,13 +124,14 @@ main = do
   SpecConcreteNetwork1D1D (net' :: Network layers shapes) <- networkFromSpecificationWith HeEtAl netSpec
   net' <- netTrain net' rate examples
   let spec' = networkToSpecification net'
-  putStrLn "String represenation of the network: "
+  putStrLn "String represenation of the network specification: "
   print spec'
   let serializedSpec = encode spec'   -- only the specification (not the weights) are serialized here! The weights can be serialized using the networks serialize instance!
   let weightsBs = encode net'         -- E.g. like this.
   case decode serializedSpec of
     Left err -> print err
     Right spec'' -> do
+      print spec''
       SpecConcreteNetwork1D1D (net'' :: Network layers'' shapes'') <- networkFromSpecificationWith HeEtAl spec''
       net'' <- foldM (\n _ -> netTrain n rate examples) net'' [1..30]
       case (unsafeCoerce (Dict :: Dict ()) :: Dict (('D1 1) ~ Last shapes'')) of
