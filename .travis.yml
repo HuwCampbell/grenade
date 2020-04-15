@@ -86,6 +86,6 @@ script:
    # Run tests
    stack
    stack build --no-terminal test --ghc-options="-Werror"
-   stack --no-terminal test "
+   stack build --test --no-terminal"
    set +ex
 
