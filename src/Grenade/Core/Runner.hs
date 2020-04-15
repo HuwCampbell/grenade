@@ -15,8 +15,8 @@ module Grenade.Core.Runner (
 
 import           Data.Singletons.Prelude
 
-import           Grenade.Core.LearningParameters
 import           Grenade.Core.Network
+import           Grenade.Core.Optimizer
 import           Grenade.Core.Shape
 
 -- | Perform reverse automatic differentiation on the network
@@ -42,14 +42,14 @@ backPropagate network input target =
 
 -- | Update a network with new weights after training with an instance.
 train :: (SingI (Last shapes))
-      => LearningParameters
+      => Optimizer opt
       -> Network layers shapes
       -> S (Head shapes)
       -> S (Last shapes)
       -> Network layers shapes
-train rate network input output =
+train optimizer network input output =
     let grads = backPropagate network input output
-    in  applyUpdate rate network grads
+    in  applyUpdate optimizer network grads
 
 
 -- | Run the network with input and return the given output.

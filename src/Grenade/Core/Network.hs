@@ -1,11 +1,11 @@
 {-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE DeriveDataTypeable    #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -49,7 +49,7 @@ import           Data.Kind                         (Type)
 #endif
 
 import           Grenade.Core.Layer
-import           Grenade.Core.LearningParameters
+import           Grenade.Core.Optimizer
 import           Grenade.Core.Shape
 import           Grenade.Core.WeightInitialization
 
@@ -124,7 +124,7 @@ runNetwork :: forall layers shapes.
               Network layers shapes
            -> S (Head shapes)
            -> (Tapes layers shapes, S (Last shapes))
-runNetwork net inp = go net inp
+runNetwork = go
     where
   go  :: forall js ss. (Last js ~ Last shapes)
       => Network ss js
@@ -170,15 +170,16 @@ runGradient net tapes o =
 
 
 -- | Apply one step of stochastic gradient descent across the network.
-applyUpdate :: LearningParameters
+applyUpdate :: Optimizer opt
             -> Network layers shapes
             -> Gradients layers
             -> Network layers shapes
 applyUpdate rate (layer :~> rest) (gradient :/> grest) = runUpdate rate layer gradient :~> applyUpdate rate rest grest
 applyUpdate _ NNil GNil = NNil
 
+
 -- | A network can easily be created by hand with (:~>), but an easy way to
---   initialise a random network is with the randomNetwork.
+--   initialise a random network is with the @randomNetworkWith@ function.
 class CreatableNetwork (xs :: [Type]) (ss :: [Shape])
   -- | Create a network with randomly initialised weights.
   --
@@ -189,7 +190,7 @@ class CreatableNetwork (xs :: [Type]) (ss :: [Shape])
 
 -- | Create a random network using uniform distribution.
 randomNetwork :: (MonadIO m, CreatableNetwork xs ss) => m (Network xs ss)
-randomNetwork = liftIO $ withSystemRandom . asGenST $ \gen -> randomNetworkWith UniformInit gen
+randomNetwork = randomNetworkInitWith UniformInit
 
 -- | Create a random network using the specified weight initialization method.
 randomNetworkInitWith :: (MonadIO m, CreatableNetwork xs ss) => WeightInitMethod -> m (Network xs ss)
@@ -218,7 +219,7 @@ instance CreatableNetwork sublayers subshapes => UpdateLayer (Network sublayers 
   type Gradient (Network sublayers subshapes) = Gradients sublayers
   runUpdate = applyUpdate
 
-instance  CreatableNetwork sublayers subshapes => RandomLayer (Network sublayers subshapes) where
+instance CreatableNetwork sublayers subshapes => RandomLayer (Network sublayers subshapes) where
   createRandomWith = randomNetworkWith
 
 -- | Ultimate composition.
@@ -260,6 +261,11 @@ instance GNum (Gradients '[]) where
   _ |+ GNil = GNil
   gFromRational _ = GNil
 
+instance (GNum a) => GNum [a] where
+  r |* xs = fmap (r |*) xs
+  xs |+ ys = zipWith (|+) xs ys
+  gFromRational _ = error "Cannot create a list of elements using gFromRational"
+
 instance (UpdateLayer x, GNum (Gradient x), GNum (Gradients xs)) => GNum (Gradients (x ': xs)) where
   s |* (x :/> xs) = (s |* x) :/> (s |* xs)
   (x :/> xs) |+ (y :/> ys) = (x |+ y) :/> (xs |+ ys)
@@ -274,4 +280,5 @@ instance (GNum a, GNum b) => GNum (a, b) where
   s |* (a, b) = (s |* a, s |* b)
   (a1, b1) |+ (a2, b2) = (a1 |+ a2, b1 |+ b2)
   gFromRational v = (gFromRational v, gFromRational v)
+
 

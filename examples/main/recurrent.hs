@@ -45,8 +45,8 @@ type RecInput = RecurrentInputs '[ R (LSTM 1 1)]
 randomNet :: IO RecNet
 randomNet = randomRecurrent
 
-netTest :: MonadRandom m => RecNet -> RecInput -> LearningParameters -> Int -> m (RecNet, RecInput)
-netTest net0 i0 rate iterations =
+netTest :: MonadRandom m => RecNet -> RecInput -> Optimizer o -> Int -> m (RecNet, RecInput)
+netTest net0 i0 opt iterations =
     foldM trainIteration (net0,i0) [1..iterations]
   where
     trainingCycle = cycle [c 0, c 0, c 1]
@@ -58,13 +58,13 @@ netTest net0 i0 rate iterations =
       let example = ((,Nothing) <$> take count t) ++ [(t !! count, Just $ t !! (count + 1))]
       return $ trainEach net io example
 
-    trainEach !nt !io !ex = trainRecurrent rate nt io ex
+    trainEach !nt !io !ex = trainRecurrent opt nt io ex
 
-data FeedForwardOpts = FeedForwardOpts Int LearningParameters
+data FeedForwardOpts = FeedForwardOpts Int (Optimizer 'SGD)
 
 feedForward' :: Parser FeedForwardOpts
 feedForward' = FeedForwardOpts <$> option auto (long "examples" <> short 'e' <> value 40000)
-                               <*> (LearningParameters
+                               <*> (OptSGD
                                     <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
                                     <*> option auto (long "momentum" <> value 0.9)
                                     <*> option auto (long "l2" <> value 0.0005)

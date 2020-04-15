@@ -63,6 +63,7 @@ dependencies:
  - reflection                      >= 0.11.2
  - constraints                     >= 0.10.1
  - ghc-prim                        >= 0.5.3
+ - data-default
 
 library:
   source-dirs:

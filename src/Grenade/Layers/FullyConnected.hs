@@ -38,12 +38,13 @@ import           Numeric.LinearAlgebra.Static
 
 import           Grenade.Core
 import           Grenade.Layers.Internal.Update
+import           Grenade.Utils.ListStore
 
 
 -- | A basic fully connected (or inner product) neural network layer.
 data FullyConnected i o = FullyConnected
                         !(FullyConnected' i o)   -- Neuron weights
-                        !(FullyConnected' i o)   -- Neuron momentum
+                        !(ListStore (FullyConnected' i o))   -- momentum store
                         deriving (Generic, NFData)
 
 data FullyConnected' i o = FullyConnected'
@@ -55,15 +56,26 @@ instance Show (FullyConnected i o) where
   show FullyConnected {} = "FullyConnected"
 
 
-instance (KnownNat i, KnownNat o) => UpdateLayer (FullyConnected i o) where
+instance (KnownNat i, KnownNat o, KnownNat (i * o)) => UpdateLayer (FullyConnected i o) where
   type Gradient (FullyConnected i o) = (FullyConnected' i o)
+  type MomentumStore (FullyConnected i o) = ListStore (FullyConnected' i o)
+  runUpdate (OptSGD lRate lMomentum lRegulariser) x@(FullyConnected (FullyConnected' oldBias oldActivations) store) (FullyConnected' biasGradient activationGradient) =
+    let (FullyConnected' oldBiasMomentum oldMomentum) = getData defOptimizer x store
+        (newBias, newBiasMomentum) = descendVector lRate lMomentum lRegulariser oldBias biasGradient oldBiasMomentum
+        (newActivations, newMomentum) = descendMatrix lRate lMomentum lRegulariser oldActivations activationGradient oldMomentum
+        newMomenta = setData defOptimizer x store (FullyConnected' newBiasMomentum newMomentum)
+     in FullyConnected (FullyConnected' newBias newActivations) newMomenta
+  -- runUpdate _ x g = runUpdate defOptimizer x g
 
-  runUpdate lp (FullyConnected (FullyConnected' oldBias oldActivations) (FullyConnected' oldBiasMomentum oldMomentum)) (FullyConnected' biasGradient activationGradient) =
-    let (newBias, newBiasMomentum)    = descendVector (learningRate lp) (learningMomentum lp) (learningRegulariser lp) oldBias biasGradient oldBiasMomentum
-        (newActivations, newMomentum) = descendMatrix (learningRate lp) (learningMomentum lp) (learningRegulariser lp) oldActivations activationGradient oldMomentum
-    in FullyConnected (FullyConnected' newBias newActivations) (FullyConnected' newBiasMomentum newMomentum)
 
-instance (KnownNat i, KnownNat o) => Layer (FullyConnected i o) ('D1 i) ('D1 o) where
+instance (KnownNat i, KnownNat o, KnownNat (i * o)) => LayerOptimizerData (FullyConnected i o) (Optimizer 'SGD) where
+  type MomentumData (FullyConnected i o) (Optimizer 'SGD) = FullyConnected' i o
+  getData opt x store = head $ getListStore opt x store
+  setData opt x store = setListStore opt x store . return
+  newData _ _ = FullyConnected' (konst 0) (konst 0)
+
+
+instance (KnownNat i, KnownNat o, KnownNat (i * o)) => Layer (FullyConnected i o) ('D1 i) ('D1 o) where
   type Tape (FullyConnected i o) ('D1 i) ('D1 o) = R i
   -- Do a matrix vector multiplication and return the result.
   runForwards (FullyConnected (FullyConnected' wB wN) _) (S1D v) = (v, S1D (wB + wN #> v))
@@ -76,21 +88,24 @@ instance (KnownNat i, KnownNat o) => Layer (FullyConnected i o) ('D1 i) ('D1 o) 
               dWs  = tr wN #> dEdy
           in  (FullyConnected' wB' mm', S1D dWs)
 
+
 instance (KnownNat i, KnownNat o) => Serialize (FullyConnected i o) where
-  put (FullyConnected (FullyConnected' b w) _) = do
+  put (FullyConnected w ms) = put w >> put ms
+  get = FullyConnected <$> get <*> get
+
+
+instance (KnownNat i, KnownNat o) => Serialize (FullyConnected' i o) where
+  put (FullyConnected' b w) = do
     putListOf put . LA.toList . extract $ b
     putListOf put . LA.toList . LA.flatten . extract $ w
-
   get = do
       let f  = fromIntegral $ natVal (Proxy :: Proxy i)
       b     <- maybe (fail "Vector of incorrect size") return . create . LA.fromList =<< getListOf get
       k     <- maybe (fail "Vector of incorrect size") return . create . LA.reshape f . LA.fromList =<< getListOf get
-      let bm = konst 0
-      let mm = konst 0
-      return $ FullyConnected (FullyConnected' b k) (FullyConnected' bm mm)
+      return $ FullyConnected' b k
+
 
 instance (KnownNat i, KnownNat o, KnownNat (i*o)) => RandomLayer (FullyConnected i o) where
-
   createRandomWith = randomFullyConnected
 
 
@@ -99,9 +114,9 @@ randomFullyConnected :: forall m i o . (PrimBase m, KnownNat i, KnownNat o, Know
 randomFullyConnected m gen = do
   wN <- getRandomMatrix i o m gen
   wB <- getRandomVector i o m gen
-  let bm = konst 0
-      mm = konst 0
-  return $ FullyConnected (FullyConnected' wB wN) (FullyConnected' bm mm)
+  -- let bm = konst 0
+  --     mm = konst 0
+  return $ FullyConnected (FullyConnected' wB wN) mkListStore
   where i = natVal (Proxy :: Proxy i)
         o = natVal (Proxy :: Proxy o)
 
@@ -109,6 +124,7 @@ randomFullyConnected m gen = do
 
 instance (KnownNat i, KnownNat o) => FromDynamicLayer (FullyConnected i o) where
   fromDynamicLayer _ _ = SpecNetLayer $ SpecFullyConnected (natVal (Proxy :: Proxy i)) (natVal (Proxy :: Proxy o))
+
 
 instance ToDynamicLayer SpecFullyConnected where
   toDynamicLayer wInit gen (SpecFullyConnected nrI nrO) =

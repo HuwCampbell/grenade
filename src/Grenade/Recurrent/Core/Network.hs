@@ -188,15 +188,15 @@ runRecurrent' net tapes r o =
 -- | Apply a batch of gradients to the network
 --   Uses runUpdates which can be specialised for
 --   a layer.
-applyRecurrentUpdate :: LearningParameters
+applyRecurrentUpdate :: Optimizer opt
                      -> RecurrentNetwork layers shapes
                      -> RecurrentGradient layers
                      -> RecurrentNetwork layers shapes
-applyRecurrentUpdate rate (layer :~~> rest) (gradient ://> grest)
-  = runUpdate rate layer gradient :~~> applyRecurrentUpdate rate rest grest
+applyRecurrentUpdate opt (layer :~~> rest) (gradient ://> grest)
+  = runUpdate opt layer gradient :~~> applyRecurrentUpdate opt rest grest
 
-applyRecurrentUpdate rate (layer :~@> rest) (gradient ://> grest)
-  = runUpdate rate layer gradient :~@> applyRecurrentUpdate rate rest grest
+applyRecurrentUpdate opt (layer :~@> rest) (gradient ://> grest)
+  = runUpdate opt layer gradient :~@> applyRecurrentUpdate opt rest grest
 
 applyRecurrentUpdate _ RNil RGNil
   = RNil

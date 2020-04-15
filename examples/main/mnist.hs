@@ -75,7 +75,7 @@ type MNIST =
 randomMnist :: IO MNIST
 randomMnist = randomNetwork
 
-convTest :: Int -> FilePath -> FilePath -> LearningParameters -> ExceptT String IO ()
+convTest :: Int -> FilePath -> FilePath -> Optimizer 'SGD -> ExceptT String IO ()
 convTest iterations trainFile validateFile rate = do
   net0         <- lift randomMnist
   trainData    <- readMNIST trainFile
@@ -86,20 +86,20 @@ convTest iterations trainFile validateFile rate = do
   trainEach rate' !network (i, o) = train rate' network i o
 
   runIteration trainRows validateRows net i = do
-    let trained' = foldl' (trainEach ( rate { learningRate = learningRate rate * 0.9 ^ i} )) net trainRows
+    let trained' = foldl' (trainEach ( rate { sgdLearningRate = sgdLearningRate rate * 0.9 ^ i} )) net trainRows
     let res      = fmap (\(rowP,rowL) -> (rowL,) $ runNet trained' rowP) validateRows
     let res'     = fmap (\(S1D label, S1D prediction) -> (maxIndex (SA.extract label), maxIndex (SA.extract prediction))) res
     print trained'
     putStrLn $ "Iteration " ++ show i ++ ": " ++ show (length (filter ((==) <$> fst <*> snd) res')) ++ " of " ++ show (length res')
     return trained'
 
-data MnistOpts = MnistOpts FilePath FilePath Int LearningParameters
+data MnistOpts = MnistOpts FilePath FilePath Int (Optimizer 'SGD)
 
 mnist' :: Parser MnistOpts
 mnist' = MnistOpts <$> argument str (metavar "TRAIN")
                    <*> argument str (metavar "VALIDATE")
                    <*> option auto (long "iterations" <> short 'i' <> value 15)
-                   <*> (LearningParameters
+                   <*> (OptSGD
                        <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
                        <*> option auto (long "momentum" <> value 0.9)
                        <*> option auto (long "l2" <> value 0.0005)

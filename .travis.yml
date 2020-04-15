@@ -86,5 +86,6 @@ script:
    # Run tests --ghc-options=-Werror
    # stack build --no-terminal $ARGS
    stack test --no-terminal $ARGS
+   stack test --no-terminal $ARGS
    set +ex
 

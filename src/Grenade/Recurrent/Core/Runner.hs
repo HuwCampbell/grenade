@@ -79,19 +79,19 @@ backPropagateRecurrent network recinputs examples =
   makeError (x, y) (Just t) = (x, y - t)
 
 
-trainRecurrent :: forall shapes layers. (SingI (Last shapes), Fractional (RecurrentInputs layers))
-               => LearningParameters
+trainRecurrent :: forall opt shapes layers. (SingI (Last shapes), Fractional (RecurrentInputs layers))
+               => Optimizer opt
                -> RecurrentNetwork layers shapes
                -> RecurrentInputs layers
                -> [(S (Head shapes), Maybe (S (Last shapes)))]
                -> (RecurrentNetwork layers shapes, RecurrentInputs layers)
-trainRecurrent rate network recinputs examples =
+trainRecurrent opt network recinputs examples =
   let (gradients, recinputs') = backPropagateRecurrent network recinputs examples
-      newInputs               = updateRecInputs rate recinputs recinputs'
-      newNetwork              = foldl' (applyRecurrentUpdate rate) network gradients
+      newInputs               = updateRecInputs opt recinputs recinputs'
+      newNetwork              = foldl' (applyRecurrentUpdate opt) network gradients
   in  (newNetwork, newInputs)
 
-updateRecInputs :: LearningParameters -> RecurrentInputs sublayers -> RecurrentInputs sublayers -> RecurrentInputs sublayers
-updateRecInputs lp (() :~~+> xs) (() :~~+> ys) = () :~~+> updateRecInputs lp xs ys
-updateRecInputs lp (x :~@+> xs) (y :~@+> ys) = (realToFrac (1 - learningRate lp * learningRegulariser lp) * x - realToFrac (learningRate lp) * y) :~@+> updateRecInputs lp xs ys
+updateRecInputs :: Optimizer opt -> RecurrentInputs sublayers -> RecurrentInputs sublayers -> RecurrentInputs sublayers
+updateRecInputs opt (() :~~+> xs) (() :~~+> ys) = () :~~+> updateRecInputs opt xs ys
+updateRecInputs opt@(OptSGD lRate _ lRegulariser) (x :~@+> xs) (y :~@+> ys) = (realToFrac (1 - lRate * lRegulariser) * x - realToFrac lRate * y) :~@+> updateRecInputs opt xs ys
 updateRecInputs _ RINil RINil = RINil

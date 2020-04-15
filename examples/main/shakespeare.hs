@@ -87,13 +87,13 @@ loadShakespeare path = do
   hot          <- ExceptT . return . note "Couldn't generate hot values" $ traverse (`M.lookup` m) annotated
   return (V.fromList hot, m, cs)
 
-trainSlice :: LearningParameters -> Shakespeare -> Shakespearian -> Vector Int -> Int -> Int -> (Shakespeare, Shakespearian)
-trainSlice !lrate !net !recIns input offset size =
+trainSlice :: Optimizer o -> Shakespeare -> Shakespearian -> Vector Int -> Int -> Int -> (Shakespeare, Shakespearian)
+trainSlice !opt !net !recIns input offset size =
   let e = fmap (x . oneHot) . V.toList $ V.slice offset size input
   in case reverse e of
     (o : l : xs) ->
       let examples = reverse $ (l, Just o) : ((,Nothing) <$> xs)
-      in  trainRecurrent lrate net recIns examples
+      in  trainRecurrent opt net recIns examples
     _ -> error "Not enough input"
     where
       x = fromMaybe (error "Hot variable didn't fit.")
@@ -140,7 +140,7 @@ generateParagraph n s temp hotmap hotdict =
 data ShakespeareOpts = ShakespeareOpts {
     trainingFile :: FilePath
   , iterations   :: Int
-  , rate         :: LearningParameters
+  , rate         :: Optimizer 'SGD
   , sequenceSize :: Int
   , temperature  :: Double
   , loadPath     :: Maybe FilePath
@@ -150,7 +150,7 @@ data ShakespeareOpts = ShakespeareOpts {
 shakespeare' :: Parser ShakespeareOpts
 shakespeare' = ShakespeareOpts <$> argument str (metavar "TRAIN")
                                <*> option auto (long "examples" <> short 'e' <> value 1000000)
-                               <*> (LearningParameters
+                               <*> (OptSGD
                                     <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
                                     <*> option auto (long "momentum" <> value 0.95)
                                     <*> option auto (long "l2" <> value 0.000001)

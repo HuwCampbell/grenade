@@ -40,6 +40,7 @@ runtime errors.
 module Grenade.Core.Layer (
     Layer (..)
   , UpdateLayer (..)
+  , LayerOptimizerData (..)
   , RandomLayer (..)
   , createRandom
   ) where
@@ -53,7 +54,8 @@ import           Data.List                         (foldl')
 import           Data.Kind                         (Type)
 #endif
 
-import           Grenade.Core.LearningParameters
+-- import           Grenade.Core.LearningParameters
+import           Grenade.Core.Optimizer
 import           Grenade.Core.Shape
 import           Grenade.Core.WeightInitialization
 
@@ -64,15 +66,37 @@ class UpdateLayer x where
   -- | The type for the gradient for this layer.
   --   Unit if there isn't a gradient to pass back.
   type Gradient x :: Type
+  type MomentumStore x :: Type
+  type MomentumStore x = ()
 
   -- | Update a layer with its gradient and learning parameters
-  runUpdate       :: LearningParameters -> x -> Gradient x -> x
+  runUpdate   :: Optimizer opt -> x -> Gradient x -> x
 
-  -- | Update a layer with many Gradients
-  runUpdates      :: LearningParameters -> x -> [Gradient x] -> x
+  -- | Update a layer with many Gradientsx1
+  runUpdates      :: Optimizer opt -> x -> [Gradient x] -> x
   runUpdates rate = foldl' (runUpdate rate)
 
   {-# MINIMAL runUpdate #-}
+
+-- | This is the class which abstracts on how to store the data
+--   in the learning process using the different optimizers. A layer
+--   can implement it and use it as storage retrieval and setting,
+--   however this is not a must. Fro a usefule storage see the
+--   @ListStore@ type and the @FullyConnected@ layer for an example.
+class LayerOptimizerData x optimizer where
+  -- | A data structure that holds all the needed momentum vectors for
+  --   the specied optimizer.
+  type MomentumData x optimizer :: Type
+
+  -- | Gets a momentum vector(s) for the specified optimizer.
+  getData :: optimizer -> x -> MomentumStore x -> MomentumData x optimizer
+
+  -- | Sets the momentum vector(s) for the specified optimizer.
+  setData :: optimizer -> x -> MomentumStore x -> MomentumData x optimizer -> MomentumStore x
+
+  -- | Create empty data instance with all values set to 0.
+  newData :: optimizer -> x -> MomentumData x optimizer
+
 
 -- | Class for a layer. All layers implement this, however, they don't
 --   need to implement it for all shapes, only ones which are
@@ -99,14 +123,17 @@ class (UpdateLayer x) => Layer x (i :: Shape) (o :: Shape) where
 
 -- | Class for random initialization of a layer. This enables to use
 --   various initialization techniques for the networks. Every layer
---   needs to implement this.
+--   needs to implement this. This is standalone class to prevent
+--   code duplication for layers which use concrete types in their
+--   @UpdateLayer@ instances.
 class RandomLayer x where
   -- | Create a random layer according to given initialization method.
   createRandomWith    :: (PrimBase m) => WeightInitMethod -> Gen (PrimState m) -> m x
 
 
--- | Create a new random network. This uses the uniform initialization, see @WeightInitMethod@ and
--- @createRandomWith@.
+-- | Create a new random network. This uses the uniform initialization,
+-- see @WeightInitMethod@ and @createRandomWith@.
 createRandom :: (RandomLayer x)  => IO x
 createRandom = withSystemRandom . asGenST $ \gen -> createRandomWith UniformInit gen
+
 

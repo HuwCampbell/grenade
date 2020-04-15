@@ -89,8 +89,8 @@ randomDiscriminator = randomNetwork
 randomGenerator :: IO Generator
 randomGenerator = randomNetwork
 
-trainExample :: LearningParameters -> Discriminator -> Generator -> S ('D2 28 28) -> S ('D1 80) -> ( Discriminator, Generator )
-trainExample rate discriminator generator realExample noiseSource
+trainExample :: Optimizer 'SGD -> Discriminator -> Generator -> S ('D2 28 28) -> S ('D1 80) -> ( Discriminator, Generator )
+trainExample opt discriminator generator realExample noiseSource
  = let (generatorTape, fakeExample)       = runNetwork generator noiseSource
 
        (discriminatorTapeReal, guessReal) = runNetwork discriminator realExample
@@ -102,13 +102,13 @@ trainExample rate discriminator generator realExample noiseSource
 
        (generator', _)                    = runGradient generator generatorTape push
 
-       newDiscriminator                   = foldl' (applyUpdate rate { learningRegulariser = learningRegulariser rate * 10}) discriminator [ discriminator'real, discriminator'fake ]
-       newGenerator                       = applyUpdate rate generator generator'
+       newDiscriminator                   = foldl' (applyUpdate opt { sgdLearningRegulariser = sgdLearningRegulariser opt * 10}) discriminator [ discriminator'real, discriminator'fake ]
+       newGenerator                       = applyUpdate opt generator generator'
    in ( newDiscriminator, newGenerator )
 
 
-ganTest :: (Discriminator, Generator) -> Int -> FilePath -> LearningParameters -> ExceptT String IO (Discriminator, Generator)
-ganTest (discriminator0, generator0) iterations trainFile rate = do
+ganTest :: (Discriminator, Generator) -> Int -> FilePath -> Optimizer 'SGD -> ExceptT String IO (Discriminator, Generator)
+ganTest (discriminator0, generator0) iterations trainFile opt = do
   trainData      <- fmap fst <$> readMNIST trainFile
 
   lift $ foldM (runIteration trainData) ( discriminator0, generator0 ) [1..iterations]
@@ -132,7 +132,7 @@ ganTest (discriminator0, generator0) iterations trainFile rate = do
   runIteration trainData ( !discriminator, !generator ) _ = do
     trained'    <- foldM ( \(!discriminatorX, !generatorX ) realExample -> do
                       fakeExample <- randomOfShape
-                      return $ trainExample rate discriminatorX generatorX realExample fakeExample
+                      return $ trainExample opt discriminatorX generatorX realExample fakeExample
                      ) ( discriminator, generator ) trainData
 
 
@@ -140,12 +140,12 @@ ganTest (discriminator0, generator0) iterations trainFile rate = do
 
     return trained'
 
-data GanOpts = GanOpts FilePath Int LearningParameters (Maybe FilePath) (Maybe FilePath)
+data GanOpts = GanOpts FilePath Int (Optimizer 'SGD) (Maybe FilePath) (Maybe FilePath)
 
 mnist' :: Parser GanOpts
 mnist' = GanOpts <$> argument str (metavar "TRAIN")
                  <*> option auto (long "iterations" <> short 'i' <> value 15)
-                 <*> (LearningParameters
+                 <*> (OptSGD
                        <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
                        <*> option auto (long "momentum" <> value 0.9)
                        <*> option auto (long "l2" <> value 0.0005)

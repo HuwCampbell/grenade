@@ -149,8 +149,8 @@ instance ( KnownNat channels
          , KnownNat (kernelRows * kernelColumns * filters)
          ) => UpdateLayer (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) where
   type Gradient (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) = (Deconvolution' channels filters kernelRows kernelColumns strideRows strideColumns)
-  runUpdate lp (Deconvolution oldKernel oldMomentum) (Deconvolution' kernelGradient) =
-    let (newKernel, newMomentum) = descendMatrix (learningRate lp) (learningMomentum lp) (learningRegulariser lp) oldKernel kernelGradient oldMomentum
+  runUpdate (OptSGD lRate lMomentum lRegulariser) (Deconvolution oldKernel oldMomentum) (Deconvolution' kernelGradient) =
+    let (newKernel, newMomentum) = descendMatrix lRate lMomentum lRegulariser oldKernel kernelGradient oldMomentum
     in Deconvolution newKernel newMomentum
 
 

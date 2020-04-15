@@ -2,7 +2,6 @@
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections       #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
 import           Control.Monad
@@ -11,7 +10,6 @@ import           Control.Monad.Random
 import           Data.List                    (foldl')
 
 import qualified Data.ByteString              as B
-import           Data.Semigroup               ((<>))
 import           Data.Serialize
 #if ! MIN_VERSION_base(4,13,0)
 import           Data.Semigroup               ((<>))
@@ -37,8 +35,8 @@ type FFNet = Network '[ FullyConnected 2 40, Tanh, FullyConnected 40 10, Relu, F
 randomNet :: (MonadIO m) => m FFNet
 randomNet = randomNetwork
 
-netTrain :: FFNet -> LearningParameters -> Int -> IO FFNet
-netTrain net0 rate n = do
+netTrain :: FFNet -> Optimizer o -> Int -> IO FFNet
+netTrain net0 opt n = do
     inps <- replicateM n $ do
       s  <- getRandom
       return $ S1D $ SA.randomVector s SA.Uniform * 2 - 1
@@ -53,7 +51,7 @@ netTrain net0 rate n = do
   where
     inCircle :: KnownNat n => SA.R n -> (SA.R n, Double) -> Bool
     v `inCircle` (o, r) = SA.norm_2 (v - o) <= r
-    trainEach !network (i,o) = train rate network i o
+    trainEach !network (i,o) = train opt network i o
 
 netLoad :: FilePath -> IO FFNet
 netLoad modelPath = do
@@ -77,12 +75,12 @@ netScore network = do
     normx :: S ('D1 1) -> Double
     normx (S1D r) = SA.mean r
 
-data FeedForwardOpts = FeedForwardOpts Int LearningParameters (Maybe FilePath) (Maybe FilePath)
+data FeedForwardOpts = FeedForwardOpts Int (Optimizer 'SGD) (Maybe FilePath) (Maybe FilePath)
 
 feedForward' :: Parser FeedForwardOpts
 feedForward' =
   FeedForwardOpts <$> option auto (long "examples" <> short 'e' <> value 100000)
-                  <*> (LearningParameters
+                  <*> (OptSGD
                       <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
                       <*> option auto (long "momentum" <> value 0.9)
                       <*> option auto (long "l2" <> value 0.0005)

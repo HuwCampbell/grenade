@@ -28,10 +28,10 @@ netSpec = specFullyConnected 2 40 |=> specTanh1D 40 |=> netSpecInner |=> specFul
 netTrain ::
      (SingI (Last shapes), MonadRandom m, KnownNat len1, KnownNat len2, Head shapes ~ 'D1 len1, Last shapes ~ 'D1 len2)
   => Network layers shapes
-  -> LearningParameters
+  -> Optimizer o
   -> Int
   -> m (Network layers shapes)
-netTrain net0 rate n = do
+netTrain net0 op n = do
     inps <- replicateM n $ do
       s  <- getRandom
       return $ S1D $ SA.randomVector s SA.Uniform * 2 - 1
@@ -43,7 +43,7 @@ netTrain net0 rate n = do
     let trained = foldl' trainEach net0 (zip inps outs)
     return trained
 
-  where trainEach !network (i,o) = train rate network i o
+  where trainEach !network (i,o) = train op network i o
 
 netScore :: (KnownNat len, Head shapes ~ 'D1 len, Last shapes ~ 'D1 1) => Network layers shapes -> IO ()
 netScore network = do
@@ -89,12 +89,12 @@ inCircle :: KnownNat n => SA.R n -> (SA.R n, Double) -> Bool
 v `inCircle` (o, r) = SA.norm_2 (v - o) <= r
 
 
-data FeedForwardOpts = FeedForwardOpts Int LearningParameters
+data FeedForwardOpts = FeedForwardOpts Int (Optimizer 'SGD)
 
 feedForward' :: Parser FeedForwardOpts
 feedForward' =
   FeedForwardOpts <$> option auto (long "examples" <> short 'e' <> value 1000)
-                  <*> (LearningParameters
+                  <*> (OptSGD
                        <$> option auto (long "train_rate" <> short 'r' <> value 0.005)
                        <*> option auto (long "momentum" <> value 0.0)
                        <*> option auto (long "l2" <> value 0.0005)
