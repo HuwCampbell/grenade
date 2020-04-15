@@ -26,7 +26,7 @@ netSpec = specFullyConnected 2 40 |=> specTanh1D 40 |=> netSpecInner |=> specFul
 
 
 netTrain ::
-     (SingI (Last shapes), Show (Network layers shapes), MonadRandom m, KnownNat len1, KnownNat len2, Head shapes ~ 'D1 len1, Last shapes ~ 'D1 len2)
+     (SingI (Last shapes), MonadRandom m, KnownNat len1, KnownNat len2, Head shapes ~ 'D1 len1, Last shapes ~ 'D1 len2)
   => Network layers shapes
   -> LearningParameters
   -> Int
@@ -45,7 +45,7 @@ netTrain net0 rate n = do
 
   where trainEach !network (i,o) = train rate network i o
 
-netScore :: (Show (Network layers shapes), KnownNat len, Head shapes ~ 'D1 len, Last shapes ~ 'D1 1) => Network layers shapes -> IO ()
+netScore :: (KnownNat len, Head shapes ~ 'D1 len, Last shapes ~ 'D1 1) => Network layers shapes -> IO ()
 netScore network = do
     let testIns = [ [ (x,y)  | x <- [0..50] ]
                              | y <- [0..20] ]
@@ -65,7 +65,7 @@ netScore network = do
 normx :: S ('D1 1) -> Double
 normx (S1D r) = SA.mean r
 
-testValues :: (KnownNat len, Show (Network layers shapes), Head shapes ~ 'D1 len, Last shapes ~ 'D1 1) => Network layers shapes -> IO ()
+testValues :: (KnownNat len, Head shapes ~ 'D1 len, Last shapes ~ 'D1 1) => Network layers shapes -> IO ()
 testValues network = do
   inps <- replicateM 1000 $ do
       s  <- getRandom

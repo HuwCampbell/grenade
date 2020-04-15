@@ -81,10 +81,11 @@ install:
 
 script:
  - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
- - GHC_OPTIONS="-Werror"
  - |
    set -ex
    # Run tests
-   stack --no-terminal test --ghc-options="$GHC_OPTIONS"
+   stack
+   stack build --no-terminal test --ghc-options="-Werror"
+   stack --no-terminal test "
    set +ex
 
