@@ -68,11 +68,18 @@ main = do
         , bench "crop 3D 60x60" $ whnf (testRun3D' Crop) y
         ]
     , bgroup
-        "feedforward"
-        [ bench "ANN 1000 training steps" $ nfIO $ netTrain netFF defOptimizer 1000
-        , bench "ANN 10000 training steps" $ nfIO $ netTrain netFF defOptimizer 10000
-        , bench "ANN Huge 100 train steps" $ nfIO $ netTrain netHuge defOptimizer 100
-        , bench "ANN Huge 1000 train steps" $ nfIO $ netTrain netHuge defOptimizer 1000
+        "feedforward SGD"
+        [ bench "ANN 1000 training steps" $ nfIO $ netTrain netFF defSGD 1000
+        , bench "ANN 10000 training steps" $ nfIO $ netTrain netFF defSGD 10000
+        , bench "ANN Huge 100 train steps" $ nfIO $ netTrain netHuge defSGD 100
+        , bench "ANN Huge 1000 train steps" $ nfIO $ netTrain netHuge defSGD 1000
+        ]
+    , bgroup
+        "feedforward Adam"
+        [ bench "ANN 1000 training steps" $ nfIO $ netTrain netFF defAdam 1000
+        , bench "ANN 10000 training steps" $ nfIO $ netTrain netFF defAdam 10000
+        , bench "ANN Huge 100 train steps" $ nfIO $ netTrain netHuge defAdam 100
+        , bench "ANN Huge 1000 train steps" $ nfIO $ netTrain netHuge defAdam 1000
         ]
     ]
 
