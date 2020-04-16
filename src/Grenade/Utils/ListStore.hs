@@ -40,7 +40,7 @@ import           GHC.Generics
 import           Grenade.Core
 
 -- | Simple store
-data ListStore a = ListStore Int [Maybe a]
+data ListStore a = ListStore !Int ![Maybe a]
   deriving (Generic, NFData, Serialize)
 
 instance Functor ListStore where

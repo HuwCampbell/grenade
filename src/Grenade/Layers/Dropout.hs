@@ -32,8 +32,8 @@ import           Grenade.Core
 -- Double is the proportion to drop in each training iteration (like 1% or 5% would be
 -- reasonable).
 data Dropout = Dropout {
-    dropoutRate :: Double
-  , dropoutSeed :: Int
+    dropoutRate :: !Double
+  , dropoutSeed :: !Int
   } deriving (Generic, NFData, Show, Serialize)
 
 

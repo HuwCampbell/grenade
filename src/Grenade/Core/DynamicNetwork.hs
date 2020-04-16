@@ -418,21 +418,21 @@ tripleFromSomeShape someShape =
 
 -- Data structures stances for Layers (needs to be defined here)
 
-data SpecFullyConnected = SpecFullyConnected Integer Integer
+data SpecFullyConnected = SpecFullyConnected !Integer !Integer
   deriving (Show, Eq, Ord, Serialize, Generic, NFData)
 
 -- data SpecConcat = SpecConcat SpecNet SpecNet
 --   deriving (Show, Eq, Ord, Serialize, Generic, NFData)
 
 data SpecConvolution =
-  SpecConvolution (Integer, Integer, Integer) Integer Integer Integer Integer Integer Integer
+  SpecConvolution !(Integer, Integer, Integer) !Integer !Integer !Integer !Integer !Integer !Integer
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 data SpecDeconvolution =
-  SpecDeconvolution (Integer, Integer, Integer) Integer Integer Integer Integer Integer Integer
+  SpecDeconvolution !(Integer, Integer, Integer) !Integer !Integer !Integer !Integer !Integer !Integer
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
-data SpecDropout = SpecDropout Integer Double (Maybe Int)
+data SpecDropout = SpecDropout !Integer !Double !(Maybe Int)
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 newtype SpecElu = SpecElu (Integer, Integer, Integer)
@@ -444,7 +444,7 @@ newtype SpecLogit = SpecLogit (Integer, Integer, Integer)
 newtype SpecRelu = SpecRelu (Integer, Integer, Integer)
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
-data SpecReshape = SpecReshape (Integer, Integer, Integer) (Integer, Integer, Integer)
+data SpecReshape = SpecReshape !(Integer, Integer, Integer) !(Integer, Integer, Integer)
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 newtype SpecSinusoid = SpecSinusoid (Integer, Integer, Integer)

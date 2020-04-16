@@ -8,18 +8,13 @@
 {-# LANGUAGE TypeOperators       #-}
 
 import           Control.Applicative
+import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.Random
 import           Control.Monad.Trans.Except
 
 import qualified Data.Attoparsec.Text         as A
 import           Data.List                    (foldl')
-import           Data.Semigroup               ((<>))
-import qualified Data.Text                    as T
-import qualified Data.Text.IO                 as T
-import qualified Data.Vector.Storable         as V
-
-import           Data.Semigroup               ((<>))
 import qualified Data.Text                    as T
 import qualified Data.Text.IO                 as T
 import qualified Data.Vector.Storable         as V
@@ -70,19 +65,20 @@ randomMnist :: IO MNIST
 randomMnist = randomNetwork
 
 convTest :: Int -> FilePath -> FilePath -> Optimizer opt -> ExceptT String IO ()
-convTest iterations trainFile validateFile rate = do
+convTest iterations trainFile validateFile opt = do
   net0         <- lift randomMnist
   trainData    <- readMNIST trainFile
   validateData <- readMNIST validateFile
   lift $ foldM_ (runIteration trainData validateData) net0 [1..iterations]
 
     where
-  trainEach rate' !network (i, o) = train rate' network i o
+  trainEach !opt' !network (!i, !o) = force (train opt' network i o)
 
-  runIteration trainRows validateRows net i = do
-    let trained' = foldl' (trainEach ( sgdUpdateLearningParamters rate)) net trainRows
-    let res      = fmap (\(rowP,rowL) -> (rowL,) $ runNet trained' rowP) validateRows
-    let res'     = fmap (\(S1D label, S1D prediction) -> (maxIndex (SA.extract label), maxIndex (SA.extract prediction))) res
+  runIteration !trainRows !validateRows !net !i = do
+    putStrLn $ "Number of training rows: " ++ show (length trainRows)
+    let !trained' = foldl' (trainEach (sgdUpdateLearningParamters opt)) net trainRows
+    let !res      = fmap (\(rowP,rowL) -> (rowL,) $ runNet trained' rowP) validateRows
+    let !res'     = fmap (\(S1D label, S1D prediction) -> (maxIndex (SA.extract label), maxIndex (SA.extract prediction))) res
     print trained'
     putStrLn $ "Iteration " ++ show i ++ ": " ++ show (length (filter ((==) <$> fst <*> snd) res')) ++ " of " ++ show (length res')
     return trained'

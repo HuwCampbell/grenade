@@ -56,7 +56,7 @@ import           Numeric.LinearAlgebra.Static (R, row, split, splitRows, unrow, 
 -- 3D images become 3D images with more channels. The sizes must be the same, one can use Pad
 -- and Crop layers to ensure this is the case.
 data Concat :: Shape -> Type -> Shape -> Type -> Type where
-  Concat :: x -> y -> Concat m x n y
+  Concat :: !x -> !y -> Concat m x n y
   deriving (Generic, NFData)
 
 instance (Show x, Show y) => Show (Concat m x n y) where

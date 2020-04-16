@@ -82,9 +82,9 @@ infixr 5 :~@>
 data RecurrentGradient :: [Type] -> Type where
    RGNil  :: RecurrentGradient '[]
 
-   (://>) :: UpdateLayer x
-          => Gradient x
-          -> RecurrentGradient xs
+   (://>) :: (UpdateLayer x)
+          => !(Gradient x)
+          -> !(RecurrentGradient xs)
           -> RecurrentGradient (phantom x ': xs)
 
 -- | Recurrent inputs (sideways shapes on an imaginary unrolled graph)

@@ -43,6 +43,7 @@ dependencies:
   - vector
   - MonadRandom
   - containers
+  - deepseq
 
 executables:
   feedforward:

@@ -97,17 +97,17 @@ data SpecNet
 
 -- Data structures instances for Layers (needs to be defined here)
 
-data SpecFullyConnected = SpecFullyConnected Integer Integer
+data SpecFullyConnected = SpecFullyConnected !Integer !Integer
 
 -- data SpecConcat = SpecConcat SpecNet SpecNet
 
 data SpecConvolution =
-  SpecConvolution (Integer, Integer, Integer) Integer Integer Integer Integer Integer Integer
+  SpecConvolution !(Integer, Integer, Integer) !Integer !Integer !Integer !Integer !Integer !Integer
 
 data SpecDeconvolution =
-  SpecDeconvolution (Integer, Integer, Integer) Integer Integer Integer Integer Integer Integer
+  SpecDeconvolution !(Integer, Integer, Integer) !Integer !Integer !Integer !Integer !Integer !Integer
 
-data SpecDropout = SpecDropout Integer Double (Maybe Int)
+data SpecDropout = SpecDropout !Integer !Double !(Maybe Int)
 
 newtype SpecElu = SpecElu (Integer, Integer, Integer)
 
@@ -115,7 +115,7 @@ newtype SpecLogit = SpecLogit (Integer, Integer, Integer)
 
 newtype SpecRelu = SpecRelu (Integer, Integer, Integer)
 
-data SpecReshape = SpecReshape (Integer, Integer, Integer) (Integer, Integer, Integer)
+data SpecReshape = SpecReshape !(Integer, Integer, Integer) !(Integer, Integer, Integer)
 
 newtype SpecSinusoid = SpecSinusoid (Integer, Integer, Integer)
 

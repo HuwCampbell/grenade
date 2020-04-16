@@ -89,8 +89,8 @@ data Gradients :: [Type] -> Type where
    GNil  :: Gradients '[]
 
    (:/>) :: UpdateLayer x
-         => Gradient x
-         -> Gradients xs
+         => !(Gradient x)
+         -> !(Gradients xs)
          -> Gradients (x ': xs)
 
 instance NFData (Gradients '[]) where

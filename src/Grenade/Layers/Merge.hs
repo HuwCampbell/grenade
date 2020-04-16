@@ -40,7 +40,7 @@ import           Grenade.Core
 -- Similar to Concat layer, except sums the activations instead of creating a larger
 -- shape.
 data Merge :: Type -> Type -> Type where
-  Merge :: x -> y -> Merge x y
+  Merge :: !x -> !y -> Merge x y
   deriving (NFData, Generic)
 
 instance (Show x, Show y) => Show (Merge x y) where
