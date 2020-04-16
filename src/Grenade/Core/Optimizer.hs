@@ -16,6 +16,8 @@ module Grenade.Core.Optimizer
     ( Optimizer (..)
     , OptimizerAlgorithm (..)
     , defOptimizer
+    , defSGD
+    , defAdam
     ) where
 
 import           Data.Default
@@ -27,7 +29,7 @@ import           Data.Default
 data OptimizerAlgorithm = SGD | Adam
 
 -- | The available optimizers to choose from. If an optimiser is not implemented for a layer SGD
---   with rate=0.01, momentum=0.9 and L2 regulariser=1e-4 will be used instead. This is default
+--   with the default settings (see @Default 'SGD@ instance) will be used instead. This is default
 --   and thus fallback optimizer.
 --
 --  Concreate instance for the optimizers.
@@ -42,7 +44,7 @@ data Optimizer (o :: OptimizerAlgorithm) where
     :: { adamAlpha   :: !Double -- ^ Alpha [Default: 0.001]
        , adamBeta1   :: !Double -- ^ Beta 1 [Default: 0.9]
        , adamBeta2   :: !Double -- ^ Beta 2 [Default: 0.999]
-       , adamEpsilon :: !Double -- ^ Epsilon [Default: 1e-8]
+       , adamEpsilon :: !Double -- ^ Epsilon [Default: 1e-7]
        }
     -> Optimizer 'Adam
 
@@ -58,6 +60,13 @@ defOptimizer = defSGD
 instance Default (Optimizer 'SGD) where
   def = OptSGD 0.01 0.9 1e-4
 
+-- | Default settings for the SGD optimizer.
+instance Default (Optimizer 'Adam) where
+  def = OptAdam 0.001 0.9 0.999 1e-7
+
 -- | Default SGD optimizer.
 defSGD :: Optimizer 'SGD
 defSGD = def
+
+defAdam :: Optimizer 'Adam
+defAdam = def
