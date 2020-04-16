@@ -37,6 +37,7 @@
 -- It's a 5!
 --
 import           Control.Applicative
+import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.Random
 import           Control.Monad.Trans.Except
@@ -44,12 +45,6 @@ import           Control.Monad.Trans.Except
 import qualified Data.Attoparsec.Text         as A
 import qualified Data.ByteString              as B
 import           Data.List                    (foldl')
-#if ! MIN_VERSION_base(4,13,0)
-import           Data.Semigroup               ((<>))
-#endif
-import qualified Data.Attoparsec.Text         as A
-import qualified Data.ByteString              as B
-import           Data.Semigroup               ((<>))
 import           Data.Serialize
 import qualified Data.Text                    as T
 import qualified Data.Text.IO                 as T
@@ -102,8 +97,8 @@ trainExample opt discriminator generator realExample noiseSource
 
        (generator', _)                    = runGradient generator generatorTape push
 
-       newDiscriminator                   = foldl' (applyUpdate $ sgdUpdateLearningParamters opt) discriminator [ discriminator'real, discriminator'fake ]
-       newGenerator                       = applyUpdate opt generator generator'
+       !newDiscriminator                   = force $ foldl' (applyUpdate $ sgdUpdateLearningParamters opt) discriminator [ discriminator'real, discriminator'fake ]
+       !newGenerator                       = force $ applyUpdate opt generator generator'
    in ( newDiscriminator, newGenerator )
   where sgdUpdateLearningParamters :: Optimizer opt -> Optimizer opt
         sgdUpdateLearningParamters (OptSGD rate mom reg) = OptSGD rate mom (reg * 10)
@@ -112,7 +107,7 @@ trainExample opt discriminator generator realExample noiseSource
 
 ganTest :: (Discriminator, Generator) -> Int -> FilePath -> Optimizer opt -> ExceptT String IO (Discriminator, Generator)
 ganTest (discriminator0, generator0) iterations trainFile opt = do
-  trainData      <- fmap fst <$> readMNIST trainFile
+  !trainData      <- fmap fst <$> readMNIST trainFile
 
   lift $ foldM (runIteration trainData) ( discriminator0, generator0 ) [1..iterations]
 
