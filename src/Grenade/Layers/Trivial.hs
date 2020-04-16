@@ -61,7 +61,7 @@ instance (a ~ b) => Layer Trivial a b where
 -------------------- DynamicNetwork instance --------------------
 
 instance FromDynamicLayer Trivial where
-  fromDynamicLayer inp _ = SpecNetLayer $ SpecTrivial (tripleFromSomeShape inp)
+  fromDynamicLayer inp _ _ = SpecNetLayer $ SpecTrivial (tripleFromSomeShape inp)
 
 instance ToDynamicLayer SpecTrivial where
   toDynamicLayer _ _ (SpecTrivial (rows, cols, depth)) =

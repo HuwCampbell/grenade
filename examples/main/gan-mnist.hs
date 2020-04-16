@@ -89,7 +89,7 @@ randomDiscriminator = randomNetwork
 randomGenerator :: IO Generator
 randomGenerator = randomNetwork
 
-trainExample :: Optimizer 'SGD -> Discriminator -> Generator -> S ('D2 28 28) -> S ('D1 80) -> ( Discriminator, Generator )
+trainExample :: Optimizer opt -> Discriminator -> Generator -> S ('D2 28 28) -> S ('D1 80) -> ( Discriminator, Generator )
 trainExample opt discriminator generator realExample noiseSource
  = let (generatorTape, fakeExample)       = runNetwork generator noiseSource
 
@@ -102,12 +102,15 @@ trainExample opt discriminator generator realExample noiseSource
 
        (generator', _)                    = runGradient generator generatorTape push
 
-       newDiscriminator                   = foldl' (applyUpdate opt { sgdLearningRegulariser = sgdLearningRegulariser opt * 10}) discriminator [ discriminator'real, discriminator'fake ]
+       newDiscriminator                   = foldl' (applyUpdate $ sgdUpdateLearningParamters opt) discriminator [ discriminator'real, discriminator'fake ]
        newGenerator                       = applyUpdate opt generator generator'
    in ( newDiscriminator, newGenerator )
+  where sgdUpdateLearningParamters :: Optimizer opt -> Optimizer opt
+        sgdUpdateLearningParamters (OptSGD rate mom reg) = OptSGD rate mom (reg * 10)
+        sgdUpdateLearningParamters o                     = o
 
 
-ganTest :: (Discriminator, Generator) -> Int -> FilePath -> Optimizer 'SGD -> ExceptT String IO (Discriminator, Generator)
+ganTest :: (Discriminator, Generator) -> Int -> FilePath -> Optimizer opt -> ExceptT String IO (Discriminator, Generator)
 ganTest (discriminator0, generator0) iterations trainFile opt = do
   trainData      <- fmap fst <$> readMNIST trainFile
 
@@ -140,40 +143,50 @@ ganTest (discriminator0, generator0) iterations trainFile opt = do
 
     return trained'
 
-data GanOpts = GanOpts FilePath Int (Optimizer 'SGD) (Maybe FilePath) (Maybe FilePath)
+data GanOpts = GanOpts FilePath Int Bool (Optimizer 'SGD) (Optimizer 'Adam) (Maybe FilePath) (Maybe FilePath)
 
 mnist' :: Parser GanOpts
 mnist' = GanOpts <$> argument str (metavar "TRAIN")
                  <*> option auto (long "iterations" <> short 'i' <> value 15)
+                 <*> flag False True (long "use-adam" <> short 'a')
                  <*> (OptSGD
                        <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
                        <*> option auto (long "momentum" <> value 0.9)
                        <*> option auto (long "l2" <> value 0.0005)
                        )
+                 <*> (OptAdam
+                       <$> option auto (long "alpha" <> short 'r' <> value 0.001)
+                       <*> option auto (long "beta1" <> value 0.9)
+                       <*> option auto (long "beta2" <> value 0.999)
+                       <*> option auto (long "epsilon" <> value 1e-4)
+                      )
                  <*> optional (strOption (long "load"))
                  <*> optional (strOption (long "save"))
 
 
 main :: IO ()
 main = do
-  GanOpts mnist iter rate load save <- execParser (info (mnist' <**> helper) idm)
+  GanOpts mnist iter useAdam sgd adam load save <- execParser (info (mnist' <**> helper) idm)
   putStrLn "Training stupidly simply GAN"
-  nets0 <- case load of
-    Just loadFile -> netLoad loadFile
-    Nothing       -> (,) <$> randomDiscriminator <*> randomGenerator
-
-  res <- runExceptT $ ganTest nets0 iter mnist rate
+  nets0 <-
+    case load of
+      Just loadFile -> netLoad loadFile
+      Nothing       -> (,) <$> randomDiscriminator <*> randomGenerator
+  res <-
+    if useAdam
+      then runExceptT $ ganTest nets0 iter mnist adam
+      else runExceptT $ ganTest nets0 iter mnist sgd
   case res of
-    Right nets1 -> case save of
-      Just saveFile -> B.writeFile saveFile $ runPut (put nets1)
-      Nothing       -> return ()
-
+    Right nets1 ->
+      case save of
+        Just saveFile -> B.writeFile saveFile $ runPut (put nets1)
+        Nothing       -> return ()
     Left err -> putStrLn err
 
 readMNIST :: FilePath -> ExceptT String IO [(S ('D2 28 28), S ('D1 10))]
 readMNIST mnist = ExceptT $ do
   mnistdata <- T.readFile mnist
-  return $ traverse (A.parseOnly parseMNIST) (T.lines mnistdata)
+  return $ traverse (A.parseOnly parseMNIST) (tail $ T.lines mnistdata)
 
 parseMNIST :: A.Parser (S ('D2 28 28), S ('D1 10))
 parseMNIST = do

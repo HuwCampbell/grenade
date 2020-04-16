@@ -48,6 +48,7 @@ import           Unsafe.Coerce                       (unsafeCoerce)
 import           Grenade.Core
 import           Grenade.Layers.Internal.Convolution
 import           Grenade.Layers.Internal.Update
+import           Grenade.Utils.ListStore
 
 -- | A convolution layer for a neural network.
 --   This uses the im2col convolution trick popularised by Caffe, which essentially turns the
@@ -76,7 +77,7 @@ data Convolution :: Nat -- Number of channels, for the first layer this could be
                  , KnownNat kernelFlattened
                  , kernelFlattened ~ (kernelRows * kernelColumns * channels))
               => !(L kernelFlattened filters) -- The kernel filter weights
-              -> !(L kernelFlattened filters) -- The last kernel update (or momentum)
+              -> !(ListStore (L kernelFlattened filters)) -- The last kernel update (or momentum)
               -> Convolution channels filters kernelRows kernelColumns strideRows strideColumns
 
 instance NFData (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) where
@@ -135,8 +136,7 @@ instance ( KnownNat channels
          RandomLayer (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) where
   createRandomWith m gen = do
     wN <- getRandomMatrix i i m gen
-    let mm = konst 0
-    return $ Convolution wN mm
+    return $ Convolution wN mkListStore
     where
       i = natVal (Proxy :: Proxy ((kernelRows * kernelColumns) * channels))
 
@@ -148,11 +148,53 @@ instance ( KnownNat channels
          , KnownNat strideRows
          , KnownNat strideColumns
          , KnownNat (kernelRows * kernelColumns * channels)
+         , kernelFlattened ~ (kernelRows * kernelColumns * channels)
          ) => UpdateLayer (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) where
   type Gradient (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) = (Convolution' channels filters kernelRows kernelColumns strideRows strideColumns)
-  runUpdate (OptSGD lRate lMomentum lRegulariser) (Convolution oldKernel oldMomentum) (Convolution' kernelGradient) =
-    let (newKernel, newMomentum) = descendMatrix lRate lMomentum lRegulariser oldKernel kernelGradient oldMomentum
-    in Convolution newKernel newMomentum
+
+  type MomentumStore (Convolution channels filters kernelRows kernelColumns strideRows strideColumns)  = ListStore (L (kernelRows * kernelColumns * channels) filters)
+
+  runUpdate opt@OptSGD{} x@(Convolution oldKernel store) (Convolution' kernelGradient) =
+    let  momentum = getData opt x store
+         result = descendMatrix opt (MatrixValuesSGD oldKernel kernelGradient momentum)
+         newStore = setData opt x store (matrixMomentum result)
+    in Convolution (matrixActivations result) newStore
+  runUpdate opt@OptAdam{} x@(Convolution oldKernel store) (Convolution' kernelGradient) =
+    let (m, v) = toTuple $ getData opt x store
+        result = descendMatrix opt (MatrixValuesAdam (getStep store) oldKernel kernelGradient m v)
+        newStore = setData opt x store [matrixM result, matrixV result]
+    in Convolution (matrixActivations result) newStore
+    where toTuple [m ,v] = (m, v)
+          toTuple xs = error $ "unexpected input of length " ++ show (length xs) ++ "in toTuple in Convolution.hs"
+
+instance ( KnownNat channels
+         , KnownNat filters
+         , KnownNat kernelRows
+         , KnownNat kernelColumns
+         , KnownNat strideRows
+         , KnownNat strideColumns
+         , KnownNat (kernelRows * kernelColumns * channels)
+         ) =>
+         LayerOptimizerData (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) (Optimizer 'SGD) where
+  type MomentumExpOptResult (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) (Optimizer 'SGD) = L (kernelRows * kernelColumns * channels) filters
+  type MomentumDataType (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) (Optimizer 'SGD) = L (kernelRows * kernelColumns * channels) filters
+  getData opt x store = head $ getListStore opt x store
+  setData opt x store = setListStore opt x store . return
+  newData _ _ = konst 0
+
+instance ( KnownNat channels
+         , KnownNat filters
+         , KnownNat kernelRows
+         , KnownNat kernelColumns
+         , KnownNat strideRows
+         , KnownNat strideColumns
+         , KnownNat (kernelRows * kernelColumns * channels)
+         ) => LayerOptimizerData (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) (Optimizer 'Adam) where
+  type MomentumExpOptResult (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) (Optimizer 'Adam)  = [L (kernelRows * kernelColumns * channels) filters]
+  type MomentumDataType (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) (Optimizer 'Adam) = L (kernelRows * kernelColumns * channels) filters
+  getData = getListStore
+  setData = setListStore
+  newData _ _ = konst 0
 
 
 instance ( KnownNat channels
@@ -163,12 +205,14 @@ instance ( KnownNat channels
          , KnownNat strideColumns
          , KnownNat (kernelRows * kernelColumns * channels)
          ) => Serialize (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) where
-  put (Convolution w _) = putListOf put . toList . flatten . extract $ w
+  put (Convolution w store) = do
+    putListOf put . toList . flatten . extract $ w
+    put (fmap (toList . flatten . extract) store)
   get = do
       let f  = fromIntegral $ natVal (Proxy :: Proxy filters)
       wN    <- maybe (fail "Vector of incorrect size") return . create . reshape f . LA.fromList =<< getListOf get
-      let mm = konst 0
-      return $ Convolution wN mm
+      store <- fmap (fromMaybe (error "Vector of incorrect size") . create . reshape f . LA.fromList)  <$> get
+      return $ Convolution wN store
 
 -- | A three dimensional image (or 2d with many channels) can have
 --   an appropriately sized convolution filter run across it.
@@ -306,7 +350,7 @@ instance ( KnownNat kernelRows
 
 instance (KnownNat channels, KnownNat filters, KnownNat kernelRows, KnownNat kernelColumns, KnownNat strideRows, KnownNat strideColumns) =>
          FromDynamicLayer (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) where
-  fromDynamicLayer inp _ =
+  fromDynamicLayer inp _ _ =
     SpecNetLayer $
     SpecConvolution
       (tripleFromSomeShape inp)
@@ -395,8 +439,8 @@ specConvolution3DInput inp channels filters kernelRows kernelCols strideRows str
 instance (KnownNat strideCols, KnownNat strideRows, KnownNat kernelCols, KnownNat kernelRows, KnownNat filters, KnownNat channels, KnownNat ((kernelRows * kernelCols) * channels)) =>
          GNum (Convolution channels filters kernelRows kernelCols strideRows strideCols) where
   n |* (Convolution w m) = Convolution (fromRational n * w) m
-  (Convolution w m) |+ (Convolution w2 m2) = Convolution (fromRational 0.5 * (w + w2)) (fromRational 0.5 * (m + m2))
-  gFromRational r = Convolution (fromRational r) (fromRational r)
+  (Convolution w m) |+ (Convolution w2 m2) = Convolution (fromRational 0.5 * (w + w2)) (zipWithListStore (\x y -> 0.5 * (x + y)) m m2)
+  gFromRational r = Convolution (fromRational r) mkListStore
 
 
 instance (KnownNat strideCols, KnownNat strideRows, KnownNat kernelCols, KnownNat kernelRows, KnownNat filters, KnownNat channels, KnownNat ((kernelRows * kernelCols) * channels)) =>

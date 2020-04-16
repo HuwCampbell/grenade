@@ -58,7 +58,7 @@ instance (a ~ b, SingI a) => Layer Sinusoid a b where
 -------------------- DynamicNetwork instance --------------------
 
 instance FromDynamicLayer Sinusoid where
-  fromDynamicLayer inp _ = SpecNetLayer $ SpecSinusoid (tripleFromSomeShape inp)
+  fromDynamicLayer inp _ _ = SpecNetLayer $ SpecSinusoid (tripleFromSomeShape inp)
 
 instance ToDynamicLayer SpecSinusoid where
   toDynamicLayer _ _ (SpecSinusoid (rows, cols, depth)) =

@@ -68,6 +68,7 @@ instance (KnownNat i, KnownNat o, KnownNat (i + o)) => UpdateLayer (BasicRecurre
         regulariser     = konst (lRegulariser * lRate) * oldActivations
         newActivations  = oldActivations + newMomentum - regulariser
     in BasicRecurrent newBias newBiasMomentum newActivations newMomentum
+  runUpdate _ l d = runUpdate defOptimizer l d
 
 instance (KnownNat i, KnownNat o, KnownNat x, KnownNat (x*o), x ~ (i+o)) => RandomLayer (BasicRecurrent i o) where
   createRandomWith m gen = do

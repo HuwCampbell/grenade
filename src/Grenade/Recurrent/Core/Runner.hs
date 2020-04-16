@@ -95,3 +95,6 @@ updateRecInputs :: Optimizer opt -> RecurrentInputs sublayers -> RecurrentInputs
 updateRecInputs opt (() :~~+> xs) (() :~~+> ys) = () :~~+> updateRecInputs opt xs ys
 updateRecInputs opt@(OptSGD lRate _ lRegulariser) (x :~@+> xs) (y :~@+> ys) = (realToFrac (1 - lRate * lRegulariser) * x - realToFrac lRate * y) :~@+> updateRecInputs opt xs ys
 updateRecInputs _ RINil RINil = RINil
+updateRecInputs _ _ _ = error "Adam not yet implemented for Recurrent Neural Networks!"
+
+

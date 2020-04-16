@@ -35,6 +35,7 @@ module Grenade.Core.DynamicNetwork
   , SpecElu (..)
   , SpecLogit (..)
   , SpecRelu (..)
+  , SpecReshape (..)
   , SpecSinusoid (..)
   , SpecSoftmax (..)
   , SpecTanh (..)
@@ -113,6 +114,8 @@ newtype SpecElu = SpecElu (Integer, Integer, Integer)
 newtype SpecLogit = SpecLogit (Integer, Integer, Integer)
 
 newtype SpecRelu = SpecRelu (Integer, Integer, Integer)
+
+data SpecReshape = SpecReshape (Integer, Integer, Integer) (Integer, Integer, Integer)
 
 newtype SpecSinusoid = SpecSinusoid (Integer, Integer, Integer)
 

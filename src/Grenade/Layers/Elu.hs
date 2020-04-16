@@ -84,7 +84,7 @@ instance (KnownNat i, KnownNat j, KnownNat k) => Layer Elu ('D3 i j k) ('D3 i j 
 -------------------- DynamicNetwork instance --------------------
 
 instance FromDynamicLayer Elu where
-  fromDynamicLayer inp _ = SpecNetLayer $ SpecElu (tripleFromSomeShape inp)
+  fromDynamicLayer inp _ _ = SpecNetLayer $ SpecElu (tripleFromSomeShape inp)
 
 instance ToDynamicLayer SpecElu where
   toDynamicLayer _ _ (SpecElu (rows, cols, depth)) =

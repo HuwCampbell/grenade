@@ -89,19 +89,20 @@ import {-# SOURCE #-} Grenade.Layers.Dropout ()
 import {-# SOURCE #-} Grenade.Layers.Elu ()
 import {-# SOURCE #-} Grenade.Layers.Logit ()
 import {-# SOURCE #-} Grenade.Layers.Relu ()
+import {-# SOURCE #-} Grenade.Layers.Reshape ()
 import {-# SOURCE #-} Grenade.Layers.Sinusoid ()
 import {-# SOURCE #-} Grenade.Layers.Softmax ()
 import {-# SOURCE #-} Grenade.Layers.Tanh ()
 import {-# SOURCE #-} Grenade.Layers.Trivial ()
 #endif
 
-
-type SInputShape = SomeSing Shape
+-- type InputDimension = (Integer, Integer, Integer)
+-- type OutputDimension = (Integer, Integer, Integer)
 
 -- | Create a runtime dynamic specification of a network. Dynamic layers (and networks), for storing and restoring specific network structures (e.g. in saving the network structures to a DB and
 -- restoring it from there) or simply generating them at runtime. This does not store the weights and biases! They have to be handled separately (see Serialize)!
 class FromDynamicLayer x where
-  fromDynamicLayer :: SomeSing Shape -> x -> SpecNet
+  fromDynamicLayer :: SomeSing Shape -> SomeSing Shape -> x -> SpecNet
 
 -- | Class for generating layers from a specification. See the function @networkFromSpecification@.
 class (Show spec) => ToDynamicLayer spec where
@@ -126,8 +127,8 @@ instance Show SpecNetwork where
   show (SpecLayer x _ _) = show x
 
 instance FromDynamicLayer SpecNetwork where
-  fromDynamicLayer inp (SpecNetwork net) = fromDynamicLayer inp net
-  fromDynamicLayer inp (SpecLayer x _ _) = fromDynamicLayer inp x
+  fromDynamicLayer inp out (SpecNetwork net) = fromDynamicLayer inp out net
+  fromDynamicLayer inp out (SpecLayer x _ _) = fromDynamicLayer inp out x
 
 ----------------------------------------
 -- Specification of a network and its layers
@@ -147,6 +148,13 @@ data SpecNet
 -- getLastSpec (SpecNCons _ xs) = getLastSpec xs
 -- getLastSpec (SpecNetLayer layer) = error "Error in specification: Every network has to end in a Nil constructor, see SpecNNil1D, etc."
 -- getLastSpec x = x
+
+-- getFirstDimension :: SpecNet -> (Integer, Integer, Integer)
+-- getFirstDimension (SpecNNil1D r) = (r, 0, 0)
+-- getFirstDimension (SpecNNil2D r c) = (r, c, 0)
+-- getFirstDimension (SpecNNil3D r c d) = (r, c, d)
+-- getFirstDimension (SpecNCons x _) = getFirstDimension x
+-- getFirstDimension (SpecNetLayer layer) = getInputDimension layer -- error "Error in specification: Every network has to end in a Nil constructor, see SpecNNil1D, etc."
 
 
 instance Eq SpecNet where
@@ -212,6 +220,7 @@ parseSpecDataConstructor repStr
   | repStr == show (typeRep (Proxy :: Proxy SpecElu))            = SpecNetLayer <$> (get :: Get SpecElu)
   | repStr == show (typeRep (Proxy :: Proxy SpecLogit))          = SpecNetLayer <$> (get :: Get SpecLogit)
   | repStr == show (typeRep (Proxy :: Proxy SpecRelu))           = SpecNetLayer <$> (get :: Get SpecRelu)
+  | repStr == show (typeRep (Proxy :: Proxy SpecReshape))        = SpecNetLayer <$> (get :: Get SpecReshape)
   | repStr == show (typeRep (Proxy :: Proxy SpecSinusoid))       = SpecNetLayer <$> (get :: Get SpecSinusoid)
   | repStr == show (typeRep (Proxy :: Proxy SpecSoftmax))        = SpecNetLayer <$> (get :: Get SpecSoftmax)
   | repStr == show (typeRep (Proxy :: Proxy SpecTanh))           = SpecNetLayer <$> (get :: Get SpecTanh)
@@ -226,17 +235,18 @@ parseSpecDataConstructor repStr
 -- Network instances 
 
 instance (KnownNat rows) => FromDynamicLayer (Network '[] '[ 'D1 rows ]) where
-  fromDynamicLayer _ _ = SpecNNil1D nr
+  fromDynamicLayer _ _ _ = SpecNNil1D nr
     where nr = natVal (Proxy :: Proxy rows)
 instance (KnownNat rows, KnownNat cols) => FromDynamicLayer (Network '[] '[ 'D2 rows cols ]) where
-  fromDynamicLayer _ _ = SpecNNil2D (natVal (Proxy :: Proxy rows)) (natVal (Proxy :: Proxy cols))
+  fromDynamicLayer _ _ _ = SpecNNil2D (natVal (Proxy :: Proxy rows)) (natVal (Proxy :: Proxy cols))
 
 instance (KnownNat rows, KnownNat cols, KnownNat depth) => FromDynamicLayer (Network '[] '[ 'D3 rows cols depth ]) where
-  fromDynamicLayer _ _ = SpecNNil3D (natVal (Proxy :: Proxy rows)) (natVal (Proxy :: Proxy cols)) (natVal (Proxy :: Proxy depth))
+  fromDynamicLayer _ _ _ = SpecNNil3D (natVal (Proxy :: Proxy rows)) (natVal (Proxy :: Proxy cols)) (natVal (Proxy :: Proxy depth))
 
 instance (FromDynamicLayer x, FromDynamicLayer (Network xs (h : rs)), SingI h) => FromDynamicLayer (Network (x ': xs) (i ': h ': rs)) where
-  fromDynamicLayer inp ((x :: x) :~> (xs :: Network xs (h ': rs))) = SpecNCons (fromDynamicLayer inp x) (fromDynamicLayer hShape xs) 
-    where hShape = SomeSing (sing :: Sing h)
+  fromDynamicLayer inp out ((x :: x) :~> (xs :: Network xs (h ': rs))) = SpecNCons (fromDynamicLayer inp hShape x) (fromDynamicLayer hShape out xs)
+    where
+      hShape = SomeSing (sing :: Sing h)
           
 instance ToDynamicLayer SpecNet where
   toDynamicLayer _ _ (SpecNNil1D nrOut) =
@@ -373,8 +383,8 @@ networkFromSpecificationGenericWith wInit spec = withSystemRandom . asGenST $ \g
 
 
 -- | Create a network according to the given specification. See @DynamicNetwork@. This version uses UniformInit and the system random number generator.
-networkToSpecification :: forall layers shapes . (SingI (Head shapes), FromDynamicLayer (Network layers shapes)) => Network layers shapes -> SpecNet
-networkToSpecification = fromDynamicLayer (SomeSing (sing :: Sing (Head shapes))) 
+networkToSpecification :: forall layers shapes . (SingI (Head shapes), SingI (Last shapes), FromDynamicLayer (Network layers shapes)) => Network layers shapes -> SpecNet
+networkToSpecification = fromDynamicLayer (SomeSing (sing :: Sing (Head shapes))) (SomeSing (sing :: Sing (Last shapes))) 
 
 
 -- | Combine specifications together. This is (:~>) for specifications. This is simply SpecNCons as operator. WARNING: This also allows to build unsafe networks where input and output layers do not

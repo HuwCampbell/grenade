@@ -79,7 +79,7 @@ softmax' x grad =
 -------------------- DynamicNetwork instance --------------------
 
 instance FromDynamicLayer Softmax where
-  fromDynamicLayer inp Softmax = case tripleFromSomeShape inp of
+  fromDynamicLayer inp _ Softmax = case tripleFromSomeShape inp of
     (rows, 0, 0) -> SpecNetLayer $ SpecSoftmax rows
     _ -> error "Error in specification: The layer Softmax may only be used with 1D input!"
 

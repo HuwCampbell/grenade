@@ -29,7 +29,7 @@ import           Data.Singletons
 import           GHC.Generics
 
 #if MIN_VERSION_base(4,9,0)
-import           Data.Kind (Type)
+import           Data.Kind       (Type)
 #endif
 
 import           Grenade.Core
@@ -50,7 +50,7 @@ instance (Show x, Show y) => Show (Merge x y) where
 --   This just kind of "smooshes" the weights together.
 instance (UpdateLayer x, UpdateLayer y) => UpdateLayer (Merge x y) where
   type Gradient (Merge x y) = (Gradient x, Gradient y)
-  runUpdate lr (Merge x y) (x', y') = Merge (runUpdate lr x x') (runUpdate lr y y')
+  runUpdate opt (Merge x y) (x', y') = Merge (runUpdate opt x x') (runUpdate opt y y')
 
 instance (RandomLayer x, RandomLayer y) => RandomLayer (Merge x y) where
   createRandomWith m gen = Merge <$> createRandomWith m gen <*> createRandomWith m gen

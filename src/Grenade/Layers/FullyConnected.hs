@@ -11,6 +11,8 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
+
 module Grenade.Layers.FullyConnected (
     FullyConnected (..)
   , FullyConnected' (..)
@@ -59,19 +61,30 @@ instance Show (FullyConnected i o) where
 instance (KnownNat i, KnownNat o, KnownNat (i * o)) => UpdateLayer (FullyConnected i o) where
   type Gradient (FullyConnected i o) = (FullyConnected' i o)
   type MomentumStore (FullyConnected i o) = ListStore (FullyConnected' i o)
-  runUpdate (OptSGD lRate lMomentum lRegulariser) x@(FullyConnected (FullyConnected' oldBias oldActivations) store) (FullyConnected' biasGradient activationGradient) =
-    let (FullyConnected' oldBiasMomentum oldMomentum) = getData defOptimizer x store
-        (newBias, newBiasMomentum) = descendVector lRate lMomentum lRegulariser oldBias biasGradient oldBiasMomentum
-        (newActivations, newMomentum) = descendMatrix lRate lMomentum lRegulariser oldActivations activationGradient oldMomentum
-        newMomenta = setData defOptimizer x store (FullyConnected' newBiasMomentum newMomentum)
-     in FullyConnected (FullyConnected' newBias newActivations) newMomenta
-  -- runUpdate _ x g = runUpdate defOptimizer x g
-
+  runUpdate opt@OptSGD{} x@(FullyConnected (FullyConnected' oldBias oldActivations) store) (FullyConnected' biasGradient activationGradient) =
+    let (FullyConnected' oldBiasMomentum oldMomentum) = getData opt x store
+        VectorResultSGD newBias newBiasMomentum = descendVector opt (VectorValuesSGD oldBias biasGradient oldBiasMomentum)
+        MatrixResultSGD newActivations newMomentum = descendMatrix opt (MatrixValuesSGD oldActivations activationGradient oldMomentum)
+        newStore = setData opt x store (FullyConnected' newBiasMomentum newMomentum)
+     in FullyConnected (FullyConnected' newBias newActivations) newStore
+  runUpdate opt@OptAdam{} x@(FullyConnected (FullyConnected' oldBias oldActivations) store) (FullyConnected' biasGradient activationGradient) =
+    let [FullyConnected' oldMBias oldMActivations, FullyConnected' oldVBias oldVActivations] = getData opt x store
+        VectorResultAdam newBias newMBias newVBias = descendVector opt (VectorValuesAdam (getStep store) oldBias biasGradient oldMBias oldVBias)
+        MatrixResultAdam newActivations newMActivations newVActivations = descendMatrix opt (MatrixValuesAdam (getStep store) oldActivations activationGradient oldMActivations oldVActivations)
+        newStore = setData opt x store [FullyConnected' newMBias newMActivations, FullyConnected' newVBias newVActivations]
+    in FullyConnected (FullyConnected' newBias newActivations) newStore
 
 instance (KnownNat i, KnownNat o, KnownNat (i * o)) => LayerOptimizerData (FullyConnected i o) (Optimizer 'SGD) where
-  type MomentumData (FullyConnected i o) (Optimizer 'SGD) = FullyConnected' i o
+  type MomentumDataType (FullyConnected i o) (Optimizer 'SGD) = FullyConnected' i o
   getData opt x store = head $ getListStore opt x store
   setData opt x store = setListStore opt x store . return
+  newData _ _ = FullyConnected' (konst 0) (konst 0)
+
+instance (KnownNat i, KnownNat o, KnownNat (i * o)) => LayerOptimizerData (FullyConnected i o) (Optimizer 'Adam) where
+  type MomentumDataType (FullyConnected i o) (Optimizer 'Adam) = FullyConnected' i o
+  type MomentumExpOptResult (FullyConnected i o) (Optimizer 'Adam) = [FullyConnected' i o]
+  getData = getListStore
+  setData = setListStore
   newData _ _ = FullyConnected' (konst 0) (konst 0)
 
 
@@ -114,8 +127,6 @@ randomFullyConnected :: forall m i o . (PrimBase m, KnownNat i, KnownNat o, Know
 randomFullyConnected m gen = do
   wN <- getRandomMatrix i o m gen
   wB <- getRandomVector i o m gen
-  -- let bm = konst 0
-  --     mm = konst 0
   return $ FullyConnected (FullyConnected' wB wN) mkListStore
   where i = natVal (Proxy :: Proxy i)
         o = natVal (Proxy :: Proxy o)
@@ -123,7 +134,7 @@ randomFullyConnected m gen = do
 -------------------- DynamicNetwork instance --------------------
 
 instance (KnownNat i, KnownNat o) => FromDynamicLayer (FullyConnected i o) where
-  fromDynamicLayer _ _ = SpecNetLayer $ SpecFullyConnected (natVal (Proxy :: Proxy i)) (natVal (Proxy :: Proxy o))
+  fromDynamicLayer _ _ _ = SpecNetLayer $ SpecFullyConnected (natVal (Proxy :: Proxy i)) (natVal (Proxy :: Proxy o))
 
 
 instance ToDynamicLayer SpecFullyConnected where
@@ -145,7 +156,7 @@ specFullyConnected nrI nrO = SpecNetLayer $ SpecFullyConnected nrI nrO
 instance (KnownNat i, KnownNat o) => GNum (FullyConnected i o) where
   s |* FullyConnected i o = FullyConnected (s |* i) o
   FullyConnected i o |+ FullyConnected i2 o2 = FullyConnected (0.5 |* (i |+ i2)) (0.5 |* (o |+ o2))
-  gFromRational r = FullyConnected (gFromRational r) (gFromRational 0)
+  gFromRational r = FullyConnected (gFromRational r) mkListStore
 
 instance (KnownNat i, KnownNat o) => GNum (FullyConnected' i o) where
   s |* FullyConnected' i o = FullyConnected' (fromRational s * i) o

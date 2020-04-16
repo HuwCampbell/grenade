@@ -14,12 +14,6 @@ import           Control.Monad.Trans.Except
 
 import qualified Data.Attoparsec.Text         as A
 import           Data.List                    (foldl')
-#if ! MIN_VERSION_base(4,13,0)
-import           Data.Semigroup               ((<>))
-#endif
-
-import qualified Data.Attoparsec.Text         as A
-import           Data.List                    (foldl')
 import           Data.Semigroup               ((<>))
 import qualified Data.Text                    as T
 import qualified Data.Text.IO                 as T
@@ -75,7 +69,7 @@ type MNIST =
 randomMnist :: IO MNIST
 randomMnist = randomNetwork
 
-convTest :: Int -> FilePath -> FilePath -> Optimizer 'SGD -> ExceptT String IO ()
+convTest :: Int -> FilePath -> FilePath -> Optimizer opt -> ExceptT String IO ()
 convTest iterations trainFile validateFile rate = do
   net0         <- lift randomMnist
   trainData    <- readMNIST trainFile
@@ -86,31 +80,44 @@ convTest iterations trainFile validateFile rate = do
   trainEach rate' !network (i, o) = train rate' network i o
 
   runIteration trainRows validateRows net i = do
-    let trained' = foldl' (trainEach ( rate { sgdLearningRate = sgdLearningRate rate * 0.9 ^ i} )) net trainRows
+    let trained' = foldl' (trainEach ( sgdUpdateLearningParamters rate)) net trainRows
     let res      = fmap (\(rowP,rowL) -> (rowL,) $ runNet trained' rowP) validateRows
     let res'     = fmap (\(S1D label, S1D prediction) -> (maxIndex (SA.extract label), maxIndex (SA.extract prediction))) res
     print trained'
     putStrLn $ "Iteration " ++ show i ++ ": " ++ show (length (filter ((==) <$> fst <*> snd) res')) ++ " of " ++ show (length res')
     return trained'
+  sgdUpdateLearningParamters :: Optimizer opt -> Optimizer opt
+  sgdUpdateLearningParamters (OptSGD rate mom reg) = OptSGD rate mom (reg * 10)
+  sgdUpdateLearningParamters o                     = o
 
-data MnistOpts = MnistOpts FilePath FilePath Int (Optimizer 'SGD)
+
+data MnistOpts = MnistOpts FilePath FilePath Int Bool (Optimizer 'SGD) (Optimizer 'Adam)
 
 mnist' :: Parser MnistOpts
 mnist' = MnistOpts <$> argument str (metavar "TRAIN")
                    <*> argument str (metavar "VALIDATE")
                    <*> option auto (long "iterations" <> short 'i' <> value 15)
-                   <*> (OptSGD
+                 <*> flag False True (long "use-adam" <> short 'a')
+                 <*> (OptSGD
                        <$> option auto (long "train_rate" <> short 'r' <> value 0.01)
                        <*> option auto (long "momentum" <> value 0.9)
                        <*> option auto (long "l2" <> value 0.0005)
                        )
+                 <*> (OptAdam
+                       <$> option auto (long "alpha" <> short 'r' <> value 0.001)
+                       <*> option auto (long "beta1" <> value 0.9)
+                       <*> option auto (long "beta2" <> value 0.999)
+                       <*> option auto (long "epsilon" <> value 1e-4)
+                      )
 
 main :: IO ()
 main = do
-    MnistOpts mnist vali iter rate <- execParser (info (mnist' <**> helper) idm)
+    MnistOpts mnist vali iter useAdam sgd adam <- execParser (info (mnist' <**> helper) idm)
     putStrLn "Training convolutional neural network..."
+    res <- if useAdam
+      then runExceptT $ convTest iter mnist vali adam
+      else runExceptT $ convTest iter mnist vali sgd
 
-    res <- runExceptT $ convTest iter mnist vali rate
     case res of
       Right () -> pure ()
       Left err -> putStrLn err
@@ -118,7 +125,7 @@ main = do
 readMNIST :: FilePath -> ExceptT String IO [(S ('D2 28 28), S ('D1 10))]
 readMNIST mnist = ExceptT $ do
   mnistdata <- T.readFile mnist
-  return $ traverse (A.parseOnly parseMNIST) (T.lines mnistdata)
+  return $ traverse (A.parseOnly parseMNIST) (tail $ T.lines mnistdata)
 
 parseMNIST :: A.Parser (S ('D2 28 28), S ('D1 10))
 parseMNIST = do

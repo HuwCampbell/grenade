@@ -10,6 +10,7 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE ViewPatterns          #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
 module Grenade.Recurrent.Layers.LSTM (
     LSTM (..)
@@ -76,28 +77,29 @@ instance (KnownNat i, KnownNat o) => UpdateLayer (LSTM i o) where
 
   -- Run the update function for each group matrix/vector of weights, momentums and gradients.
   -- Hmm, maybe the function should be used instead of passing in the learning parameters.
-  runUpdate (OptSGD lRate lMomentum lRegulariser) (LSTM w m) g =
-    let (wf, wf') = u lstmWf w m g
-        (uf, uf') = u lstmUf w m g
-        (bf, bf') = v lstmBf w m g
-        (wi, wi') = u lstmWi w m g
-        (ui, ui') = u lstmUi w m g
-        (bi, bi') = v lstmBi w m g
-        (wo, wo') = u lstmWo w m g
-        (uo, uo') = u lstmUo w m g
-        (bo, bo') = v lstmBo w m g
-        (wc, wc') = u lstmWc w m g
-        (bc, bc') = v lstmBc w m g
+  runUpdate opt@OptSGD{} (LSTM w m) g =
+    let MatrixResultSGD wf wf' = u lstmWf w m g
+        MatrixResultSGD uf uf' = u lstmUf w m g
+        VectorResultSGD bf bf' = v lstmBf w m g
+        MatrixResultSGD wi wi' = u lstmWi w m g
+        MatrixResultSGD ui ui' = u lstmUi w m g
+        VectorResultSGD bi bi' = v lstmBi w m g
+        MatrixResultSGD wo wo' = u lstmWo w m g
+        MatrixResultSGD uo uo' = u lstmUo w m g
+        VectorResultSGD bo bo' = v lstmBo w m g
+        MatrixResultSGD wc wc' = u lstmWc w m g
+        VectorResultSGD bc bc' = v lstmBc w m g
     in LSTM (LSTMWeights wf uf bf wi ui bi wo uo bo wc bc) (LSTMWeights wf' uf' bf' wi' ui' bi' wo' uo' bo' wc' bc')
       where
     -- Utility function for updating with the momentum, gradients, and weights.
-    u :: forall x ix out. (KnownNat ix, KnownNat out) => (x -> (L out ix)) -> x -> x -> x -> ((L out ix), (L out ix))
+    u :: forall x ix out. (KnownNat ix, KnownNat out) => (x -> L out ix) -> x -> x -> x -> MatrixResult out ix
     u e (e -> weights) (e -> momentum) (e -> gradient) =
-      descendMatrix lRate lMomentum lRegulariser weights gradient momentum
+      descendMatrix opt (MatrixValuesSGD weights gradient momentum)
 
-    v :: forall x ix. (KnownNat ix) => (x -> R ix) -> x -> x -> x -> (R ix, R ix)
+    v :: forall x ix. (KnownNat ix) => (x -> R ix) -> x -> x -> x -> VectorResult ix
     v e (e -> weights) (e -> momentum) (e -> gradient) =
-      descendVector lRate lMomentum lRegulariser weights gradient momentum
+      descendVector opt (VectorValuesSGD weights gradient momentum)
+  runUpdate _ d g = runUpdate defOptimizer d g
 
   -- There's a lot of updates here, so to try and minimise the number of data copies
   -- we'll create a mutable bucket for each.

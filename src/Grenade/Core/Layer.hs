@@ -66,6 +66,8 @@ class UpdateLayer x where
   -- | The type for the gradient for this layer.
   --   Unit if there isn't a gradient to pass back.
   type Gradient x :: Type
+
+  -- | The storage type of the layer, where it stores the moment vectors/matrices.
   type MomentumStore x :: Type
   type MomentumStore x = ()
 
@@ -83,19 +85,24 @@ class UpdateLayer x where
 --   can implement it and use it as storage retrieval and setting,
 --   however this is not a must. Fro a usefule storage see the
 --   @ListStore@ type and the @FullyConnected@ layer for an example.
-class LayerOptimizerData x optimizer where
+class (UpdateLayer x) => LayerOptimizerData x optimizer where
   -- | A data structure that holds all the needed momentum vectors for
   --   the specied optimizer.
-  type MomentumData x optimizer :: Type
+  type MomentumDataType x optimizer :: Type
+
+  -- | The expected type by the optimiser algorithm, e.g. a list of moments or
+  --   as in the default implementation, the same as MomentumDataType.
+  type MomentumExpOptResult x optimizer :: Type
+  type MomentumExpOptResult x optimizer = MomentumDataType x optimizer
 
   -- | Gets a momentum vector(s) for the specified optimizer.
-  getData :: optimizer -> x -> MomentumStore x -> MomentumData x optimizer
+  getData :: optimizer -> x -> MomentumStore x -> MomentumExpOptResult x optimizer
 
   -- | Sets the momentum vector(s) for the specified optimizer.
-  setData :: optimizer -> x -> MomentumStore x -> MomentumData x optimizer -> MomentumStore x
+  setData :: optimizer -> x -> MomentumStore x -> MomentumExpOptResult x optimizer -> MomentumStore x
 
   -- | Create empty data instance with all values set to 0.
-  newData :: optimizer -> x -> MomentumData x optimizer
+  newData :: optimizer -> x -> MomentumDataType x optimizer
 
 
 -- | Class for a layer. All layers implement this, however, they don't

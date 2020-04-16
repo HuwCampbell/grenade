@@ -76,7 +76,7 @@ sigmoid x = 1 / (1 + exp (-x))
 -------------------- DynamicNetwork instance --------------------
 
 instance FromDynamicLayer Logit where
-  fromDynamicLayer inp _ = SpecNetLayer $ SpecLogit (tripleFromSomeShape inp)
+  fromDynamicLayer inp _ _ = SpecNetLayer $ SpecLogit (tripleFromSomeShape inp)
 
 instance ToDynamicLayer SpecLogit where
   toDynamicLayer _ _ (SpecLogit (rows, cols, depth)) =

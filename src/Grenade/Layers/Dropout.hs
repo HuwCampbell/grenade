@@ -56,7 +56,7 @@ instance (KnownNat i) => Layer Dropout ('D1 i) ('D1 i) where
 -------------------- DynamicNetwork instance --------------------
 
 instance FromDynamicLayer Dropout where
-  fromDynamicLayer inp (Dropout rate seed) = case tripleFromSomeShape inp of
+  fromDynamicLayer inp _ (Dropout rate seed) = case tripleFromSomeShape inp of
     (rows, 0, 0) -> SpecNetLayer $ SpecDropout rows rate (Just seed)
     _ -> error "Error in specification: The layer Dropout may only be used with 1D input!"
 

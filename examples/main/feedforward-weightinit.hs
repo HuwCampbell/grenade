@@ -22,7 +22,7 @@ import           Grenade
 -- | The definition for a feed forward network using the dynamic module. Note the nested networks. This network clearly is over-engeneered for this example!
 netSpec :: SpecNet
 netSpec = specFullyConnected 2 40 |=> specTanh1D 40 |=> netSpecInner |=> specFullyConnected 20 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specRelu1D 20 |=> specFullyConnected 20 10 |=> specRelu1D 10 |=> specFullyConnected 10 1 |=> specLogit1D 1 |=> specNil1D 1
-  where netSpecInner = specFullyConnected 40 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specNil1D 20
+  where netSpecInner = specFullyConnected 40 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specReshape1D2D 20 (2, 10) |=> specReshape2D1D (2, 10) 20 |=> specNil1D 20
 
 
 netTrain ::
@@ -89,24 +89,38 @@ inCircle :: KnownNat n => SA.R n -> (SA.R n, Double) -> Bool
 v `inCircle` (o, r) = SA.norm_2 (v - o) <= r
 
 
-data FeedForwardOpts = FeedForwardOpts Int (Optimizer 'SGD)
+-- data FeedForwardOpts = FeedForwardOpts Int (Optimizer 'SGD)
+
+-- feedForward' :: Parser FeedForwardOpts
+-- feedForward' =
+--   FeedForwardOpts <$> option auto (long "examples" <> short 'e' <> value 1000)
+--                   <*> (OptSGD
+--                        <$> option auto (long "train_rate" <> short 'r' <> value 0.005)
+--                        <*> option auto (long "momentum" <> value 0.0)
+--                        <*> option auto (long "l2" <> value 0.0005)
+--                       )
+
+data FeedForwardOpts = FeedForwardOpts Int (Optimizer 'Adam)
 
 feedForward' :: Parser FeedForwardOpts
 feedForward' =
   FeedForwardOpts <$> option auto (long "examples" <> short 'e' <> value 1000)
-                  <*> (OptSGD
-                       <$> option auto (long "train_rate" <> short 'r' <> value 0.005)
-                       <*> option auto (long "momentum" <> value 0.0)
-                       <*> option auto (long "l2" <> value 0.0005)
+                  <*> (OptAdam
+                       <$> option auto (long "alpha" <> short 'r' <> value 0.001)
+                       <*> option auto (long "beta1" <> value 0.9)
+                       <*> option auto (long "beta2" <> value 0.999)
+                       <*> option auto (long "epsilon" <> value 1e-4)
                       )
 
 
 main :: IO ()
 main = do
+
+
   FeedForwardOpts examples rate <- execParser (info (feedForward' <**> helper) idm)
   putStrLn "| Nr | Correct | Incorrect | FalsePositives | FalseNegatives |"
   putStrLn "--------------------------------------------------------------"
-  let nr = 100 :: Int
+  let nr = 10 :: Int
   mapM_
     (\n -> do
        putStr $ "| " ++ show n ++ " | "
@@ -117,7 +131,7 @@ main = do
            net <- netTrain net0 rate examples
            unsafeCoerce $ -- only needed as GADTs are enabled, which disallowes the type to escape and thus prevents the type inference to work. The result is not needed anyways.
              testValues net)
-    [0 .. nr - 1]
+    [1 .. nr]
 
 
   -- Features of dynamic networks:

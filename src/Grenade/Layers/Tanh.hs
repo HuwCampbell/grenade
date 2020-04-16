@@ -61,7 +61,7 @@ tanh' t = 1 - s ^ (2 :: Int)  where s = tanh t
 -------------------- DynamicNetwork instance --------------------
 
 instance FromDynamicLayer Tanh where
-  fromDynamicLayer inp _ = SpecNetLayer $ SpecTanh (tripleFromSomeShape inp)
+  fromDynamicLayer inp _ _ = SpecNetLayer $ SpecTanh (tripleFromSomeShape inp)
 
 instance ToDynamicLayer SpecTanh where
   toDynamicLayer _ _ (SpecTanh (rows, cols, depth)) =

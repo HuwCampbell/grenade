@@ -52,6 +52,7 @@ import           Unsafe.Coerce
 import           Grenade.Core
 import           Grenade.Layers.Internal.Convolution
 import           Grenade.Layers.Internal.Update
+import           Grenade.Utils.ListStore
 
 -- | A Deconvolution layer for a neural network.
 --   This uses the im2col Convolution trick popularised by Caffe.
@@ -75,7 +76,7 @@ data Deconvolution :: Nat -- Number of channels, for the first layer this could 
                    , KnownNat kernelFlattened
                    , kernelFlattened ~ (kernelRows * kernelColumns * filters))
                  => !(L kernelFlattened channels) -- The kernel filter weights
-                 -> !(L kernelFlattened channels) -- The last kernel update (or momentum)
+                 -> !(ListStore (L kernelFlattened channels)) -- The last kernel update (or momentum)
                  -> Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns
 
 instance NFData (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) where
@@ -134,8 +135,7 @@ instance ( KnownNat channels
          RandomLayer (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) where
   createRandomWith m gen = do
     wN <- getRandomMatrix i i m gen
-    let mm = konst 0
-    return $ Deconvolution wN mm
+    return $ Deconvolution wN mkListStore
     where
       i = natVal (Proxy :: Proxy ((kernelRows * kernelColumns) * channels))
 
@@ -149,9 +149,50 @@ instance ( KnownNat channels
          , KnownNat (kernelRows * kernelColumns * filters)
          ) => UpdateLayer (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) where
   type Gradient (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) = (Deconvolution' channels filters kernelRows kernelColumns strideRows strideColumns)
-  runUpdate (OptSGD lRate lMomentum lRegulariser) (Deconvolution oldKernel oldMomentum) (Deconvolution' kernelGradient) =
-    let (newKernel, newMomentum) = descendMatrix lRate lMomentum lRegulariser oldKernel kernelGradient oldMomentum
-    in Deconvolution newKernel newMomentum
+
+  type MomentumStore (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns)  = ListStore (L (kernelRows * kernelColumns * filters) channels)
+
+  runUpdate opt@OptSGD{} x@(Deconvolution oldKernel store) (Deconvolution' kernelGradient) =
+    let oldMomentum = getData opt x store
+        result = descendMatrix opt (MatrixValuesSGD oldKernel kernelGradient oldMomentum)
+        newStore = setData opt x store (matrixMomentum result)
+    in Deconvolution (matrixActivations result) newStore
+  runUpdate opt@OptAdam{} x@(Deconvolution oldKernel store) (Deconvolution' kernelGradient) =
+    let (m, v) = toTuple $ getData opt x store
+        result = descendMatrix opt (MatrixValuesAdam (getStep store) oldKernel kernelGradient m v)
+        newStore = setData opt x store [matrixM result, matrixV result]
+    in Deconvolution (matrixActivations result) newStore
+    where toTuple [m ,v] = (m, v)
+          toTuple xs = error $ "unexpected input of length " ++ show (length xs) ++ "in toTuple in Convolution.hs"
+
+instance ( KnownNat channels
+         , KnownNat filters
+         , KnownNat kernelRows
+         , KnownNat kernelColumns
+         , KnownNat strideRows
+         , KnownNat strideColumns
+         , KnownNat (kernelRows * kernelColumns * filters)
+         ) =>
+         LayerOptimizerData (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) (Optimizer 'SGD) where
+  type MomentumExpOptResult (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) (Optimizer 'SGD) = L (kernelRows * kernelColumns * filters) channels
+  type MomentumDataType (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) (Optimizer 'SGD) = L (kernelRows * kernelColumns * filters) channels
+  getData opt x store = head $ getListStore opt x store
+  setData opt x store = setListStore opt x store . return
+  newData _ _ = konst 0
+
+instance ( KnownNat channels
+         , KnownNat filters
+         , KnownNat kernelRows
+         , KnownNat kernelColumns
+         , KnownNat strideRows
+         , KnownNat strideColumns
+         , KnownNat (kernelRows * kernelColumns * filters)
+         ) => LayerOptimizerData (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) (Optimizer 'Adam) where
+  type MomentumExpOptResult (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) (Optimizer 'Adam)  = [L (kernelRows * kernelColumns * filters) channels]
+  type MomentumDataType (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) (Optimizer 'Adam) = L (kernelRows * kernelColumns * filters) channels
+  getData = getListStore
+  setData = setListStore
+  newData _ _ = konst 0
 
 
 instance ( KnownNat channels
@@ -162,12 +203,14 @@ instance ( KnownNat channels
          , KnownNat strideColumns
          , KnownNat (kernelRows * kernelColumns * filters)
          ) => Serialize (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) where
-  put (Deconvolution w _) = putListOf put . toList . flatten . extract $ w
+  put (Deconvolution w store) = do
+    putListOf put . toList . flatten . extract $ w
+    put (fmap (toList . flatten . extract) store)
   get = do
       let f  = fromIntegral $ natVal (Proxy :: Proxy channels)
       wN    <- maybe (fail "Vector of incorrect size") return . create . reshape f . LA.fromList =<< getListOf get
-      let mm = konst 0
-      return $ Deconvolution wN mm
+      store <- fmap (fromMaybe (error "Vector of incorrect size") . create . reshape f . LA.fromList)  <$> get
+      return $ Deconvolution wN store
 
 -- | A two dimentional image may have a Deconvolution filter applied to it
 instance ( KnownNat kernelRows
@@ -305,7 +348,7 @@ instance ( KnownNat kernelRows
 
 instance (KnownNat channels, KnownNat filters, KnownNat kernelRows, KnownNat kernelColumns, KnownNat strideRows, KnownNat strideColumns) =>
          FromDynamicLayer (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) where
-  fromDynamicLayer inp _ =
+  fromDynamicLayer inp _ _ =
     SpecNetLayer $
     SpecDeconvolution
       (tripleFromSomeShape inp)
@@ -396,8 +439,8 @@ specDeconvolution3DInput inp channels filters kernelRows kernelCols strideRows s
 instance (KnownNat strideCols, KnownNat strideRows, KnownNat kernelCols, KnownNat kernelRows, KnownNat filters, KnownNat channels, KnownNat ((kernelRows * kernelCols) * filters)) =>
          GNum (Deconvolution channels filters kernelRows kernelCols strideRows strideCols) where
   n |* (Deconvolution w m) = Deconvolution (fromRational n * w) m
-  (Deconvolution w m) |+ (Deconvolution w2 m2) = Deconvolution (fromRational 0.5 * (w + w2)) (fromRational 0.5 * (m + m2))
-  gFromRational r = Deconvolution (fromRational r) (fromRational r)
+  (Deconvolution w m) |+ (Deconvolution w2 m2) = Deconvolution (fromRational 0.5 * (w + w2)) (zipWithListStore (\x y -> 0.5 * (x+y)) m m2)
+  gFromRational r = Deconvolution (fromRational r) mkListStore
 
 
 instance (KnownNat strideCols, KnownNat strideRows, KnownNat kernelCols, KnownNat kernelRows, KnownNat filters, KnownNat channels, KnownNat ((kernelRows * kernelCols) * filters)) =>

@@ -104,9 +104,8 @@ fromJust' Nothing  = error "Reshape error: data shape couldn't be converted."
 -------------------- DynamicNetwork instance --------------------
 
 instance FromDynamicLayer Reshape where
-  fromDynamicLayer nrI _ =
-     SpecNetLayer $ SpecReshape (tripleFromSomeShape nrI) undefined -- (natVal (Proxy :: Proxy o))
-
+  fromDynamicLayer inShape outShape _ =
+     SpecNetLayer $ SpecReshape (tripleFromSomeShape inShape) (tripleFromSomeShape outShape)
 
 instance ToDynamicLayer SpecReshape where
   toDynamicLayer _ _ (SpecReshape inp@(rowsI, colsI, depthI) out@(rowsO, colsO, depthO)) =
@@ -144,7 +143,8 @@ instance ToDynamicLayer SpecReshape where
                 case (unsafeCoerce (Dict::Dict()) :: Dict (dI ~ 1)) of
                   Dict -> return $ SpecLayer Reshape (sing :: Sing ('D3 rI cI dI)) (sing :: Sing ('D2 rI cI))
               (_, _) -> error $ "Reshaping using a specificaiton from " ++ show inp ++ " to " ++ show out ++ " is not possible!"
-    where err = error $ "cannot reshape from " ++ show inp ++ " to " ++ show out ++ ". Sizes (number of elements) do not match."
+    where err = error $ "cannot reshape from " ++ show inp ++ " to " ++ show out ++ ". Sizes (number of elements) do not match or it is trivial."
+
 
 specReshape :: (Integer, Integer, Integer) -> (Integer, Integer, Integer) -> SpecNet
 specReshape inp out = SpecNetLayer $ SpecReshape inp out
@@ -157,6 +157,7 @@ specReshape3D1D inp rows = specReshape inp (rows, 0, 0)
 
 specReshape2D3D :: (Integer, Integer) -> (Integer, Integer, Integer) -> SpecNet
 specReshape2D3D (rows, cols) = specReshape (rows, cols, 0)
+
 
 specReshape2D1D :: (Integer, Integer) -> Integer -> SpecNet
 specReshape2D1D (rowsI, colsI) rowsO = specReshape (rowsI, colsI, 0) (rowsO, 0, 0)

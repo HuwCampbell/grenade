@@ -65,7 +65,7 @@ instance (Show x, Show y) => Show (Concat m x n y) where
 -- | Run two layers in parallel, combining their outputs.
 instance (UpdateLayer x, UpdateLayer y) => UpdateLayer (Concat m x n y) where
   type Gradient (Concat m x n y) = (Gradient x, Gradient y)
-  runUpdate lr (Concat x y) (x', y') = Concat (runUpdate lr x x') (runUpdate lr y y')
+  runUpdate opt (Concat x y) (x', y') = Concat (runUpdate opt x x') (runUpdate opt y y')
 
 instance (RandomLayer x, RandomLayer y) => RandomLayer (Concat m x n y) where
   createRandomWith m gen = Concat <$> createRandomWith m gen <*> createRandomWith m gen
@@ -150,6 +150,7 @@ instance (Serialize a, Serialize b) => Serialize (Concat sa a sb b) where
 
 -------------------- DynamicNetwork instance --------------------
 
+-- TODO
 
 -- instance (FromDynamicLayer x, FromDynamicLayer y) => FromDynamicLayer (Concat m x n y) where
 --   fromDynamicLayer inp (Concat x y) = SpecNetLayer $ SpecConcat (tripleFromSomeShape inp) (fromDynamicLayer x) (fromDynamicLayer y)
