@@ -1,7 +1,7 @@
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE BangPatterns          #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-import Criterion.Main
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+import           Criterion.Main
 
 import           Grenade
 import           Grenade.Recurrent
@@ -26,5 +26,5 @@ type R = Recurrent
 type RecNet = RecurrentNetwork '[ R (LSTM 40 512), R (LSTM 512 40) ]
                                '[ 'D1 40, 'D1 512, 'D1 40 ]
 
-lp :: LearningParameters
-lp = LearningParameters 0.1 0 0
+lp :: Optimizer 'SGD
+lp = defOptimizer

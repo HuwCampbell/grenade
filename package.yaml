@@ -88,7 +88,7 @@ library:
 
     - condition: (flag(debug)) || (flag(fast))
       then:
-        ghc-options: -O0 # -fprof-auto
+        ghc-options: -O0
         cpp-options: -DDEBUG
       else:
         ghc-options: -O2

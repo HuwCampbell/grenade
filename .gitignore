@@ -9,3 +9,8 @@ dist-newstyle/
 /stack.yaml.lock
 grenade.cabal
 /examples/TAGS
+/.emacs.desktop.lock
+/.emacs.desktop
+/cbits/TAGS
+/emacs.desktop
+/examples/grenade-examples.cabal
