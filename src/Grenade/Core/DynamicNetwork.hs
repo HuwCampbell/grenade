@@ -49,6 +49,7 @@ module Grenade.Core.DynamicNetwork
   , SpecElu (..)
   , SpecLogit (..)
   , SpecRelu (..)
+  , SpecReshape (..)
   , SpecSinusoid (..)
   , SpecSoftmax (..)
   , SpecTanh (..)
@@ -94,6 +95,8 @@ import {-# SOURCE #-} Grenade.Layers.Tanh ()
 import {-# SOURCE #-} Grenade.Layers.Trivial ()
 #endif
 
+
+type SInputShape = SomeSing Shape
 
 -- | Create a runtime dynamic specification of a network. Dynamic layers (and networks), for storing and restoring specific network structures (e.g. in saving the network structures to a DB and
 -- restoring it from there) or simply generating them at runtime. This does not store the weights and biases! They have to be handled separately (see Serialize)!
@@ -280,7 +283,6 @@ instance ToDynamicLayer SpecNet where
                          , unsafeCoerce (Dict :: Dict ()) :: Dict (CreatableNetwork (Network xLayers xShapes : restLayers) (i ': restShapes))) of
                       (Dict, Dict) -> return $ SpecNetwork (x :~> xs :: Network (Network xLayers xShapes ': restLayers) (i ': restShapes))
 
--- Last i ~ Head shapes
 
 ----------------------------------------
 
@@ -430,6 +432,9 @@ newtype SpecLogit = SpecLogit (Integer, Integer, Integer)
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 newtype SpecRelu = SpecRelu (Integer, Integer, Integer)
+  deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
+
+data SpecReshape = SpecReshape (Integer, Integer, Integer) (Integer, Integer, Integer)
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 newtype SpecSinusoid = SpecSinusoid (Integer, Integer, Integer)
