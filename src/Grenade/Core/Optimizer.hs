@@ -123,4 +123,9 @@ instance SingI opt => Serialize (Optimizer opt) where
       SAdam -> OptAdam <$> get <*> get <*> get <*> get
 #endif
 
+instance SingI 'SGD where
+  sing = SSGD
+
+instance SingI 'Adam where
+  sing = SAdam
 
