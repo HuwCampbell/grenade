@@ -25,7 +25,6 @@ module Grenade.Core.Optimizer
 
 import           Control.DeepSeq
 import           Data.Default
-import           Data.Kind       (Type)
 import           Data.Serialize
 import           Data.Singletons
 
