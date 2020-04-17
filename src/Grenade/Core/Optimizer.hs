@@ -23,6 +23,7 @@ module Grenade.Core.Optimizer
     , defAdam
     ) where
 
+import           Control.DeepSeq
 import           Data.Default
 import           Data.Kind       (Type)
 import           Data.Serialize
@@ -81,6 +82,11 @@ instance Show (Optimizer o) where
   show (OptSGD r m l2) = "SGD" ++ show (r, m, l2)
   show (OptAdam alpha beta1 beta2 epsilon) = "Adam" ++ show (alpha, beta1, beta2, epsilon)
 
+instance NFData (Optimizer o) where
+  rnf (OptSGD r m l2) = rnf r `seq` rnf m `seq` rnf l2
+  rnf (OptAdam alpha beta1 beta2 epsilon) = rnf alpha `seq` rnf beta1 `seq` rnf beta2 `seq` rnf epsilon
+
+
 #if MIN_VERSION_singletons(2,6,0)
 -- In singletons 2.6 Sing switched from a data family to a type family.
 
@@ -112,4 +118,5 @@ instance SingI opt => Serialize (Optimizer opt) where
       SSGD  -> OptSGD <$> get <*> get <*> get
       SAdam -> OptAdam <$> get <*> get <*> get <*> get
 #endif
+
 
