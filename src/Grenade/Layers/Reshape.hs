@@ -34,7 +34,6 @@ import           Data.Constraint              (Dict (..))
 import           Data.Reflection              (reifyNat)
 import           Data.Singletons
 import           Data.Singletons.Prelude.Num  ((%*))
-import           Data.Singletons.TypeLits     (SNat (..))
 import           GHC.Generics                 (Generic)
 import           GHC.TypeLits
 import           Numeric.LinearAlgebra.Data   as LA (flatten)

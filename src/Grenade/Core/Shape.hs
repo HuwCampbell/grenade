@@ -30,8 +30,11 @@ module Grenade.Core.Shape (
   , fromStorable
   ) where
 
-import           Control.DeepSeq              (NFData (..))
+#if MIN_VERSION_singletons(2,6,0)
 import           Data.Kind                    (Type)
+#endif
+
+import           Control.DeepSeq              (NFData (..))
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons
