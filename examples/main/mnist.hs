@@ -66,7 +66,28 @@ type MNIST =
        'D3 12 12 18, 'D3 4 4 18, 'D3 4 4 18,
        'D1 288, 'D1 80, 'D1 10 ]
 
-randomMnist :: IO MNIST
+type MNISTFully =
+  Network
+
+    '[ Reshape, FullyConnected 784 1000, -- inp 28x28, reshape
+       Relu, Resnet SubNet, FullyConnected 1000 1000, Relu, Dropout , FullyConnected 1000 100, -- inp: 1000
+       Relu, FullyConnected 100 10,    -- inp: 100
+       Logit]                                    -- inp: 10, out: 10
+
+    '[ 'D2 28 28, 'D1 784,
+       'D1 1000, 'D1 1000, 'D1 1000, 'D1 1000, 'D1 1000, 'D1 1000,
+       'D1 100, 'D1 100,
+       'D1 10, 'D1 10
+     ]
+type SubNet = Network '[
+                  FullyConnected 1000 2000,                                                -- inp: 1000
+                  Relu, FullyConnected 2000 2000, Relu,  Dropout, FullyConnected 2000 1000, -- inp: 2000
+                  Relu                                                                      -- inp: 1000
+                  ]
+                '[ 'D1 1000, 'D1 2000, 'D1 2000, 'D1 2000, 'D1 2000, 'D1 2000, 'D1 1000, 'D1 1000 ]
+
+
+randomMnist :: IO MNISTFully
 randomMnist = randomNetwork
 
 convTest :: Int -> FilePath -> FilePath -> Optimizer opt -> ExceptT String IO ()

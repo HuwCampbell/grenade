@@ -91,7 +91,6 @@ library:
     -Wincomplete-record-updates
     -Wincomplete-uni-patterns
     -Wredundant-constraints
-    -Werror
     -Wno-orphans
     -Wno-name-shadowing
     -fwarn-tabs
@@ -105,7 +104,7 @@ library:
 
     - condition: (flag(debug)) || (flag(fast))
       then:
-        ghc-options: -O0
+        ghc-options: -O0 -Werror
         cpp-options: -DDEBUG
       else:
         ghc-options: -O2
