@@ -60,7 +60,7 @@ dependencies:
   - primitive                       >= 0.6         && < 0.8
   # Versions of singletons are *tightly* coupled with the
   # GHC version  so its fine to drop version bounds.
-  - singletons
+  - singletons                      >= 2.6
   - vector                          >= 0.11        && < 0.13
   - base >= 4.7 && < 5
   - mwc-random                      >= 0.13
