@@ -2,7 +2,6 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
@@ -21,15 +20,16 @@ module Grenade.Core.Optimizer
     , defOptimizer
     , defSGD
     , defAdam
+    , putOptimizer
+    , getOptimizer
+    , RttiOpt (..)
     ) where
 
 import           Data.Default
-import           Data.Kind       (Type)
+import           Data.Kind      (Type)
 import           Data.Serialize
-import           Data.Singletons
 
 import           Grenade.Types
-
 
 -- | A kind used for instance declaration in the layer implementations.
 --
@@ -90,25 +90,25 @@ data instance RttiOptimizer Optimizer op where
   RttiOptimizerSGD :: RttiOptimizer Optimizer 'SGD
   RttiOptimizerAdam :: RttiOptimizer Optimizer 'Adam
 
-putOpt :: Optimizer opt -> PutM ()
-putOpt (OptSGD rate m reg) = put rate >> put m >> put reg
-putOpt (OptAdam a b1 b2 e) = put a >> put b1 >> put b2 >> put e
+putOptimizer :: Optimizer opt -> PutM ()
+putOptimizer (OptSGD rate m reg) = put rate >> put m >> put reg
+putOptimizer (OptAdam a b1 b2 e) = put a >> put b1 >> put b2 >> put e
 
-getOpt :: RttiOptimizer Optimizer opt -> Get (Optimizer opt)
-getOpt RttiOptimizerSGD  = OptSGD <$> get <*> get <*> get
-getOpt RttiOptimizerAdam = OptAdam <$> get <*> get <*> get <*> get
+getOptimizer :: RttiOptimizer Optimizer opt -> Get (Optimizer opt)
+getOptimizer RttiOptimizerSGD  = OptSGD <$> get <*> get <*> get
+getOptimizer RttiOptimizerAdam = OptAdam <$> get <*> get <*> get <*> get
 
-instance (HasRttiOptimizer Optimizer opt) => Serialize (Optimizer opt) where
-  put = putOpt
-  get = getOpt rtti
+instance (RttiOpt Optimizer opt) => Serialize (Optimizer opt) where
+  put = putOptimizer
+  get = getOptimizer rtti
 
 -- class for routing
-class HasRttiOptimizer f a where
+class RttiOpt f a where
   rtti :: RttiOptimizer f a
 
-instance HasRttiOptimizer Optimizer 'SGD where
+instance RttiOpt Optimizer 'SGD where
   rtti = RttiOptimizerSGD
-instance HasRttiOptimizer Optimizer 'Adam where
+instance RttiOpt Optimizer 'Adam where
   rtti = RttiOptimizerAdam
 
 
