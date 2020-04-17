@@ -98,7 +98,7 @@ instance SingI opt => Serialize (Optimizer opt) where
       SSGD  -> OptSGD <$> get <*> get <*> get
       SAdam -> OptAdam <$> get <*> get <*> get <*> get
 #else
-data instance Sing (opt :: Optimizer) where
+data instance Sing (opt :: OptimizerAlgorithm) where
   SSGD :: Sing 'SGD
   SAdam :: Sing 'Adam
 #endif
