@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
@@ -21,6 +22,7 @@ module Grenade.Core.Optimizer
     ) where
 
 import           Data.Default
+import           Data.Serialize
 
 import           Grenade.Types
 
@@ -53,6 +55,15 @@ data Optimizer (o :: OptimizerAlgorithm) where
 instance Show (Optimizer o) where
   show (OptSGD r m l2) = "SGD" ++ show (r, m, l2)
   show (OptAdam alpha beta1 beta2 epsilon) = "Adam" ++ show (alpha, beta1, beta2, epsilon)
+
+instance Serialize (Optimizer 'SGD) where
+  put (OptSGD rate m reg) = put rate >> put m >> put reg
+  get = OptSGD <$> get <*> get <*> get
+
+instance Serialize (Optimizer 'Adam) where
+  put (OptAdam a b1 b2 e) = put a >> put b1 >> put b2 >> put e
+  get = OptAdam <$> get <*> get <*> get <*> get
+
 
 -- | Default optimizer.
 defOptimizer :: Optimizer 'SGD
