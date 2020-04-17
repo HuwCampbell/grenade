@@ -120,11 +120,13 @@ instance SingI opt => Serialize (Optimizer opt) where
 #endif
 
 
-instance Serialize (Optimizer 'SGD) where
+instance {-# OVERLAPPING #-} Serialize (Optimizer 'SGD) where
   put (OptSGD rate m reg) = put rate >> put m >> put reg
   get = OptSGD <$> get <*> get <*> get
 
 
-instance Serialize (Optimizer 'Adam) where
+instance {-# OVERLAPPING #-} Serialize (Optimizer 'Adam) where
   put (OptAdam a b1 b2 e) = put a >> put b1 >> put b2 >> put e
   get = OptAdam <$> get <*> get <*> get <*> get
+
+
