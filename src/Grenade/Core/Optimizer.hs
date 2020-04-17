@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
@@ -20,9 +21,6 @@ module Grenade.Core.Optimizer
     , defOptimizer
     , defSGD
     , defAdam
-    , putOptimizer
-    , getOptimizer
-    , RttiOpt (..)
     ) where
 
 import           Data.Default
@@ -83,6 +81,9 @@ instance Show (Optimizer o) where
   show (OptSGD r m l2) = "SGD" ++ show (r, m, l2)
   show (OptAdam alpha beta1 beta2 epsilon) = "Adam" ++ show (alpha, beta1, beta2, epsilon)
 
+#if MIN_VERSION_singletons(2,6,0)
+-- In singletons 2.6 Sing switched from a data family to a type family.
+
 type instance Sing = Opt
 
 data Opt (opt :: OptimizerAlgorithm) where
@@ -96,3 +97,10 @@ instance SingI opt => Serialize (Optimizer opt) where
     case sing :: Opt opt of
       SSGD  -> OptSGD <$> get <*> get <*> get
       SAdam -> OptAdam <$> get <*> get <*> get <*> get
+#else
+data instance Sing (opt :: Optimizer) where
+  SSGD :: Sing 'SGD
+  SAdam :: Sing 'Adam
+#endif
+
+
