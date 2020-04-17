@@ -4,8 +4,10 @@
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
 {-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 {-|
 Module      : Grenade.Core.Optimizer
 Description : Defines the Optimizer classes
@@ -22,7 +24,9 @@ module Grenade.Core.Optimizer
     ) where
 
 import           Data.Default
+import           Data.Kind       (Type)
 import           Data.Serialize
+import           Data.Singletons
 
 import           Grenade.Types
 
@@ -52,19 +56,6 @@ data Optimizer (o :: OptimizerAlgorithm) where
        }
     -> Optimizer 'Adam
 
-instance Show (Optimizer o) where
-  show (OptSGD r m l2) = "SGD" ++ show (r, m, l2)
-  show (OptAdam alpha beta1 beta2 epsilon) = "Adam" ++ show (alpha, beta1, beta2, epsilon)
-
-instance Serialize (Optimizer 'SGD) where
-  put (OptSGD rate m reg) = put rate >> put m >> put reg
-  get = OptSGD <$> get <*> get <*> get
-
-instance Serialize (Optimizer 'Adam) where
-  put (OptAdam a b1 b2 e) = put a >> put b1 >> put b2 >> put e
-  get = OptAdam <$> get <*> get <*> get <*> get
-
-
 -- | Default optimizer.
 defOptimizer :: Optimizer 'SGD
 defOptimizer = defSGD
@@ -83,3 +74,41 @@ defSGD = def
 
 defAdam :: Optimizer 'Adam
 defAdam = def
+
+
+-- instances
+
+instance Show (Optimizer o) where
+  show (OptSGD r m l2) = "SGD" ++ show (r, m, l2)
+  show (OptAdam alpha beta1 beta2 epsilon) = "Adam" ++ show (alpha, beta1, beta2, epsilon)
+
+-- | Runtime type information for serialization instance
+data family RttiOptimizer (f :: k -> Type) :: (k -> Type)
+
+-- | Corresponding data instances
+data instance RttiOptimizer Optimizer op where
+  RttiOptimizerSGD :: RttiOptimizer Optimizer 'SGD
+  RttiOptimizerAdam :: RttiOptimizer Optimizer 'Adam
+
+putOpt :: Optimizer opt -> PutM ()
+putOpt (OptSGD rate m reg) = put rate >> put m >> put reg
+putOpt (OptAdam a b1 b2 e) = put a >> put b1 >> put b2 >> put e
+
+getOpt :: RttiOptimizer Optimizer opt -> Get (Optimizer opt)
+getOpt RttiOptimizerSGD  = OptSGD <$> get <*> get <*> get
+getOpt RttiOptimizerAdam = OptAdam <$> get <*> get <*> get <*> get
+
+instance (HasRttiOptimizer Optimizer opt) => Serialize (Optimizer opt) where
+  put = putOpt
+  get = getOpt rtti
+
+-- class for routing
+class HasRttiOptimizer f a where
+  rtti :: RttiOptimizer f a
+
+instance HasRttiOptimizer Optimizer 'SGD where
+  rtti = RttiOptimizerSGD
+instance HasRttiOptimizer Optimizer 'Adam where
+  rtti = RttiOptimizerAdam
+
+
