@@ -85,7 +85,7 @@ script:
    set -ex
    # Run tests --ghc-options=-Werror
    # stack build --no-terminal $ARGS
-   stack test --no-terminal --ghc-options=-Werror $ARGS
-   stack test --no-terminal $ARGS
+   stack test --no-terminal $ARGS --ghc-options=-Werror --ghc-options=-Wno-unused-imports
+   stack test --no-terminal $ARGS --ghc-options=-Wno-unused-imports
    set +ex
 
