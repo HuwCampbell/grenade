@@ -24,6 +24,11 @@ flags:
     description: Turn on debug settings.
     manual: false
     default: false
+  use-double:
+    description: Use Double's instead of Float's for weights, biases, momentum, etc.
+    manual: true
+    default: false
+
 
 dependencies:
   - grenade
@@ -36,7 +41,6 @@ dependencies:
   - optparse-applicative            >= 0.13       && < 0.16
   - text                            == 1.2.*
   - mtl                             >= 2.2.1      && < 2.3
-  - hmatrix                         >= 0.18       && < 0.21
   - transformers
   - semigroups
   - singletons
@@ -44,6 +48,21 @@ dependencies:
   - MonadRandom
   - containers
   - deepseq
+
+when:
+  condition: flag(use-double)
+  then:
+    dependencies:
+      - hmatrix                         >= 0.18        && < 0.21
+
+    cpp-options: -DUSE_DOUBLE
+    cc-options: -DUSE_DOUBLE
+  else:
+    dependencies:
+      - hmatrix-float
+    cpp-options: -DUSE_FLOAT
+    cc-options: -DUSE_FLOAT
+
 
 executables:
   feedforward:

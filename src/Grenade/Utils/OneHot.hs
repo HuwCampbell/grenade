@@ -16,23 +16,20 @@ module Grenade.Utils.OneHot (
 
 import           Data.List                    (group, sort)
 import           System.Random.MWC            hiding (create)
-
-
 import           Data.Map                     (Map)
 import qualified Data.Map                     as M
-
 import           Data.Proxy
 import           Data.Singletons.TypeLits
-
 import           Data.Vector                  (Vector)
 import qualified Data.Vector                  as V
 import qualified Data.Vector.Storable         as VS
-
 import           Numeric.LinearAlgebra        (maxIndex)
 import           Numeric.LinearAlgebra.Devel
 import           Numeric.LinearAlgebra.Static
 
 import           Grenade.Core.Shape
+import           Grenade.Types
+
 
 -- | From an int which is hot, create a 1D Shape
 --   with one index hot (1) with the rest 0.
@@ -88,7 +85,7 @@ unHot v (S1D xs)
   $ maxIndex (extract xs)
 
 sample :: forall a n . (KnownNat n)
-       => Double -> Vector a -> S ('D1 n) -> IO a
+       => F -> Vector a -> S ('D1 n) -> IO a
 sample temperature v (S1D xs) = do
   ix <- randFromList . zip [0..] . fmap (toRational . exp . (/ temperature) . log) . VS.toList . extract $ xs
   return $ v V.! ix
@@ -101,7 +98,7 @@ randFromList [] = error "OneHot.randFromList called with empty list"
 randFromList [(x,_)] = return x
 randFromList xs | sumxs == 0 = error "OneHot.randFromList sum of weights was 0"
                 | otherwise = do
-                    r <- toRational <$> (withSystemRandom . asGenST $ \gen -> uniformR (0, fromRational sumxs :: Double) gen)
+                    r <- toRational <$> (withSystemRandom . asGenST $ \gen -> uniformR (0, fromRational sumxs :: F) gen)
                     return . fst . head $ dropWhile ((< r) . snd) cs
   where sumxs = sum (map snd xs)
         cs = scanl1 (\(_,q) (y,s') -> (y, s'+q)) xs -- cumulative weight

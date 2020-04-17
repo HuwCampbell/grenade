@@ -31,6 +31,7 @@ hugeFf = specFullyConnected 2 150 |=> specTanh1D 150 |=> specFullyConnected 150 
 
 main :: IO ()
 main = do
+  putStrLn $ "Benchmarking with type: " ++ nameF
   x :: S ('D2 60 60) <- randomOfShape
   y :: S ('D3 60 60 1) <- randomOfShape
   SpecConcreteNetwork1D1D netFF <- networkFromSpecificationWith Xavier ff
@@ -82,7 +83,7 @@ main = do
         , bench "ANN Huge 1000 train steps" $ nfIO $ netTrain netHuge defAdam 1000
         ]
     ]
-
+  putStrLn $ "Benchmarked with type: " ++ nameF
 
 testRun2D :: Pad 1 1 1 1 -> S ('D2 60 60) -> S ('D2 62 62)
 testRun2D = snd ... runForwards
@@ -119,5 +120,5 @@ netTrain net0 op n = do
   return trained
   where
     trainEach !network (i, o) = train op network i o
-    inCircle :: KnownNat n => SA.R n -> (SA.R n, Double) -> Bool
+    inCircle :: KnownNat n => SA.R n -> (SA.R n, F) -> Bool
     v `inCircle` (o, r) = SA.norm_2 (v - o) <= r

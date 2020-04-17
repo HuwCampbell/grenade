@@ -1,11 +1,10 @@
-{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE CPP                 #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE KindSignatures      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE TypeOperators       #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Test.Grenade.Layers.FullyConnected where
@@ -15,19 +14,15 @@ import           Data.Proxy
 import           Data.Singletons               ()
 import           GHC.TypeLits
 import           Unsafe.Coerce                 (unsafeCoerce)
-
-#if MIN_VERSION_base(4,9,0)
 import           Data.Kind                     (Type)
-#endif
+import           Hedgehog
+import           Test.Hedgehog.Compat
+import           Test.Hedgehog.Hmatrix
 
 import           Grenade.Core
 import           Grenade.Layers.FullyConnected
 import           Grenade.Utils.ListStore
 
-import           Hedgehog
-
-import           Test.Hedgehog.Compat
-import           Test.Hedgehog.Hmatrix
 
 data OpaqueFullyConnected :: Type where
      OpaqueFullyConnected :: (KnownNat i, KnownNat o, KnownNat (i * o)) => FullyConnected i o -> OpaqueFullyConnected
@@ -49,7 +44,7 @@ genOpaqueFullyConnected = do
             bM    <- randomVector
             wN    <- uniformSample
             kM    <- uniformSample
-            return . OpaqueFullyConnected $ (FullyConnected (FullyConnected' wB wN) (ListStore [Just $ FullyConnected' bM kM]) :: FullyConnected i' o')
+            return . OpaqueFullyConnected $ (FullyConnected (FullyConnected' wB wN) (ListStore 0 [Just $ FullyConnected' bM kM]) :: FullyConnected i' o')
 
 prop_fully_connected_forwards :: Property
 prop_fully_connected_forwards = property $ do

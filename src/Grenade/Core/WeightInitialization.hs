@@ -25,19 +25,13 @@ module Grenade.Core.WeightInitialization
     ) where
 
 import           Control.Monad
-import           Data.Proxy
-#if MIN_VERSION_base(4,11,0)
-import           GHC.TypeLits                    hiding (natVal)
-#else
-import           GHC.TypeLits
-#endif
-import           Data.Singletons.TypeLits
-
 import           Control.Monad.Primitive         (PrimBase, PrimState)
+import           Data.Proxy
+import           Data.Singletons.TypeLits
+import           GHC.TypeLits                    hiding (natVal)
+import           Numeric.LinearAlgebra.Static
 import           System.Random.MWC
 import           System.Random.MWC.Distributions
-
-import           Numeric.LinearAlgebra.Static
 
 -- ^ Weight initialization method.
 data WeightInitMethod
@@ -54,9 +48,9 @@ getRandomVector ::
   -> WeightInitMethod
   -> Gen (PrimState m)
   -> m (R n)
-getRandomVector i o method gen = do
+getRandomVector i o method gen = do 
   unifRands <- vector <$> replicateM n (uniformR (-1, 1) gen)
-  gaussRands <- vector <$> replicateM n (standard gen)
+  gaussRands <- vector <$> replicateM n (realToFrac <$> standard gen)
   return $
     case method of
       UniformInit -> (1 / sqrt (fromIntegral i)) * unifRands
@@ -74,9 +68,9 @@ getRandomMatrix ::
   -> WeightInitMethod
   -> Gen (PrimState m)
   -> m (L r n)
-getRandomMatrix i o method gen = do
+getRandomMatrix i o method gen = do 
   unifRands <- matrix <$> replicateM nr (uniformR (-1, 1) gen)
-  gaussRands <- matrix <$> replicateM nr (standard gen)
+  gaussRands <- matrix <$> replicateM nr (realToFrac <$> standard gen)
   return $
     case method of
       UniformInit -> (1 / sqrt (fromIntegral i)) * unifRands

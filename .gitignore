@@ -14,3 +14,5 @@ grenade.cabal
 /cbits/TAGS
 /emacs.desktop
 /examples/grenade-examples.cabal
+/examples/main/mnist_test.csv
+/examples/main/mnist_train.csv

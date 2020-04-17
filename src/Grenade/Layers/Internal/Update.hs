@@ -12,18 +12,16 @@ module Grenade.Layers.Internal.Update (
 import           Data.Maybe                   (fromJust)
 import qualified Data.Vector.Storable         as U (unsafeFromForeignPtr0,
                                                     unsafeToForeignPtr0)
-
 import           Foreign                      (mallocForeignPtrArray, withForeignPtr)
 import           Foreign.Ptr                  (Ptr)
 import           GHC.TypeLits
-
 import           Numeric.LinearAlgebra        (Vector, flatten)
 import qualified Numeric.LinearAlgebra.Devel  as U
 import           Numeric.LinearAlgebra.Static
-
 import           System.IO.Unsafe             (unsafePerformIO)
 
 import           Grenade.Core.Optimizer
+import           Grenade.Types
 
 data MatrixInputValues rows columns
   = MatrixValuesSGD
@@ -131,7 +129,7 @@ descendVector (OptAdam alpha beta1 beta2 epsilon) (VectorValuesAdam step weights
   in  VectorResultAdam (fromJust $ create vw) (fromJust $ create vm) (fromJust $ create vv)
 descendVector opt _ = error $ "optimzer does not match to VectorInputValues in implementation! Optimizer: " ++ show opt
 
-descendUnsafeSGD :: Int -> Double -> Double -> Double -> Vector Double -> Vector Double -> Vector Double -> (Vector Double, Vector Double)
+descendUnsafeSGD :: Int -> F -> F -> F -> Vector F -> Vector F -> Vector F -> (Vector F, Vector F)
 descendUnsafeSGD len rate momentum regulariser weights gradient lastUpdate =
   unsafePerformIO $ do
     outWPtr <- mallocForeignPtrArray len
@@ -153,15 +151,15 @@ descendUnsafeSGD len rate momentum regulariser weights gradient lastUpdate =
 descendUnsafeAdam ::
      Int -- Len
   -> Int -- Step
-  -> Double -- Alpha
-  -> Double -- Beta1
-  -> Double -- Beta2
-  -> Double -- Epsilon
-  -> Vector Double -- Weights
-  -> Vector Double -- Gradient
-  -> Vector Double -- M
-  -> Vector Double -- V
-  -> (Vector Double, Vector Double, Vector Double)
+  -> F -- Alpha
+  -> F -- Beta1
+  -> F -- Beta2
+  -> F -- Epsilon
+  -> Vector F -- Weights
+  -> Vector F -- Gradient
+  -> Vector F -- M
+  -> Vector F -- V
+  -> (Vector F, Vector F, Vector F)
 descendUnsafeAdam len step alpha beta1 beta2 epsilon weights gradient m v =
   unsafePerformIO $ do
     outWPtr <- mallocForeignPtrArray len
@@ -183,9 +181,9 @@ descendUnsafeAdam len step alpha beta1 beta2 epsilon weights gradient m v =
 
 foreign import ccall unsafe
     descend_sgd_cpu
-      :: Int -> Double -> Double -> Double -> Ptr Double -> Ptr Double -> Ptr Double -> Ptr Double -> Ptr Double -> IO ()
+      :: Int -> F -> F -> F -> Ptr F -> Ptr F -> Ptr F -> Ptr F -> Ptr F -> IO ()
 
 foreign import ccall unsafe
     descend_adam_cpu
-      :: Int -> Int -> Double -> Double -> Double -> Double -> Ptr Double -> Ptr Double -> Ptr Double -> Ptr Double -> Ptr Double -> Ptr Double -> Ptr Double -> IO ()
+      :: Int -> Int -> F -> F -> F -> F -> Ptr F -> Ptr F -> Ptr F -> Ptr F -> Ptr F -> Ptr F -> Ptr F -> IO ()
 

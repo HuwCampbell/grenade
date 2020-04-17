@@ -482,12 +482,12 @@ oneUp =
                                   VS.freeze ex'
               maybe Gen.discard pure . fromStorable $ nx
 
-maxVal :: S shape -> Double
+maxVal :: S shape -> F
 maxVal ( S1D x ) = norm_Inf x
 maxVal ( S2D x ) = norm_Inf x
 maxVal ( S3D x ) = norm_Inf x
 
-(~~~) :: (Monad m, HasCallStack) => Double -> Double -> PropertyT m ()
+(~~~) :: (Monad m, HasCallStack) => F -> F -> PropertyT m ()
 (~~~) x y =
   if abs (x - y) < 2e-5 then
     success

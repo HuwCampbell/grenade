@@ -31,27 +31,20 @@ module Grenade.Core.Shape (
   ) where
 
 import           Control.DeepSeq              (NFData (..))
-import           System.Random.MWC
-
-#if MIN_VERSION_base(4,13,0)
 import           Data.Kind                    (Type)
-#endif
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.TypeLits
 import           Data.Vector.Storable         (Vector)
 import qualified Data.Vector.Storable         as V
-
-#if MIN_VERSION_base(4,11,0)
 import           GHC.TypeLits                 hiding (natVal)
-#else
-import           GHC.TypeLits
-#endif
-
 import qualified Numeric.LinearAlgebra        as NLA
 import           Numeric.LinearAlgebra.Static
 import qualified Numeric.LinearAlgebra.Static as H
+import           System.Random.MWC
+
+import           Grenade.Types
 
 -- | The current shapes we accept.
 --   at the moment this is just one, two, and three dimensional
@@ -174,7 +167,7 @@ randomOfShape = do
 -- | Generate a shape from a Storable Vector.
 --
 --   Returns Nothing if the vector is of the wrong size.
-fromStorable :: forall x. SingI x => Vector Double -> Maybe (S x)
+fromStorable :: forall x. SingI x => Vector F -> Maybe (S x)
 fromStorable xs = case sing :: Sing x of
     D1Sing SNat ->
       S1D <$> H.create xs
@@ -186,7 +179,7 @@ fromStorable xs = case sing :: Sing x of
       S3D <$> mkL xs
   where
     mkL :: forall rows columns. (KnownNat rows, KnownNat columns)
-        => Vector Double -> Maybe (L rows columns)
+        => Vector F -> Maybe (L rows columns)
     mkL v =
       let rows    = fromIntegral $ natVal (Proxy :: Proxy rows)
           columns = fromIntegral $ natVal (Proxy :: Proxy columns)
@@ -219,7 +212,7 @@ n2 f (S2D x) (S2D y) = S2D (f x y)
 n2 f (S3D x) (S3D y) = S3D (f x y)
 
 -- Helper function for creating the number instances
-nk :: forall x. SingI x => Double -> S x
+nk :: forall x. SingI x => F -> S x
 nk x = case (sing :: Sing x) of
   D1Sing SNat ->
     S1D (konst x)

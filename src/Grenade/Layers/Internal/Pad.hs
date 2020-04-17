@@ -4,17 +4,18 @@ module Grenade.Layers.Internal.Pad (
   , crop
   ) where
 
-import qualified Data.Vector.Storable as U ( unsafeToForeignPtr0, unsafeFromForeignPtr0 )
+import qualified Data.Vector.Storable        as U (unsafeFromForeignPtr0,
+                                                   unsafeToForeignPtr0)
 
-import           Foreign ( mallocForeignPtrArray, withForeignPtr )
-import           Foreign.Ptr ( Ptr )
-
-import           Numeric.LinearAlgebra ( flatten, Matrix )
+import           Foreign                     (mallocForeignPtrArray, withForeignPtr)
+import           Foreign.Ptr                 (Ptr)
+import           Numeric.LinearAlgebra       (Matrix, flatten)
 import qualified Numeric.LinearAlgebra.Devel as U
+import           System.IO.Unsafe            (unsafePerformIO)
 
-import           System.IO.Unsafe ( unsafePerformIO )
+import           Grenade.Types
 
-pad :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
+pad :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix F -> Matrix F
 pad channels padLeft padTop padRight padBottom rows cols rows' cols' m
  = let outMatSize      = rows' * cols' * channels
        vec             = flatten m
@@ -32,9 +33,9 @@ pad channels padLeft padTop padRight padBottom rows cols rows' cols' m
 
 foreign import ccall unsafe
     pad_cpu
-      :: Ptr Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr Double -> IO ()
+      :: Ptr F -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr F -> IO ()
 
-crop :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
+crop :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix F -> Matrix F
 crop channels padLeft padTop padRight padBottom rows cols _ _ m
  = let outMatSize      = rows * cols * channels
        vec             = flatten m
@@ -51,4 +52,4 @@ crop channels padLeft padTop padRight padBottom rows cols _ _ m
 
 foreign import ccall unsafe
     crop_cpu
-      :: Ptr Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr Double -> IO ()
+      :: Ptr F -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr F -> IO ()

@@ -15,14 +15,14 @@ module Test.Grenade.Recurrent.Layers.LSTM.Reference where
 import           Data.Reflection
 import           Numeric.AD.Mode.Reverse
 import           Numeric.AD.Internal.Reverse (Tape)
-
+import qualified Numeric.LinearAlgebra.Static as S
+import qualified Numeric.LinearAlgebra as H
 import           GHC.TypeLits (KnownNat)
 
 import           Grenade.Recurrent.Layers.LSTM (LSTMWeights (..))
 import qualified Grenade.Recurrent.Layers.LSTM as LSTM
+import           Grenade.Types
 
-import qualified Numeric.LinearAlgebra.Static as S
-import qualified Numeric.LinearAlgebra as H
 
 --
 -- This module contains a set of list only versions of
@@ -57,7 +57,7 @@ data RefLSTM a = RefLSTM
     , refLstmBc :: Vector a -- Bias Cell         (b_c)
     } deriving (Functor, Foldable, Traversable, Eq, Show)
 
-lstmToReference :: (KnownNat a, KnownNat b) => LSTM.LSTMWeights a b -> RefLSTM Double
+lstmToReference :: (KnownNat a, KnownNat b) => LSTM.LSTMWeights a b -> RefLSTM F
 lstmToReference lw =
     RefLSTM
       { refLstmWf = Matrix . H.toLists . S.extract $ lstmWf lw -- Weight Forget     (W_f)

@@ -80,6 +80,7 @@ import           Grenade.Core.Network
 import           Grenade.Core.Layer
 import           Grenade.Core.Shape
 import           Grenade.Core.WeightInitialization
+import           Grenade.Types
 
 #ifndef FLYCHECK
 import {-# SOURCE #-} Grenade.Layers.FullyConnected ()
@@ -432,7 +433,7 @@ data SpecDeconvolution =
   SpecDeconvolution !(Integer, Integer, Integer) !Integer !Integer !Integer !Integer !Integer !Integer
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
-data SpecDropout = SpecDropout !Integer !Double !(Maybe Int)
+data SpecDropout = SpecDropout !Integer !F !(Maybe Int)
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 newtype SpecElu = SpecElu (Integer, Integer, Integer)

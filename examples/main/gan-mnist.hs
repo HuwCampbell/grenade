@@ -8,6 +8,10 @@
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
 
+--
+-- Note: Input files can be downloaded at https://www.kaggle.com/scolianni/mnistasjpg
+--
+--
 -- This is a simple generative adversarial network to make pictures
 -- of numbers similar to those in MNIST.
 --
@@ -187,7 +191,7 @@ parseMNIST :: A.Parser (S ('D2 28 28), S ('D1 10))
 parseMNIST = do
   Just lab <- oneHot <$> A.decimal
   pixels   <- many (A.char ',' >> A.double)
-  image    <- maybe (fail "Parsed row was of an incorrect size") pure (fromStorable . V.fromList $ pixels)
+  image    <- maybe (fail "Parsed row was of an incorrect size") pure (fromStorable . V.fromList $ fmap realToFrac pixels)
   return (image, lab)
 
 netLoad :: FilePath -> IO (Discriminator, Generator)

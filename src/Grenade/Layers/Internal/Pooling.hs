@@ -4,17 +4,20 @@ module Grenade.Layers.Internal.Pooling (
   , poolBackward
   ) where
 
-import qualified Data.Vector.Storable as U ( unsafeToForeignPtr0, unsafeFromForeignPtr0 )
+import qualified Data.Vector.Storable        as U (unsafeFromForeignPtr0,
+                                                   unsafeToForeignPtr0)
 
-import           Foreign ( mallocForeignPtrArray, withForeignPtr )
-import           Foreign.Ptr ( Ptr )
+import           Foreign                     (mallocForeignPtrArray, withForeignPtr)
+import           Foreign.Ptr                 (Ptr)
 
-import           Numeric.LinearAlgebra ( Matrix , flatten )
+import           Numeric.LinearAlgebra       (Matrix, flatten)
 import qualified Numeric.LinearAlgebra.Devel as U
 
-import           System.IO.Unsafe ( unsafePerformIO )
+import           System.IO.Unsafe            (unsafePerformIO)
 
-poolForward :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double
+import           Grenade.Types
+
+poolForward :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix F -> Matrix F
 poolForward channels height width kernelRows kernelColumns strideRows strideColumns dataIm =
   let vec             = flatten dataIm
       rowOut          = (height - kernelRows) `div` strideRows + 1
@@ -33,9 +36,9 @@ poolForward channels height width kernelRows kernelColumns strideRows strideColu
 
 foreign import ccall unsafe
     pool_forwards_cpu
-      :: Ptr Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr Double -> IO ()
+      :: Ptr F -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr F -> IO ()
 
-poolBackward :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix Double -> Matrix Double -> Matrix Double
+poolBackward :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix F -> Matrix F -> Matrix F
 poolBackward channels height width kernelRows kernelColumns strideRows strideColumns dataIm dataGrad =
   let vecIm     = flatten dataIm
       vecGrad   = flatten dataGrad
@@ -54,4 +57,4 @@ poolBackward channels height width kernelRows kernelColumns strideRows strideCol
 
 foreign import ccall unsafe
     pool_backwards_cpu
-      :: Ptr Double -> Ptr Double -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr Double -> IO ()
+      :: Ptr F -> Ptr F -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr F -> IO ()

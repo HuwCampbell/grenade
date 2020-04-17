@@ -1,8 +1,6 @@
 {-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE LambdaCase          #-}
-{-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections       #-}
 {-# LANGUAGE TypeFamilies        #-}
@@ -14,32 +12,16 @@ import           Control.Monad.Trans.Except
 import           Data.Char                    (isUpper, toLower, toUpper)
 import           Data.List                    (foldl')
 import           Data.Maybe                   (fromMaybe)
-
-#if ! MIN_VERSION_base(4,13,0)
 import           Data.Semigroup               ((<>))
-#endif
-import           Data.Char                    (isUpper, toLower, toUpper)
-import           Data.List                    (foldl')
-import           Data.Maybe                   (fromMaybe)
-import           Data.Semigroup               ((<>))
-
 import           Data.Vector                  (Vector)
 import qualified Data.Vector                  as V
-
-#if ! MIN_VERSION_base(4,13,0)
-import           Data.Proxy                   (Proxy (..))
-#endif
 import qualified Data.Map                     as M
 import           Data.Proxy                   (Proxy (..))
-
 import qualified Data.ByteString              as B
 import           Data.Serialize
-
 import           Data.Singletons.Prelude
 import           GHC.TypeLits
-
 import           Numeric.LinearAlgebra.Static (konst)
-
 import           Options.Applicative
 
 import           Grenade
@@ -65,15 +47,15 @@ import           System.IO.Unsafe             (unsafeInterleaveIO)
 -- > KING RICHARD III:
 -- > And as the heaven her his words, we the son, I show sand stape but the lament to shall were the sons with a strend
 
-type F = FeedForward
+type FF = FeedForward
 type R = Recurrent
 
 -- The definition of our network
-type Shakespeare = RecurrentNetwork '[ R (LSTM 40 80), R (LSTM 80 40), F (FullyConnected 40 40), F Logit]
+type Shakespeare = RecurrentNetwork '[ R (LSTM 40 80), R (LSTM 80 40), FF (FullyConnected 40 40), FF Logit]
                                     '[ 'D1 40, 'D1 80, 'D1 40, 'D1 40, 'D1 40 ]
 
 -- The definition of the "sideways" input, which the network is fed recurrently.
-type Shakespearian = RecurrentInputs  '[ R (LSTM 40 80), R (LSTM 80 40), F (FullyConnected 40 40), F Logit]
+type Shakespearian = RecurrentInputs  '[ R (LSTM 40 80), R (LSTM 80 40), FF (FullyConnected 40 40), FF Logit]
 
 randomNet :: IO Shakespeare
 randomNet = randomRecurrent
@@ -122,7 +104,7 @@ runShakespeare opts = do
 generateParagraph :: forall layers shapes n a. (Last shapes ~ 'D1 n, Head shapes ~ 'D1 n, KnownNat n, Ord a)
   => RecurrentNetwork layers shapes
   -> RecurrentInputs layers
-  -> Double
+  -> F
   -> M.Map a Int
   -> Vector a
   -> S ('D1 n)
@@ -142,7 +124,7 @@ data ShakespeareOpts = ShakespeareOpts {
   , iterations   :: Int
   , rate         :: Optimizer 'SGD
   , sequenceSize :: Int
-  , temperature  :: Double
+  , temperature  :: F
   , loadPath     :: Maybe FilePath
   , savePath     :: Maybe FilePath
   }

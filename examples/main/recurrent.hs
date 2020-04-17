@@ -8,22 +8,9 @@
 
 import           Control.Monad                (foldM)
 import           Control.Monad.Random         (MonadRandom, getRandomR)
-
-#if MIN_VERSION_base(4,13,0)
-import           Data.List                    (unfoldr)
-#else
 import           Data.List                    (cycle, unfoldr)
 import           Data.Semigroup               ((<>))
-#endif
-#if __GLASGOW_HASKELL__ < 800
-import           Data.List                    (unfoldr)
-#else
-import           Data.List                    (cycle, unfoldr)
-#endif
-import           Data.Semigroup               ((<>))
-
 import qualified Numeric.LinearAlgebra.Static as SA
-
 import           Options.Applicative
 
 import           Grenade
@@ -95,5 +82,5 @@ main = do
 
     print . take 50 . drop 100 $ results
 
-c :: Double -> S ('D1 1)
+c :: F -> S ('D1 1)
 c = S1D . SA.konst

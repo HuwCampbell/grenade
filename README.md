@@ -8,21 +8,48 @@ Grenade
 This is a fork of the original Grenade library found at https://github.com/HuwCampbell/grenade,
 but includes additional features:
 
- - Initializing the weights in different ways. Currently implement: Uniform, HeEtAl, Xavier. The
-   default is Uniform!
- - Dynamically specifying networks. Currently only for feedforward networks composed of
-   fully-connected layers, (de-)convolution layers and activation functions. Example (also see
-   `feedforward-netinit` in example folder):
+ 1. **Optimizer Support**. The code has been restructured to be able to easily implement more
+    optimizers than just SGD with momentum and regularization. Currently we support *Adam* for
+    feedforward neural networks also!
 
-```haskell
-let spec :: SpecNet
-    spec = specFullyConnected 40 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specNil1D 20
-SpecConcreteNetwork1D1D (net0 :: Network layers shapes) <- networkFromSpecificationWith HeEtAl spec
-```
+ 2. **Weight Initialization**. Initializing the weights in different ways. Currently implement:
+    Uniform, HeEtAl, Xavier. The default is Uniform!
 
-  However, it is important to get the specification right, as otherwise the program will halt
-  abruptly. So at best do not use it manually, but write functions for creating specifications!
+ 3. **Data Type Representation**: You can easily switch between `Double` and `Float` vectors and
+    matrices. Just provide the corresponding flag (`float`) when compiling:
 
+        stack clean && stack build --flag=grenade-examples:use-double --flag=grenade:use-double && stack bench
+
+    Ensure you clean before changing the flags, as otherwise you might in the best case get a
+    compile error and in the worst case a SIGSEV!
+
+    Clearly `Float`s are less precise but more efficient. In case of ANNs `Float` should be
+    sufficient, as long as you keep the values of the weights small (which you should always do).
+    This feature uses an [adapted version](http://github.com/schnecki/hmatrix-float "github
+    repository") of [hmatrix](https://hackage.haskell.org/package/hmatrix-0.20.0.0 "stackage") which
+    was especially adapted for this project.
+
+ 4. **Runtime Networks**. Dynamically specifying and build networks at runtime. This is not only a
+    required tool when storing the network architecture to the disk, like in a DB, and reloading it,
+    but it could also be a starting point for developing algorithms that adapt the network to find
+    the best architecture for the underlying problem. You can do that with this feature without
+    knowing its structure by deserializing the network specification and then feed the deserialized
+    network weights into the net.
+
+    However, currently this works only for feedforward networks composed of fully-connected, dropout,
+    deconvolution and convolution layers plus all activation functions. Example (also see
+    `feedforward-netinit` in example folder):
+
+        let spec :: SpecNet
+            spec = specFullyConnected 40 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specNil1D 20
+        SpecConcreteNetwork1D1D (net0 :: Network layers shapes) <- networkFromSpecificationWith HeEtAl spec
+
+    However, Beware! It is important to get the specification right, as otherwise the program will halt
+    abruptly. So at best do not use it manually, but write functions for creating specifications!
+
+
+Description
+===========
 
 ```
 First shalt thou take out the Holy Pin, then shalt thou count to three, no more, no less.

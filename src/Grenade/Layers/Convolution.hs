@@ -50,6 +50,7 @@ import           Grenade.Layers.Internal.Convolution
 import           Grenade.Layers.Internal.Update
 import           Grenade.Utils.ListStore
 
+
 -- | A convolution layer for a neural network.
 --   This uses the im2col convolution trick popularised by Caffe, which essentially turns the
 --   many, many, many, many loop convolution into a single matrix multiplication.

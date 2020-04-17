@@ -27,8 +27,6 @@ import           Data.Singletons.TypeLits    (SNat (..))
 import           Data.Kind                   (Type)
 #endif
 
-import           Grenade.Core
-import           Grenade.Layers.Convolution
 
 import           Hedgehog
 import qualified Hedgehog.Gen                as Gen
@@ -36,6 +34,11 @@ import qualified Hedgehog.Gen                as Gen
 import           Test.Hedgehog.Compat
 import           Test.Hedgehog.Hmatrix
 import           Test.Hedgehog.TypeLits
+
+import           Grenade.Core
+import           Grenade.Layers.Convolution
+import Grenade.Utils.ListStore
+
 
 data OpaqueConvolution :: Type where
      OpaqueConvolution :: Convolution channels filters kernelRows kernelColumns strideRows strideColumns -> OpaqueConvolution
@@ -52,7 +55,7 @@ genConvolution :: ( KnownNat channels
                   , KnownNat kernelFlattened
                   , kernelFlattened ~ (kernelRows * kernelColumns * channels)
                   ) => Gen (Convolution channels filters kernelRows kernelColumns strideRows strideColumns)
-genConvolution = Convolution <$> uniformSample <*> uniformSample
+genConvolution = Convolution <$> uniformSample <*> pure mkListStore
 
 genOpaqueOpaqueConvolution :: Gen OpaqueConvolution
 genOpaqueOpaqueConvolution = do

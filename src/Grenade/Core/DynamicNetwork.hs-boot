@@ -57,6 +57,7 @@ import           Grenade.Core.Network
 import           Grenade.Core.Layer
 import           Grenade.Core.Shape
 import           Grenade.Core.WeightInitialization
+import           Grenade.Types
 
 
 -- | Create a runtime dynamic specification of a network. Dynamic layers (and networks), for storing and restoring specific network structures (e.g. in saving the network structures to a DB and
@@ -107,7 +108,7 @@ data SpecConvolution =
 data SpecDeconvolution =
   SpecDeconvolution !(Integer, Integer, Integer) !Integer !Integer !Integer !Integer !Integer !Integer
 
-data SpecDropout = SpecDropout !Integer !Double !(Maybe Int)
+data SpecDropout = SpecDropout !Integer !F !(Maybe Int)
 
 newtype SpecElu = SpecElu (Integer, Integer, Integer)
 

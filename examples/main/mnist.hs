@@ -27,6 +27,11 @@ import           Options.Applicative
 import           Grenade
 import           Grenade.Utils.OneHot
 
+--
+-- Note: Input files can be downloaded at https://www.kaggle.com/scolianni/mnistasjpg
+--
+
+
 -- It's logistic regression!
 --
 -- This network is used to show how we can embed a Network as a layer in the larger MNIST
@@ -127,5 +132,5 @@ parseMNIST :: A.Parser (S ('D2 28 28), S ('D1 10))
 parseMNIST = do
   Just lab <- oneHot <$> A.decimal
   pixels   <- many (A.char ',' >> A.double)
-  image    <- maybe (fail "Parsed row was of an incorrect size") pure (fromStorable . V.fromList $ pixels)
+  image    <- maybe (fail "Parsed row was of an incorrect size") pure (fromStorable . V.fromList $ map realToFrac pixels)
   return (image, lab)
