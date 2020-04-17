@@ -24,7 +24,7 @@ flags:
     description: Turn on debug settings.
     manual: false
     default: false
-  use-double:
+  use-float:
     description: Use Double's instead of Float's for weights, biases, momentum, etc.
     manual: true
     default: false
@@ -48,20 +48,18 @@ dependencies:
   - MonadRandom
   - containers
   - deepseq
-
 when:
-  condition: flag(use-double)
+  condition: flag(use-float)
   then:
-    dependencies:
-      - hmatrix                         >= 0.18        && < 0.21
-
-    cpp-options: -DUSE_DOUBLE
-    cc-options: -DUSE_DOUBLE
-  else:
     dependencies:
       - hmatrix-float
     cpp-options: -DUSE_FLOAT
     cc-options: -DUSE_FLOAT
+  else:
+    dependencies:
+      - hmatrix                         >= 0.18        && < 0.21
+    cpp-options: -DUSE_DOUBLE
+    cc-options: -DUSE_DOUBLE
 
 
 executables:

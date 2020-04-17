@@ -1,23 +1,23 @@
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE ConstraintKinds       #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE DeriveFunctor         #-}
-{-# LANGUAGE DeriveFoldable        #-}
-{-# LANGUAGE DeriveTraversable     #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ConstraintKinds     #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE DeriveFoldable      #-}
+{-# LANGUAGE DeriveFunctor       #-}
+{-# LANGUAGE DeriveTraversable   #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators       #-}
 
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Test.Grenade.Recurrent.Layers.LSTM.Reference where
 
 import           Data.Reflection
+import           GHC.TypeLits                  (KnownNat)
+import           Numeric.AD.Internal.Reverse   (Tape)
 import           Numeric.AD.Mode.Reverse
-import           Numeric.AD.Internal.Reverse (Tape)
-import qualified Numeric.LinearAlgebra.Static as S
-import qualified Numeric.LinearAlgebra as H
-import           GHC.TypeLits (KnownNat)
+import qualified Numeric.LinearAlgebra         as H
+import qualified Numeric.LinearAlgebra.Static  as S
 
 import           Grenade.Recurrent.Layers.LSTM (LSTMWeights (..))
 import qualified Grenade.Recurrent.Layers.LSTM as LSTM

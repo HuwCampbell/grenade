@@ -12,13 +12,13 @@ module Test.Grenade.Network where
 
 import           Control.Monad                   (guard)
 import           Control.Monad.ST                (runST)
-
 import           Data.Constraint
+import           Data.Proxy
 import           Data.Singletons.Prelude.List
 import           Data.Singletons.TypeLits
+import           Data.Typeable
 import qualified Data.Vector.Storable            as VS
 import qualified Data.Vector.Storable.Mutable    as VS (write)
-
 import           Hedgehog
 import qualified Hedgehog.Gen                    as Gen
 import           Hedgehog.Internal.Property      (failWith)
@@ -489,7 +489,7 @@ maxVal ( S3D x ) = norm_Inf x
 
 (~~~) :: (Monad m, HasCallStack) => F -> F -> PropertyT m ()
 (~~~) x y =
-  if abs (x - y) < 2e-5 then
+  if abs (x - y) < precision then
     success
   else
     withFrozenCallStack $
@@ -498,6 +498,8 @@ maxVal ( S3D x ) = norm_Inf x
         , show x
         , show y
         ]
+  where precision | nameF == show (typeRep (Proxy :: Proxy Float)) = 2e-2
+                  | otherwise = 2e-5
 infix 4 ~~~
 
 

@@ -10,7 +10,7 @@ type F = Float       -- when using the hmatrix-float package
 type F = Double   -- when using the hmatrix package
 #else
 #ifdef FLYCHECK
-type F = Float
+type F = Double
 #else
 You have to provide the preprocessor directive (for GHC and GCC) -DUSE_FLOAT or -DUSE_DOUBLE
 #endif

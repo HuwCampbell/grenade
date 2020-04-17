@@ -15,19 +15,21 @@ but includes additional features:
  2. **Weight Initialization**. Initializing the weights in different ways. Currently implement:
     Uniform, HeEtAl, Xavier. The default is Uniform!
 
- 3. **Data Type Representation**: You can easily switch between `Double` and `Float` vectors and
-    matrices. Just provide the corresponding flag (`float`) when compiling:
+ 3. **Data Type Representation**: You can easily switch from `Double` to `Float` vectors and
+    matrices. Just provide the corresponding flag (`use-float`) when compiling (to all packages
+    that):
 
-        stack clean && stack build --flag=grenade-examples:use-double --flag=grenade:use-double && stack bench
+        stack clean && stack build --flag=grenade-examples:use-float --flag=grenade:use-float && stack bench
 
     Ensure you clean before changing the flags, as otherwise you might in the best case get a
     compile error and in the worst case a SIGSEV!
 
-    Clearly `Float`s are less precise but more efficient. In case of ANNs `Float` should be
-    sufficient, as long as you keep the values of the weights small (which you should always do).
-    This feature uses an [adapted version](http://github.com/schnecki/hmatrix-float "github
-    repository") of [hmatrix](https://hackage.haskell.org/package/hmatrix-0.20.0.0 "stackage") which
-    was especially adapted for this project.
+    Clearly `Float`s are less precise but more efficient, both in terms of *time and memory*. In case
+    of ANNs `Float` should be sufficient, as long as you keep the values of the weights small (which
+    you should always do). This feature uses an [adapted
+    version](http://github.com/schnecki/hmatrix-float "github repository") of
+    [hmatrix](https://hackage.haskell.org/package/hmatrix-0.20.0.0 "stackage") which was especially
+    adapted for this project.
 
  4. **Runtime Networks**. Dynamically specifying and build networks at runtime. This is not only a
     required tool when storing the network architecture to the disk, like in a DB, and reloading it,

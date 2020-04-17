@@ -1,28 +1,27 @@
-{-# LANGUAGE TemplateHaskell       #-}
-{-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE ConstraintKinds       #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ConstraintKinds     #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE TypeOperators       #-}
 
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Test.Grenade.Recurrent.Layers.LSTM where
 
-import           Hedgehog
-import           Hedgehog.Internal.Source
-import           Hedgehog.Internal.Show
-import           Hedgehog.Internal.Property ( failWith, Diff (..) )
-
-import           Data.Foldable ( toList )
+import           Data.Foldable                                (toList)
+import           Data.Proxy                                   (Proxy (..))
 import           Data.Singletons.TypeLits
-
+import           Data.Typeable                                (typeRep)
 import           Grenade
 import           Grenade.Recurrent
-
-import qualified Numeric.LinearAlgebra as H
-import qualified Numeric.LinearAlgebra.Static as S
+import           Hedgehog
+import           Hedgehog.Internal.Property                   (Diff (..), failWith)
+import           Hedgehog.Internal.Show
+import           Hedgehog.Internal.Source
+import qualified Numeric.LinearAlgebra                        as H
+import qualified Numeric.LinearAlgebra.Static                 as S
 
 
 import qualified Test.Grenade.Recurrent.Layers.LSTM.Reference as Reference
@@ -110,7 +109,7 @@ prop_lstm_reference_backwards_cell =
 
 (~~~) :: (Monad m, Eq a, Ord a, Num a, Fractional a, Show a, HasCallStack) => [a] -> [a] -> PropertyT m ()
 (~~~) x y =
-  if all (< 1e-8) (zipWith (-) x y) then
+  if all (< precision) (zipWith (-) x y) then
     success
   else
     case valueDiff <$> mkValue x <*> mkValue y of
@@ -124,6 +123,9 @@ prop_lstm_reference_backwards_cell =
       Just differ ->
         withFrozenCallStack $
           failWith (Just $ Diff "Failed (" "- lhs" "~/~" "+ rhs" ")" differ) ""
+  where precision | nameF == show (typeRep (Proxy :: Proxy Float)) = 1e-2
+                  | otherwise = 1e-8
+
 infix 4 ~~~
 
 tests :: IO Bool
