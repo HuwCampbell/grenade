@@ -26,8 +26,9 @@ module Grenade.Core.Optimizer
     ) where
 
 import           Data.Default
-import           Data.Kind      (Type)
+import           Data.Kind       (Type)
 import           Data.Serialize
+import           Data.Singletons
 
 import           Grenade.Types
 
@@ -82,33 +83,16 @@ instance Show (Optimizer o) where
   show (OptSGD r m l2) = "SGD" ++ show (r, m, l2)
   show (OptAdam alpha beta1 beta2 epsilon) = "Adam" ++ show (alpha, beta1, beta2, epsilon)
 
--- | Runtime type information for serialization instance
-data family RttiOptimizer (f :: k -> Type) :: (k -> Type)
+type instance Sing = Opt
 
--- | Corresponding data instances
-data instance RttiOptimizer Optimizer op where
-  RttiOptimizerSGD :: RttiOptimizer Optimizer 'SGD
-  RttiOptimizerAdam :: RttiOptimizer Optimizer 'Adam
+data Opt (opt :: OptimizerAlgorithm) where
+  SSGD :: Opt 'SGD
+  SAdam :: Opt 'Adam
 
-putOptimizer :: Optimizer opt -> PutM ()
-putOptimizer (OptSGD rate m reg) = put rate >> put m >> put reg
-putOptimizer (OptAdam a b1 b2 e) = put a >> put b1 >> put b2 >> put e
-
-getOptimizer :: RttiOptimizer Optimizer opt -> Get (Optimizer opt)
-getOptimizer RttiOptimizerSGD  = OptSGD <$> get <*> get <*> get
-getOptimizer RttiOptimizerAdam = OptAdam <$> get <*> get <*> get <*> get
-
-instance (RttiOpt Optimizer opt) => Serialize (Optimizer opt) where
-  put = putOptimizer
-  get = getOptimizer rtti
-
--- class for routing
-class RttiOpt f a where
-  rtti :: RttiOptimizer f a
-
-instance RttiOpt Optimizer 'SGD where
-  rtti = RttiOptimizerSGD
-instance RttiOpt Optimizer 'Adam where
-  rtti = RttiOptimizerAdam
-
-
+instance SingI opt => Serialize (Optimizer opt) where
+  put (OptSGD rate m reg) = put rate >> put m >> put reg
+  put (OptAdam a b1 b2 e) = put a >> put b1 >> put b2 >> put e
+  get =
+    case sing :: Opt opt of
+      SSGD  -> OptSGD <$> get <*> get <*> get
+      SAdam -> OptAdam <$> get <*> get <*> get <*> get
