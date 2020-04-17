@@ -81,6 +81,9 @@ instance Show (Optimizer o) where
   show (OptSGD r m l2) = "SGD" ++ show (r, m, l2)
   show (OptAdam alpha beta1 beta2 epsilon) = "Adam" ++ show (alpha, beta1, beta2, epsilon)
 
+#if MIN_VERSION_singletons(2,6,0)
+-- In singletons 2.6 Sing switched from a data family to a type family.
+
 type instance Sing = Opt
 
 data Opt (opt :: OptimizerAlgorithm) where
@@ -94,4 +97,19 @@ instance SingI opt => Serialize (Optimizer opt) where
     case sing :: Opt opt of
       SSGD  -> OptSGD <$> get <*> get <*> get
       SAdam -> OptAdam <$> get <*> get <*> get <*> get
+
+
+#else
+data instance Sing (opt :: OptimizerAlgorithm) where
+  SSGD :: Sing 'SGD
+  SAdam :: Sing 'Adam
+
+instance SingI opt => Serialize (Optimizer opt) where
+  put (OptSGD rate m reg) = put rate >> put m >> put reg
+  put (OptAdam a b1 b2 e) = put a >> put b1 >> put b2 >> put e
+  get =
+    case (sing :: Sing opt) of
+      SSGD  -> OptSGD <$> get <*> get <*> get
+      SAdam -> OptAdam <$> get <*> get <*> get <*> get
+#endif
 
