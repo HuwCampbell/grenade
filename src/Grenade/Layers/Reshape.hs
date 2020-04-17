@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveAnyClass        #-}
 {-# LANGUAGE DeriveGeneric         #-}
@@ -26,6 +27,11 @@ module Grenade.Layers.Reshape
   , specReshape1D2D
   , specReshape1D3D
   ) where
+
+#if MIN_VERSION_singletons(2,6,0)
+import           Data.Singletons.TypeLits     (SNat (..))
+#endif
+
 
 import           Data.Serialize
 
