@@ -22,11 +22,11 @@ but includes additional features:
         stack clean && stack build --flag=grenade-examples:use-float --flag=grenade:use-float && stack bench
 
     Ensure you clean before changing the flags, as otherwise you might in the best case get a
-    compile error and in the worst case a SIGSEV!
+    compile error and in the worst case a Segmentation Fault!
 
-    Clearly `Float`s are less precise but more efficient, both in terms of *time and memory*. In case
-    of ANNs `Float` should be sufficient, as long as you keep the values of the weights small (which
-    you should always do). This feature uses an [adapted
+    Clearly `Float`s are less precise but more efficient, both in terms of *time and memory*. In
+    case of small ANNs `Float` should be sufficient, as long as you keep the values of the weights
+    small (which you should always do). This feature uses an [adapted
     version](http://github.com/schnecki/hmatrix-float "github repository") of
     [hmatrix](https://hackage.haskell.org/package/hmatrix-0.20.0.0 "stackage") which was especially
     adapted for this project.

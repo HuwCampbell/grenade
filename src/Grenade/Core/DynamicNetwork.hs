@@ -28,7 +28,7 @@ This module defines types and functions for dynamic generation of networks.
 module Grenade.Core.DynamicNetwork
   ( SpecNetwork (..)
   , SpecConcreteNetwork (..)
-  , withConcreteNetwork
+  -- , withConcreteNetwork
   , FromDynamicLayer (..)
   , ToDynamicLayer (..)
   , SpecNet (..)
@@ -61,7 +61,7 @@ module Grenade.Core.DynamicNetwork
 
 import           Control.DeepSeq
 import           Control.Monad.Primitive           (PrimBase, PrimState)
-import           Data.Constraint                   (Dict (..), Constraint)
+import           Data.Constraint                   (Dict (..))
 import           Data.Reflection (reifyNat)
 import           Data.Typeable as T (typeOf, Typeable, cast, typeRep) 
 import           Data.Serialize
@@ -143,20 +143,6 @@ data SpecNet
   | SpecNNil3D !Integer !Integer !Integer -- ^ 3D network output
   | SpecNCons !SpecNet !SpecNet           -- ^ x :~> xs, where x can also be a network
   | forall spec . (ToDynamicLayer spec, Typeable spec, Ord spec, Eq spec, Show spec, Serialize spec, NFData spec) => SpecNetLayer !spec -- ^ Specification of a layer
-
--- -- | Get the last Nil specification of a network specification.
--- getLastSpec :: SpecNet -> SpecNet
--- getLastSpec (SpecNCons _ xs) = getLastSpec xs
--- getLastSpec (SpecNetLayer layer) = error "Error in specification: Every network has to end in a Nil constructor, see SpecNNil1D, etc."
--- getLastSpec x = x
-
--- getFirstDimension :: SpecNet -> (Integer, Integer, Integer)
--- getFirstDimension (SpecNNil1D r) = (r, 0, 0)
--- getFirstDimension (SpecNNil2D r c) = (r, c, 0)
--- getFirstDimension (SpecNNil3D r c d) = (r, c, d)
--- getFirstDimension (SpecNCons x _) = getFirstDimension x
--- getFirstDimension (SpecNetLayer layer) = getInputDimension layer -- error "Error in specification: Every network has to end in a Nil constructor, see SpecNNil1D, etc."
-
 
 instance Eq SpecNet where
   SpecNNil1D r1 == SpecNNil1D r2 = r1 == r2
@@ -306,7 +292,7 @@ type GeneralConcreteNetworkInstances layers shapes =
 
 -- | This is the result type when calling @networkFromSpecification@. It specifies the input and output type. For a generic version (where input and output type are unknown) see @SpecNetwork@ and
 -- @networkFromSpecificationGeneric@.
-data SpecConcreteNetwork :: Type where
+data SpecConcreteNetwork where
   SpecConcreteNetwork1D1D
     :: ( GeneralConcreteNetworkInstances layers shapes, Head shapes ~ 'D1 i1, Last shapes ~ 'D1 o1, KnownNat i1, KnownNat o1)
     => !(Network layers shapes) -> SpecConcreteNetwork
@@ -348,10 +334,10 @@ networkFromSpecificationWith :: WeightInitMethod -> SpecNet -> IO SpecConcreteNe
 networkFromSpecificationWith wInit spec = do
   SpecNetwork (net :: Network layers shapes) <- withSystemRandom . asGenST $ \gen -> toDynamicLayer wInit gen spec
   case (sing :: Sing (Head shapes), sing :: Sing (Last shapes)) of
-    (i :: Sing (Head shapes), o :: Sing (Last shapes)) ->
-      withSingI i $
-      withSingI o $
-      case (i, o) of
+    (inp :: Sing (Head shapes), out :: Sing (Last shapes)) ->
+      withSingI inp $
+      withSingI out $
+      case (inp, out) of
         (D1Sing SNat, D1Sing SNat) -> return $ SpecConcreteNetwork1D1D net
         (D1Sing SNat, D2Sing SNat SNat) -> return $ SpecConcreteNetwork1D2D net
         (D1Sing SNat, D3Sing SNat SNat SNat) -> return $ SpecConcreteNetwork1D3D net
@@ -361,21 +347,6 @@ networkFromSpecificationWith wInit spec = do
         (D3Sing SNat SNat SNat, D1Sing SNat) -> return $ SpecConcreteNetwork3D1D net
         (D3Sing SNat SNat SNat, D2Sing SNat SNat) -> return $ SpecConcreteNetwork3D2D net
         (D3Sing SNat SNat SNat, D3Sing SNat SNat SNat) -> return $ SpecConcreteNetwork3D3D net
-
-
-withConcreteNetwork ::
-     forall a (constraints :: Constraint) (layers :: [Type]) (shapes :: [Shape]). 
-     SpecConcreteNetwork
-  -> (SomeSing (Sing layers) -> Sing shapes -> Sing constraints)
-  -> (forall . constraints => Network layers shapes -> a)
-  -> a
-withConcreteNetwork = undefined -- (SpecConcreteNetwork1D1D (net :: Network layers shapes)) constraints f = undefined
-  -- -- case (unsafeCoerce (Dict :: Dict ()) :: Dict (layersNet ~ layers, shapesNet ~ shapes)) of
-  -- --   Dict ->
-  --     reifyNat 1 $ \(o :: (KnownNat o) => Proxy o) ->
-  --       case (unsafeCoerce (Dict :: Dict ()) :: (constraints (SomeSing (sing :: Sing layers)) (sing :: Sing shapes))) of
-  --         Dict -> f net
-
 
 -- | Create a network according to the given specification. See @DynamicNetwork@. This version uses UniformInit and the system random number generator. WARNING: This also allows to build unsafe
 -- networks where input and output layers do not match! Thus use with care!
