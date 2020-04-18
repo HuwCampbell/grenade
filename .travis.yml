@@ -84,7 +84,8 @@ script:
  - |
    set -ex
    # Run tests --ghc-options=-Werror
-   stack build --no-terminal $ARGS --ghc-options=-Werror
+   # Werror on grenade only!
+   stack build grenade --no-terminal $ARGS --ghc-options=-Werror
    stack test --no-terminal $ARGS --ghc-options=-Wno-unused-imports
    stack test --no-terminal $ARGS --ghc-options=-Wno-unused-imports
    set +ex
