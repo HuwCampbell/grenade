@@ -499,7 +499,7 @@ maxVal ( S3D x ) = norm_Inf x
         , show y
         ]
   where precision | nameF == show (typeRep (Proxy :: Proxy Float)) = 2e-2
-                  | otherwise = 2e-5
+                  | otherwise = 2e-4
 infix 4 ~~~
 
 
