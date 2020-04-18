@@ -108,7 +108,7 @@ data SpecConvolution =
 data SpecDeconvolution =
   SpecDeconvolution !(Integer, Integer, Integer) !Integer !Integer !Integer !Integer !Integer !Integer
 
-data SpecDropout = SpecDropout !Integer !F !(Maybe Int)
+data SpecDropout = SpecDropout !Integer !RealNum !(Maybe Int)
 
 newtype SpecElu = SpecElu (Integer, Integer, Integer)
 

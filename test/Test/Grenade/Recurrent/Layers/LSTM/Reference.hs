@@ -57,7 +57,7 @@ data RefLSTM a = RefLSTM
     , refLstmBc :: Vector a -- Bias Cell         (b_c)
     } deriving (Functor, Foldable, Traversable, Eq, Show)
 
-lstmToReference :: (KnownNat a, KnownNat b) => LSTM.LSTMWeights a b -> RefLSTM F
+lstmToReference :: (KnownNat a, KnownNat b) => LSTM.LSTMWeights a b -> RefLSTM RealNum
 lstmToReference lw =
     RefLSTM
       { refLstmWf = Matrix . H.toLists . S.extract $ lstmWf lw -- Weight Forget     (W_f)

@@ -17,17 +17,17 @@ import           System.IO.Unsafe            (unsafePerformIO)
 
 import           Grenade.Types
 
-col2vid :: Int -> Int -> Int -> Int -> Int -> Int -> Matrix F -> Matrix F
+col2vid :: Int -> Int -> Int -> Int -> Int -> Int -> Matrix RealNum -> Matrix RealNum
 col2vid kernelRows kernelColumns strideRows strideColumns height width dataCol =
   let channels = cols dataCol `div` (kernelRows * kernelColumns)
   in  col2im_c channels height width kernelRows kernelColumns strideRows strideColumns dataCol
 
-col2im :: Int -> Int -> Int -> Int -> Int -> Int -> Matrix F -> Matrix F
+col2im :: Int -> Int -> Int -> Int -> Int -> Int -> Matrix RealNum -> Matrix RealNum
 col2im kernelRows kernelColumns strideRows strideColumns height width dataCol =
   let channels = 1
   in  col2im_c channels height width kernelRows kernelColumns strideRows strideColumns dataCol
 
-col2im_c :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix F -> Matrix F
+col2im_c :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix RealNum -> Matrix RealNum
 col2im_c channels height width kernelRows kernelColumns strideRows strideColumns dataCol =
   let vec = flatten dataCol
   in unsafePerformIO $ do
@@ -43,22 +43,22 @@ col2im_c channels height width kernelRows kernelColumns strideRows strideColumns
 
 foreign import ccall unsafe
     col2im_cpu
-      :: Ptr F -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr F -> IO ()
+      :: Ptr RealNum -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr RealNum -> IO ()
 
-vid2col :: Int -> Int -> Int -> Int -> Int -> Int -> Matrix F -> Matrix F
+vid2col :: Int -> Int -> Int -> Int -> Int -> Int -> Matrix RealNum -> Matrix RealNum
 vid2col kernelRows kernelColumns strideRows strideColumns height width dataVid =
   let channels = rows dataVid `div` height
   in  im2col_c channels height width kernelRows kernelColumns strideRows strideColumns dataVid
 
 
-im2col :: Int -> Int -> Int -> Int -> Matrix F -> Matrix F
+im2col :: Int -> Int -> Int -> Int -> Matrix RealNum -> Matrix RealNum
 im2col kernelRows kernelColumns strideRows strideColumns dataIm =
   let channels = 1
       height = rows dataIm
       width  = cols dataIm
   in  im2col_c channels height width kernelRows kernelColumns strideRows strideColumns dataIm
 
-im2col_c :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix F -> Matrix F
+im2col_c :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix RealNum -> Matrix RealNum
 im2col_c channels height width kernelRows kernelColumns strideRows strideColumns dataIm =
   let vec    = flatten dataIm
       rowOut = (height - kernelRows) `div` strideRows + 1
@@ -78,4 +78,4 @@ im2col_c channels height width kernelRows kernelColumns strideRows strideColumns
 
 foreign import ccall unsafe
     im2col_cpu
-      :: Ptr F -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr F -> IO ()
+      :: Ptr RealNum -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr RealNum -> IO ()

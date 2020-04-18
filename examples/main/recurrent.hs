@@ -82,5 +82,5 @@ main = do
 
     print . take 50 . drop 100 $ results
 
-c :: F -> S ('D1 1)
+c :: RealNum -> S ('D1 1)
 c = S1D . SA.konst

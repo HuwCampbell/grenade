@@ -404,7 +404,7 @@ data SpecDeconvolution =
   SpecDeconvolution !(Integer, Integer, Integer) !Integer !Integer !Integer !Integer !Integer !Integer
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
-data SpecDropout = SpecDropout !Integer !F !(Maybe Int)
+data SpecDropout = SpecDropout !Integer !RealNum !(Maybe Int)
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 newtype SpecElu = SpecElu (Integer, Integer, Integer)

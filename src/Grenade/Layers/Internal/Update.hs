@@ -129,7 +129,7 @@ descendVector (OptAdam alpha beta1 beta2 epsilon) (VectorValuesAdam step weights
   in  VectorResultAdam (fromJust $ create vw) (fromJust $ create vm) (fromJust $ create vv)
 descendVector opt _ = error $ "optimzer does not match to VectorInputValues in implementation! Optimizer: " ++ show opt
 
-descendUnsafeSGD :: Int -> F -> F -> F -> Vector F -> Vector F -> Vector F -> (Vector F, Vector F)
+descendUnsafeSGD :: Int -> RealNum -> RealNum -> RealNum -> Vector RealNum -> Vector RealNum -> Vector RealNum -> (Vector RealNum, Vector RealNum)
 descendUnsafeSGD len rate momentum regulariser weights gradient lastUpdate =
   unsafePerformIO $ do
     outWPtr <- mallocForeignPtrArray len
@@ -151,15 +151,15 @@ descendUnsafeSGD len rate momentum regulariser weights gradient lastUpdate =
 descendUnsafeAdam ::
      Int -- Len
   -> Int -- Step
-  -> F -- Alpha
-  -> F -- Beta1
-  -> F -- Beta2
-  -> F -- Epsilon
-  -> Vector F -- Weights
-  -> Vector F -- Gradient
-  -> Vector F -- M
-  -> Vector F -- V
-  -> (Vector F, Vector F, Vector F)
+  -> RealNum -- Alpha
+  -> RealNum -- Beta1
+  -> RealNum -- Beta2
+  -> RealNum -- Epsilon
+  -> Vector RealNum -- Weights
+  -> Vector RealNum -- Gradient
+  -> Vector RealNum -- M
+  -> Vector RealNum -- V
+  -> (Vector RealNum, Vector RealNum, Vector RealNum)
 descendUnsafeAdam len step alpha beta1 beta2 epsilon weights gradient m v =
   unsafePerformIO $ do
     outWPtr <- mallocForeignPtrArray len
@@ -181,9 +181,9 @@ descendUnsafeAdam len step alpha beta1 beta2 epsilon weights gradient m v =
 
 foreign import ccall unsafe
     descend_sgd_cpu
-      :: Int -> F -> F -> F -> Ptr F -> Ptr F -> Ptr F -> Ptr F -> Ptr F -> IO ()
+      :: Int -> RealNum -> RealNum -> RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> IO ()
 
 foreign import ccall unsafe
     descend_adam_cpu
-      :: Int -> Int -> F -> F -> F -> F -> Ptr F -> Ptr F -> Ptr F -> Ptr F -> Ptr F -> Ptr F -> Ptr F -> IO ()
+      :: Int -> Int -> RealNum -> RealNum -> RealNum -> RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> IO ()
 

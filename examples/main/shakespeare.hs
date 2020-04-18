@@ -9,17 +9,17 @@
 import           Control.Monad.Random
 import           Control.Monad.Trans.Except
 
+import qualified Data.ByteString              as B
 import           Data.Char                    (isUpper, toLower, toUpper)
 import           Data.List                    (foldl')
-import           Data.Maybe                   (fromMaybe)
-import           Data.Semigroup               ((<>))
-import           Data.Vector                  (Vector)
-import qualified Data.Vector                  as V
 import qualified Data.Map                     as M
+import           Data.Maybe                   (fromMaybe)
 import           Data.Proxy                   (Proxy (..))
-import qualified Data.ByteString              as B
+import           Data.Semigroup               ((<>))
 import           Data.Serialize
 import           Data.Singletons.Prelude
+import           Data.Vector                  (Vector)
+import qualified Data.Vector                  as V
 import           GHC.TypeLits
 import           Numeric.LinearAlgebra.Static (konst)
 import           Options.Applicative
@@ -104,7 +104,7 @@ runShakespeare opts = do
 generateParagraph :: forall layers shapes n a. (Last shapes ~ 'D1 n, Head shapes ~ 'D1 n, KnownNat n, Ord a)
   => RecurrentNetwork layers shapes
   -> RecurrentInputs layers
-  -> F
+  -> RealNum
   -> M.Map a Int
   -> Vector a
   -> S ('D1 n)
@@ -124,7 +124,7 @@ data ShakespeareOpts = ShakespeareOpts {
   , iterations   :: Int
   , rate         :: Optimizer 'SGD
   , sequenceSize :: Int
-  , temperature  :: F
+  , temperature  :: RealNum
   , loadPath     :: Maybe FilePath
   , savePath     :: Maybe FilePath
   }

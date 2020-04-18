@@ -18,9 +18,9 @@ import           Control.Monad.Primitive (PrimBase, PrimState)
 import           Data.Reflection         (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
-import           System.Random.MWC
 import           GHC.Generics
 import           GHC.TypeLits
+import           System.Random.MWC
 
 import           Grenade.Core
 import           Grenade.Types
@@ -28,10 +28,10 @@ import           Grenade.Types
 -- Dropout layer help to reduce overfitting.
 -- Idea here is that the vector is a shape of 1s and 0s, which we multiply the input by.
 -- After backpropogation, we return a new matrix/vector, with different bits dropped out.
--- F is the proportion to drop in each training iteration (like 1% or 5% would be
--- reasonable).
+-- The provided argument is the proportion to drop in each training iteration (like 1% or
+-- 5% would be reasonable).
 data Dropout = Dropout {
-    dropoutRate :: !F
+    dropoutRate :: !RealNum
   , dropoutSeed :: !Int
   } deriving (Generic, NFData, Show, Serialize)
 
@@ -44,7 +44,7 @@ instance RandomLayer Dropout where
   createRandomWith _ = randomDropout 0.95
 
 randomDropout :: PrimBase m
-              => F -> Gen (PrimState m) -> m Dropout
+              => RealNum -> Gen (PrimState m) -> m Dropout
 randomDropout rate gen = Dropout rate <$> uniform gen
 
 instance (KnownNat i) => Layer Dropout ('D1 i) ('D1 i) where
@@ -70,7 +70,7 @@ instance ToDynamicLayer SpecDropout where
 
 
 -- | Create a specification for a droput layer by providing the input size of the vector (1D allowed only!), a rate of dropout (default: 0.95) and maybe a seed.
-specDropout :: Integer -> F -> Maybe Int -> SpecNet
+specDropout :: Integer -> RealNum -> Maybe Int -> SpecNet
 specDropout i rate seed = SpecNetLayer $ SpecDropout i rate seed
 
 

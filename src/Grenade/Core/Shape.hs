@@ -170,7 +170,7 @@ randomOfShape = do
 -- | Generate a shape from a Storable Vector.
 --
 --   Returns Nothing if the vector is of the wrong size.
-fromStorable :: forall x. SingI x => Vector F -> Maybe (S x)
+fromStorable :: forall x. SingI x => Vector RealNum -> Maybe (S x)
 fromStorable xs = case sing :: Sing x of
     D1Sing SNat ->
       S1D <$> H.create xs
@@ -182,7 +182,7 @@ fromStorable xs = case sing :: Sing x of
       S3D <$> mkL xs
   where
     mkL :: forall rows columns. (KnownNat rows, KnownNat columns)
-        => Vector F -> Maybe (L rows columns)
+        => Vector RealNum -> Maybe (L rows columns)
     mkL v =
       let rows    = fromIntegral $ natVal (Proxy :: Proxy rows)
           columns = fromIntegral $ natVal (Proxy :: Proxy columns)
@@ -215,7 +215,7 @@ n2 f (S2D x) (S2D y) = S2D (f x y)
 n2 f (S3D x) (S3D y) = S3D (f x y)
 
 -- Helper function for creating the number instances
-nk :: forall x. SingI x => F -> S x
+nk :: forall x. SingI x => RealNum -> S x
 nk x = case (sing :: Sing x) of
   D1Sing SNat ->
     S1D (konst x)

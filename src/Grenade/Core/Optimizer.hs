@@ -47,16 +47,16 @@ data OptimizerAlgorithm = SGD | Adam
 --  Concreate instance for the optimizers.
 data Optimizer (o :: OptimizerAlgorithm) where
   OptSGD
-    :: { sgdLearningRate        :: !F -- ^ SGD Learning rate [Default: 0.01]
-       , sgdLearningMomentum    :: !F -- ^ SGD Momentum [Default 0.9]
-       , sgdLearningRegulariser :: !F -- ^ SGD Regulasier (L2) [Default: 0.0001]
+    :: { sgdLearningRate        :: !RealNum -- ^ SGD Learning rate [Default: 0.01]
+       , sgdLearningMomentum    :: !RealNum -- ^ SGD Momentum [Default 0.9]
+       , sgdLearningRegulariser :: !RealNum -- ^ SGD Regulasier (L2) [Default: 0.0001]
        }
     -> Optimizer 'SGD
   OptAdam
-    :: { adamAlpha   :: !F -- ^ Alpha [Default: 0.001]
-       , adamBeta1   :: !F -- ^ Beta 1 [Default: 0.9]
-       , adamBeta2   :: !F -- ^ Beta 2 [Default: 0.999]
-       , adamEpsilon :: !F -- ^ Epsilon [Default: 1e-7]
+    :: { adamAlpha   :: !RealNum -- ^ Alpha [Default: 0.001]
+       , adamBeta1   :: !RealNum -- ^ Beta 1 [Default: 0.9]
+       , adamBeta2   :: !RealNum -- ^ Beta 2 [Default: 0.999]
+       , adamEpsilon :: !RealNum -- ^ Epsilon [Default: 1e-7]
        }
     -> Optimizer 'Adam
 

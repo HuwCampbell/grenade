@@ -120,5 +120,5 @@ netTrain net0 op n = do
   return trained
   where
     trainEach !network (i, o) = train op network i o
-    inCircle :: KnownNat n => SA.R n -> (SA.R n, F) -> Bool
+    inCircle :: KnownNat n => SA.R n -> (SA.R n, RealNum) -> Bool
     v `inCircle` (o, r) = SA.norm_2 (v - o) <= r

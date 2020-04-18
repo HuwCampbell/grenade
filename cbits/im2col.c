@@ -1,9 +1,9 @@
 #include "im2col.h"
 
-void im2col_cpu(const F* data_im, const int channels,
+void im2col_cpu(const RealNum* data_im, const int channels,
     const int height, const int width, const int kernel_h, const int kernel_w,
     const int stride_h, const int stride_w,
-    F* data_col) {
+    RealNum* data_col) {
 
   const int channel_size = height * width;
 
@@ -22,12 +22,12 @@ void im2col_cpu(const F* data_im, const int channels,
   }
 }
 
-void col2im_cpu(const F* data_col, const int channels,
+void col2im_cpu(const RealNum* data_col, const int channels,
     const int height, const int width, const int kernel_h, const int kernel_w,
     const int stride_h, const int stride_w,
-    F* data_im) {
+    RealNum* data_im) {
 
-  memset(data_im, 0, height * width * channels * sizeof(F));
+  memset(data_im, 0, height * width * channels * sizeof(RealNum));
 
   const int channel_size = height * width;
 
@@ -46,12 +46,12 @@ void col2im_cpu(const F* data_col, const int channels,
   }
 }
 
-inline F max ( F a, F b ) { return a > b ? a : b; }
+inline RealNum max ( RealNum a, RealNum b ) { return a > b ? a : b; }
 
-void pool_forwards_cpu(const F* data_im, const int channels,
+void pool_forwards_cpu(const RealNum* data_im, const int channels,
     const int height, const int width, const int kernel_h, const int kernel_w,
     const int stride_h, const int stride_w,
-    F* data_pooled) {
+    RealNum* data_pooled) {
 
   const int channel_size = height * width;
 
@@ -60,13 +60,13 @@ void pool_forwards_cpu(const F* data_im, const int channels,
       for (int fitting_width = 0; fitting_width <= (width - kernel_w); fitting_width += stride_w) {
         // Start with the value in 0,0
         int    max_index = fitting_height * width + fitting_width + channel_size * channel;
-        F max_value = data_im[max_index];
+        RealNum max_value = data_im[max_index];
         // Initial row, skipping the corner we've done
         for (int kernel_col = 1; kernel_col < kernel_w; kernel_col++) {
           int    input_row  = fitting_height;
           int    input_col  = fitting_width + kernel_col;
           int    data_index = input_row * width + input_col + channel_size * channel;
-          F data_value = data_im[data_index];
+          RealNum data_value = data_im[data_index];
           max_value = max ( max_value, data_value );
         }
         // The remaining rows
@@ -75,7 +75,7 @@ void pool_forwards_cpu(const F* data_im, const int channels,
             int    input_row = fitting_height + kernel_row;
             int    input_col = fitting_width + kernel_col;
             int    data_index = input_row * width + input_col + channel_size * channel;
-            F data_value = data_im[data_index];
+            RealNum data_value = data_im[data_index];
             max_value = max ( max_value, data_value );
           }
         }
@@ -85,12 +85,12 @@ void pool_forwards_cpu(const F* data_im, const int channels,
   }
 }
 
-void pool_backwards_cpu(const F* data_im, const F* data_pooled,
+void pool_backwards_cpu(const RealNum* data_im, const RealNum* data_pooled,
     const int channels, const int height, const int width, const int kernel_h,
     const int kernel_w, const int stride_h, const int stride_w,
-    F* data_backgrad ) {
+    RealNum* data_backgrad ) {
 
-  memset(data_backgrad, 0, height * width * channels * sizeof(F));
+  memset(data_backgrad, 0, height * width * channels * sizeof(RealNum));
 
   const int channel_size = height * width;
 
@@ -98,12 +98,12 @@ void pool_backwards_cpu(const F* data_im, const F* data_pooled,
     for (int fitting_height = 0; fitting_height <= (height - kernel_h); fitting_height += stride_h) {
       for (int fitting_width = 0; fitting_width <= (width - kernel_w); fitting_width += stride_w) {
         int    max_index = fitting_height * width + fitting_width + channel_size * channel;
-        F max_value = data_im[max_index];
+        RealNum max_value = data_im[max_index];
         for (int kernel_col = 1; kernel_col < kernel_w; kernel_col++) {
           int    input_row  = fitting_height;
           int    input_col  = fitting_width + kernel_col;
           int    data_index = input_row * width + input_col + channel_size * channel;
-          F data_value = data_im[data_index];
+          RealNum data_value = data_im[data_index];
           if ( data_value > max_value )  {
               max_index = data_index;
               max_value = data_value;
@@ -114,7 +114,7 @@ void pool_backwards_cpu(const F* data_im, const F* data_pooled,
             int    input_row = fitting_height + kernel_row;
             int    input_col = fitting_width + kernel_col;
             int    data_index = input_row * width + input_col + channel_size * channel;
-            F data_value = data_im[data_index];
+            RealNum data_value = data_im[data_index];
             if ( data_value > max_value )  {
               max_index = data_index;
               max_value = data_value;

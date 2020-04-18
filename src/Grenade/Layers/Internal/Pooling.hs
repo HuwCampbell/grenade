@@ -17,7 +17,7 @@ import           System.IO.Unsafe            (unsafePerformIO)
 
 import           Grenade.Types
 
-poolForward :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix F -> Matrix F
+poolForward :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix RealNum -> Matrix RealNum
 poolForward channels height width kernelRows kernelColumns strideRows strideColumns dataIm =
   let vec             = flatten dataIm
       rowOut          = (height - kernelRows) `div` strideRows + 1
@@ -36,9 +36,9 @@ poolForward channels height width kernelRows kernelColumns strideRows strideColu
 
 foreign import ccall unsafe
     pool_forwards_cpu
-      :: Ptr F -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr F -> IO ()
+      :: Ptr RealNum -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr RealNum -> IO ()
 
-poolBackward :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix F -> Matrix F -> Matrix F
+poolBackward :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix RealNum -> Matrix RealNum -> Matrix RealNum
 poolBackward channels height width kernelRows kernelColumns strideRows strideColumns dataIm dataGrad =
   let vecIm     = flatten dataIm
       vecGrad   = flatten dataGrad
@@ -57,4 +57,4 @@ poolBackward channels height width kernelRows kernelColumns strideRows strideCol
 
 foreign import ccall unsafe
     pool_backwards_cpu
-      :: Ptr F -> Ptr F -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr F -> IO ()
+      :: Ptr RealNum -> Ptr RealNum -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr RealNum -> IO ()

@@ -49,7 +49,7 @@ netTrain net0 opt n = do
     return trained
 
   where
-    inCircle :: KnownNat n => SA.R n -> (SA.R n, F) -> Bool
+    inCircle :: KnownNat n => SA.R n -> (SA.R n, RealNum) -> Bool
     v `inCircle` (o, r) = SA.norm_2 (v - o) <= r
     trainEach !network (i,o) = train opt network i o
 
@@ -72,7 +72,7 @@ netScore network = do
                | n' <= 0.8  = '='
                | otherwise = '#'
 
-    normx :: S ('D1 1) -> F
+    normx :: S ('D1 1) -> RealNum
     normx (S1D r) = SA.mean r
 
 data FeedForwardOpts = FeedForwardOpts Int (Optimizer 'SGD) (Maybe FilePath) (Maybe FilePath)

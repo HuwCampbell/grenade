@@ -482,12 +482,12 @@ oneUp =
                                   VS.freeze ex'
               maybe Gen.discard pure . fromStorable $ nx
 
-maxVal :: S shape -> F
+maxVal :: S shape -> RealNum
 maxVal ( S1D x ) = norm_Inf x
 maxVal ( S2D x ) = norm_Inf x
 maxVal ( S3D x ) = norm_Inf x
 
-(~~~) :: (Monad m, HasCallStack) => F -> F -> PropertyT m ()
+(~~~) :: (Monad m, HasCallStack) => RealNum -> RealNum -> PropertyT m ()
 (~~~) x y =
   if abs (x - y) < precision then
     success

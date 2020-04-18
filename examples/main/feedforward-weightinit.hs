@@ -62,7 +62,7 @@ netScore network = do
                    | n' <= 0.8  = '='
                    | otherwise = '#'
 
-normx :: S ('D1 1) -> F
+normx :: S ('D1 1) -> RealNum
 normx (S1D r) = SA.mean r
 
 testValues :: (KnownNat len, Head shapes ~ 'D1 len, Last shapes ~ 'D1 1) => Network layers shapes -> IO ()
@@ -85,7 +85,7 @@ testValues network = do
   putStrLn $ show falseNegatives ++ " | "
 
 
-inCircle :: KnownNat n => SA.R n -> (SA.R n, F) -> Bool
+inCircle :: KnownNat n => SA.R n -> (SA.R n, RealNum) -> Bool
 v `inCircle` (o, r) = SA.norm_2 (v - o) <= r
 
 

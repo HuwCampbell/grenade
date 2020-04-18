@@ -15,7 +15,7 @@ import           System.IO.Unsafe            (unsafePerformIO)
 
 import           Grenade.Types
 
-pad :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix F -> Matrix F
+pad :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix RealNum -> Matrix RealNum
 pad channels padLeft padTop padRight padBottom rows cols rows' cols' m
  = let outMatSize      = rows' * cols' * channels
        vec             = flatten m
@@ -33,9 +33,9 @@ pad channels padLeft padTop padRight padBottom rows cols rows' cols' m
 
 foreign import ccall unsafe
     pad_cpu
-      :: Ptr F -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr F -> IO ()
+      :: Ptr RealNum -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr RealNum -> IO ()
 
-crop :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix F -> Matrix F
+crop :: Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Matrix RealNum -> Matrix RealNum
 crop channels padLeft padTop padRight padBottom rows cols _ _ m
  = let outMatSize      = rows * cols * channels
        vec             = flatten m
@@ -52,4 +52,6 @@ crop channels padLeft padTop padRight padBottom rows cols _ _ m
 
 foreign import ccall unsafe
     crop_cpu
-      :: Ptr F -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr F -> IO ()
+      :: Ptr RealNum -> Int -> Int -> Int -> Int -> Int -> Int -> Int -> Ptr RealNum -> IO ()
+
+
