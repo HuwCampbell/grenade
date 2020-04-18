@@ -286,14 +286,20 @@ instance ToDynamicLayer SpecNet where
 -- Some Convenience functions
 
 -- | Instances all networks implement.
-type GeneralConcreteNetworkInstances layers shapes = 
-  (SingI shapes, SingI (Head shapes), SingI (Last shapes), Show (Network layers shapes), FromDynamicLayer (Network layers shapes), NFData (Network layers shapes), Layer (Network layers shapes) (Head shapes) (Last shapes),
-         Serialize (Network layers shapes), RandomLayer (Network layers shapes)
-
-  , GNum (Gradients layers), NFData (Network layers shapes), Serialize (Network layers shapes)
-
-
-  )
+type GeneralConcreteNetworkInstances layers shapes
+   = ( FromDynamicLayer (Network layers shapes)
+     , GNum (Gradients layers)
+     , Layer (Network layers shapes) (Head shapes) (Last shapes)
+     , NFData (Network layers shapes)
+     , NFData (Network layers shapes)
+     , NFData (Tapes layers shapes)
+     , RandomLayer (Network layers shapes)
+     , Serialize (Network layers shapes)
+     , Serialize (Network layers shapes)
+     , Show (Network layers shapes)
+     , SingI (Head shapes)
+     , SingI (Last shapes)
+     , SingI shapes)
 
 
 -- | This is the result type when calling @networkFromSpecification@. It specifies the input and output type. For a generic version (where input and output type are unknown) see @SpecNetwork@ and
