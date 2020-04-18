@@ -117,11 +117,11 @@ class (Show spec) => ToDynamicLayer spec where
 data SpecNetwork :: Type where
   SpecNetwork
     :: (SingI shapes, SingI (Head shapes), SingI (Last shapes), Show (Network layers shapes), FromDynamicLayer (Network layers shapes), NFData (Network layers shapes)
-       , Layer (Network layers shapes) (Head shapes) (Last shapes), RandomLayer (Network layers shapes), Serialize (Network layers shapes)
-       )
+       , Layer (Network layers shapes) (Head shapes) (Last shapes), RandomLayer (Network layers shapes), Serialize (Network layers shapes), GNum (Network layers shapes)
+       , NFData (Tapes layers shapes), GNum (Gradients layers))
     => !(Network layers shapes)
     -> SpecNetwork
-  SpecLayer :: (FromDynamicLayer x, RandomLayer x, Serialize x, NFData x, Show x, Layer x i o) => !x -> !(Sing i) -> !(Sing o) -> SpecNetwork
+  SpecLayer :: (FromDynamicLayer x, RandomLayer x, Serialize x, NFData (Tape x i o), GNum (Gradient x), GNum x, NFData x, Show x, Layer x i o) => !x -> !(Sing i) -> !(Sing o) -> SpecNetwork
 
 instance Show SpecNetwork where
   show (SpecNetwork net) = show net
@@ -288,7 +288,13 @@ instance ToDynamicLayer SpecNet where
 -- | Instances all networks implement.
 type GeneralConcreteNetworkInstances layers shapes = 
   (SingI shapes, SingI (Head shapes), SingI (Last shapes), Show (Network layers shapes), FromDynamicLayer (Network layers shapes), NFData (Network layers shapes), Layer (Network layers shapes) (Head shapes) (Last shapes),
-         Serialize (Network layers shapes), RandomLayer (Network layers shapes))
+         Serialize (Network layers shapes), RandomLayer (Network layers shapes)
+
+  , GNum (Gradients layers), NFData (Network layers shapes), Serialize (Network layers shapes)
+
+
+  )
+
 
 -- | This is the result type when calling @networkFromSpecification@. It specifies the input and output type. For a generic version (where input and output type are unknown) see @SpecNetwork@ and
 -- @networkFromSpecificationGeneric@.
