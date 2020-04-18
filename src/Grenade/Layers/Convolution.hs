@@ -366,7 +366,7 @@ instance ToDynamicLayer SpecConvolution where
   toDynamicLayer = toDynamicLayer'
 
 toDynamicLayer' :: (PrimBase m) => WeightInitMethod -> Gen (PrimState m) -> SpecConvolution -> m SpecNetwork
-toDynamicLayer' _ _ (SpecConvolution inp@(_, 0, 0) _ _ _ _ _ _) = error $ "1D input to a deconvolutional layer is not permited! you specified: " ++ show inp
+toDynamicLayer' _ _ (SpecConvolution inp@(_, 1, 1) _ _ _ _ _ _) = error $ "1D input to a deconvolutional layer is not permited! you specified: " ++ show inp
 toDynamicLayer' wInit gen (SpecConvolution (rows, cols, depth) ch fil kerRows kerCols strRows strCols) =
     reifyNat ch $ \(pxCh :: (KnownNat channels) => Proxy channels) ->
     reifyNat fil $ \(pxFil :: (KnownNat filters) => Proxy filters) ->
@@ -417,12 +417,12 @@ specConvolution2DInput ::
   -> Integer -- ^ The row stride of the convolution filter
   -> Integer -- ^ The cols stride of the convolution filter
   -> SpecNet
-specConvolution2DInput (rows, cols) = specConvolution3DInput (rows, cols, 0)
+specConvolution2DInput (rows, cols) = specConvolution3DInput (rows, cols, 1)
 
 -- | Creates a specification for a convolutional layer with 3D input to the layer. If the filter is 1 then the output is 2D, otherwise it is 3D. The output sizes are `out = (in - kernel) / stride +
 -- 1`, for rows and cols and the depth is filters for 3D output.
 specConvolution3DInput ::
-     (Integer, Integer, Integer) -- ^ Input to layer (rows, cols, depths). Use 0 if not used or the function @specConvolution1DInput@ and @specConvolution2DInput@.
+     (Integer, Integer, Integer) -- ^ Input to layer (rows, cols, depths). Use 1 if not used or the function @specConvolution1DInput@ and @specConvolution2DInput@.
   -> Integer -- ^ Number of channels, for the first layer this could be RGB for instance.
   -> Integer -- ^ Number of filters, this is the number of channels output by the layer.
   -> Integer -- ^ The number of rows in the kernel filter

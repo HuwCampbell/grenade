@@ -14,12 +14,14 @@ module Grenade.Layers.Dropout (
   ) where
 
 import           Control.DeepSeq
-import           Control.Monad.Primitive (PrimBase, PrimState)
-import           Data.Reflection         (reifyNat)
+import           Control.Monad.Primitive      (PrimBase, PrimState)
+import           Data.Proxy
+import           Data.Reflection              (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
-import           GHC.Generics
+import           GHC.Generics                 hiding (R)
 import           GHC.TypeLits
+import           Numeric.LinearAlgebra.Static hiding (Seed)
 import           System.Random.MWC
 
 import           Grenade.Core
@@ -30,54 +32,70 @@ import           Grenade.Types
 -- After backpropogation, we return a new matrix/vector, with different bits dropped out.
 -- The provided argument is the proportion to drop in each training iteration (like 1% or
 -- 5% would be reasonable).
-data Dropout = Dropout {
-    dropoutRate :: !RealNum
-  , dropoutSeed :: !Int
-  } deriving (Generic, NFData, Show, Serialize)
+data Dropout (pct :: Nat) =
+  Dropout
+    { dropoutActive :: Bool     -- ^ Add possibility to deactivate dropout
+    , dropoutSeed   :: !Int     -- ^ Seed
+    }
+  deriving (Generic)
+
+instance NFData (Dropout pct) where rnf (Dropout a s) = rnf a `seq` rnf s
+instance Show (Dropout pct) where show (Dropout _ _) = "Dropout"
+instance Serialize (Dropout pct) where
+  put (Dropout act seed) = put act >> put seed
+  get = Dropout <$> get <*> get
+
+instance UpdateLayer (Dropout pct) where
+  type Gradient (Dropout pct) = ()
+  runUpdate _ (Dropout act seed) _ = Dropout act (seed+1)
 
 
-instance UpdateLayer Dropout where
-  type Gradient Dropout = ()
-  runUpdate _ x _ = x
+instance RandomLayer (Dropout pct) where
+  createRandomWith _ = randomDropout
 
-instance RandomLayer Dropout where
-  createRandomWith _ = randomDropout 0.95
+randomDropout :: (PrimBase m) => Gen (PrimState m) -> m (Dropout pct)
+randomDropout gen = Dropout True <$> uniform gen
 
-randomDropout :: PrimBase m
-              => RealNum -> Gen (PrimState m) -> m Dropout
-randomDropout rate gen = Dropout rate <$> uniform gen
-
-instance (KnownNat i) => Layer Dropout ('D1 i) ('D1 i) where
-  type Tape Dropout ('D1 i) ('D1 i) = ()
-  runForwards (Dropout _ _) (S1D x) = ((), S1D x)
-  runBackwards (Dropout _ _) _ (S1D x) = ((),  S1D x)
+instance (KnownNat pct, KnownNat i) => Layer (Dropout pct) ('D1 i) ('D1 i) where
+  type Tape (Dropout pct) ('D1 i) ('D1 i) = R i
+  runForwards (Dropout act seed) (S1D x)
+    | not act = (vector (repeat 1), S1D $ dvmap (rate *) x) -- multily with rate to normalise throughput
+    | otherwise = (v, S1D $ x * v)
+    where
+      rate = (/100) $ fromIntegral $ max 0 $ min 100 $ natVal (Proxy :: Proxy pct)
+      v = dvmap mask $ randomVector seed Uniform
+      mask r
+        | r < rate = 1
+        | otherwise = 0
+  runBackwards (Dropout _ _) v (S1D x) = ((), S1D $ x * v)
 
 -------------------- DynamicNetwork instance --------------------
 
-instance FromDynamicLayer Dropout where
-  fromDynamicLayer inp _ (Dropout rate seed) = case tripleFromSomeShape inp of
-    (rows, 0, 0) -> SpecNetLayer $ SpecDropout rows rate (Just seed)
-    _ -> error "Error in specification: The layer Dropout may only be used with 1D input!"
+instance (KnownNat pct) => FromDynamicLayer (Dropout pct) where
+  fromDynamicLayer inp _ (Dropout _ seed) = case tripleFromSomeShape inp of
+    (rows, 1, 1) -> SpecNetLayer $ SpecDropout rows rate (Just seed)
+    _            -> error "Dropout is only allows for vectors, i.e. 1D spaces."
+    where rate = (/100) $ fromIntegral $ max 0 $ min 100 $ natVal (Proxy :: Proxy pct)
 
 instance ToDynamicLayer SpecDropout where
   toDynamicLayer _ gen (SpecDropout rows rate mSeed) =
     reifyNat rows $ \(_ :: (KnownNat i) => Proxy i) ->
+    reifyNat (round $ 100 * rate) $ \(_ :: (KnownNat pct) => Proxy pct) ->
     case mSeed of
-      Just seed -> return $ SpecLayer (Dropout rate seed) (sing :: Sing ('D1 i)) (sing :: Sing ('D1 i))
+      Just seed -> return $ SpecLayer (Dropout True seed :: Dropout pct) (sing :: Sing ('D1 i)) (sing :: Sing ('D1 i))
       Nothing -> do
-        layer <-  randomDropout rate gen
-        return $ SpecLayer layer (sing :: Sing ('D1 i)) (sing :: Sing ('D1 i))
+        layer <-  randomDropout gen
+        return $ SpecLayer (layer :: Dropout pct) (sing :: Sing ('D1 i)) (sing :: Sing ('D1 i))
 
 
--- | Create a specification for a droput layer by providing the input size of the vector (1D allowed only!), a rate of dropout (default: 0.95) and maybe a seed.
+-- | Create a specification for a droput layer by providing the input size of the vector (1D allowed only!), a rate of nodes to keep (e.g. 0.95) and maybe a seed.
 specDropout :: Integer -> RealNum -> Maybe Int -> SpecNet
 specDropout i rate seed = SpecNetLayer $ SpecDropout i rate seed
 
 
 -------------------- GNum instance --------------------
 
-instance GNum Dropout where
+instance GNum (Dropout pct) where
   _ |* x = x
   _ |+ x = x
-  gFromRational r = Dropout 0.95 (round r)
-
+  gFromRational r = Dropout True (round r)

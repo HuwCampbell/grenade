@@ -58,7 +58,6 @@ module Grenade.Core.DynamicNetwork
   , tripleFromSomeShape 
   ) where
 
-
 import           Control.DeepSeq
 import           Control.Monad.Primitive           (PrimBase, PrimState)
 import           Data.Constraint                   (Dict (..))
@@ -396,8 +395,8 @@ tripleFromSomeShape someShape =
     SomeSing (shape :: Sing shape) ->
       withSingI shape $
       case shape of
-        D1Sing r@SNat -> (natVal r, 0, 0)
-        D2Sing r@SNat c@SNat -> (natVal r, natVal c, 0)
+        D1Sing r@SNat -> (natVal r, 1, 1)
+        D2Sing r@SNat c@SNat -> (natVal r, natVal c, 1)
         D3Sing r@SNat c@SNat d@SNat -> (natVal r, natVal c, natVal d)
 
 -- Data structures stances for Layers (needs to be defined here)

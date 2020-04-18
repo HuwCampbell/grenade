@@ -69,19 +69,19 @@ instance ToDynamicLayer SpecTanh where
      reifyNat cols $ \(_ :: (KnownNat cols) => Proxy cols) ->
      reifyNat depth $ \(_ :: (KnownNat depth) => Proxy depth) ->
      case (rows, cols, depth) of
-         (_, 0, 0)    -> return $ SpecLayer Tanh (sing :: Sing ('D1 rows)) (sing :: Sing ('D1 rows))
-         (_, _, 0) -> return $ SpecLayer Tanh (sing :: Sing ('D2 rows cols)) (sing :: Sing ('D2 rows cols))
+         (_, 1, 1)    -> return $ SpecLayer Tanh (sing :: Sing ('D1 rows)) (sing :: Sing ('D1 rows))
+         (_, _, 1) -> return $ SpecLayer Tanh (sing :: Sing ('D2 rows cols)) (sing :: Sing ('D2 rows cols))
          _    -> case (unsafeCoerce (Dict :: Dict()) :: Dict (KnownNat (rows GHC.TypeLits.* depth))) of
            Dict -> return $ SpecLayer Tanh (sing :: Sing ('D3 rows cols depth)) (sing :: Sing ('D3 rows cols depth))
 
 
 -- | Create a specification for a elu layer.
 specTanh1D :: Integer -> SpecNet
-specTanh1D i = specTanh3D (i, 0, 0)
+specTanh1D i = specTanh3D (i, 1, 1)
 
 -- | Create a specification for a elu layer.
 specTanh2D :: (Integer, Integer) -> SpecNet
-specTanh2D (i,j) = specTanh3D (i,j,0)
+specTanh2D (i,j) = specTanh3D (i,j,1)
 
 -- | Create a specification for a elu layer.
 specTanh3D :: (Integer, Integer, Integer) -> SpecNet

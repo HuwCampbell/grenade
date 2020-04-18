@@ -84,19 +84,19 @@ instance ToDynamicLayer SpecLogit where
      reifyNat cols $ \(_ :: (KnownNat cols) => Proxy cols) ->
      reifyNat depth $ \(_ :: (KnownNat depth) => Proxy depth) ->
      case (rows, cols, depth) of
-         (_, 0, 0)    -> return $ SpecLayer Logit (sing :: Sing ('D1 rows)) (sing :: Sing ('D1 rows))
-         (_, _, 0) -> return $ SpecLayer Logit (sing :: Sing ('D2 rows cols)) (sing :: Sing ('D2 rows cols))
+         (_, 1, 1)    -> return $ SpecLayer Logit (sing :: Sing ('D1 rows)) (sing :: Sing ('D1 rows))
+         (_, _, 1) -> return $ SpecLayer Logit (sing :: Sing ('D2 rows cols)) (sing :: Sing ('D2 rows cols))
          _    -> case (unsafeCoerce (Dict :: Dict()) :: Dict (KnownNat (rows GHC.TypeLits.* depth))) of
            Dict -> return $ SpecLayer Logit (sing :: Sing ('D3 rows cols depth)) (sing :: Sing ('D3 rows cols depth))
 
 
 -- | Create a specification for a elu layer.
 specLogit1D :: Integer -> SpecNet
-specLogit1D i = specLogit3D (i, 0, 0)
+specLogit1D i = specLogit3D (i, 1, 1)
 
 -- | Create a specification for a elu layer.
 specLogit2D :: (Integer, Integer) -> SpecNet
-specLogit2D (i,j) = specLogit3D (i,j,0)
+specLogit2D (i, j) = specLogit3D (i, j, 1)
 
 -- | Create a specification for a elu layer.
 specLogit3D :: (Integer, Integer, Integer) -> SpecNet

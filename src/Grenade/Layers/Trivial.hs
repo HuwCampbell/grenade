@@ -69,19 +69,19 @@ instance ToDynamicLayer SpecTrivial where
      reifyNat cols $ \(_ :: (KnownNat cols) => Proxy cols) ->
      reifyNat depth $ \(_ :: (KnownNat depth) => Proxy depth) ->
      case (rows, cols, depth) of
-         (_, 0, 0)    -> return $ SpecLayer Trivial (sing :: Sing ('D1 rows)) (sing :: Sing ('D1 rows))
-         (_, _, 0) -> return $ SpecLayer Trivial (sing :: Sing ('D2 rows cols)) (sing :: Sing ('D2 rows cols))
+         (_, 1, 1)    -> return $ SpecLayer Trivial (sing :: Sing ('D1 rows)) (sing :: Sing ('D1 rows))
+         (_, _, 1) -> return $ SpecLayer Trivial (sing :: Sing ('D2 rows cols)) (sing :: Sing ('D2 rows cols))
          _    -> case (unsafeCoerce (Dict :: Dict()) :: Dict (KnownNat (rows GHC.TypeLits.* depth))) of
            Dict -> return $ SpecLayer Trivial (sing :: Sing ('D3 rows cols depth)) (sing :: Sing ('D3 rows cols depth))
 
 
 -- | Create a specification for a elu layer.
 specTrivial1D :: Integer -> SpecNet
-specTrivial1D i = specTrivial3D (i, 0, 0)
+specTrivial1D i = specTrivial3D (i, 1, 1)
 
 -- | Create a specification for a elu layer.
 specTrivial2D :: (Integer, Integer) -> SpecNet
-specTrivial2D (i,j) = specTrivial3D (i,j,0)
+specTrivial2D (i, j) = specTrivial3D (i, j, 1)
 
 -- | Create a specification for a elu layer.
 specTrivial3D :: (Integer, Integer, Integer) -> SpecNet

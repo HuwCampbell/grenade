@@ -70,7 +70,7 @@ type MNISTFully =
   Network
 
     '[ Reshape, FullyConnected 784 1000, -- inp 28x28, reshape
-       Relu, Resnet SubNet, FullyConnected 1000 1000, Relu, Dropout , FullyConnected 1000 100, -- inp: 1000
+       Relu, Resnet SubNet, FullyConnected 1000 1000, Relu, Dropout 99 , FullyConnected 1000 100, -- inp: 1000
        Relu, FullyConnected 100 10,    -- inp: 100
        Logit]                                    -- inp: 10, out: 10
 
@@ -81,7 +81,7 @@ type MNISTFully =
      ]
 type SubNet = Network '[
                   FullyConnected 1000 2000,                                                -- inp: 1000
-                  Relu, FullyConnected 2000 2000, Relu,  Dropout, FullyConnected 2000 1000, -- inp: 2000
+                  Relu, FullyConnected 2000 2000, Relu,  Dropout 95, FullyConnected 2000 1000, -- inp: 2000
                   Relu                                                                      -- inp: 1000
                   ]
                 '[ 'D1 1000, 'D1 2000, 'D1 2000, 'D1 2000, 'D1 2000, 'D1 2000, 'D1 1000, 'D1 1000 ]

@@ -66,19 +66,19 @@ instance ToDynamicLayer SpecSinusoid where
      reifyNat cols $ \(_ :: (KnownNat cols) => Proxy cols) ->
      reifyNat depth $ \(_ :: (KnownNat depth) => Proxy depth) ->
      case (rows, cols, depth) of
-         (_, 0, 0)    -> return $ SpecLayer Sinusoid (sing :: Sing ('D1 rows)) (sing :: Sing ('D1 rows))
-         (_, _, 0) -> return $ SpecLayer Sinusoid (sing :: Sing ('D2 rows cols)) (sing :: Sing ('D2 rows cols))
+         (_, 1, 1)    -> return $ SpecLayer Sinusoid (sing :: Sing ('D1 rows)) (sing :: Sing ('D1 rows))
+         (_, _, 1) -> return $ SpecLayer Sinusoid (sing :: Sing ('D2 rows cols)) (sing :: Sing ('D2 rows cols))
          _    -> case (unsafeCoerce (Dict :: Dict()) :: Dict (KnownNat (rows GHC.TypeLits.* depth))) of
            Dict -> return $ SpecLayer Sinusoid (sing :: Sing ('D3 rows cols depth)) (sing :: Sing ('D3 rows cols depth))
 
 
 -- | Create a specification for a elu layer.
 specSinusoid1D :: Integer -> SpecNet
-specSinusoid1D i = specSinusoid3D (i, 0, 0)
+specSinusoid1D i = specSinusoid3D (i, 1, 1)
 
 -- | Create a specification for a elu layer.
 specSinusoid2D :: (Integer, Integer) -> SpecNet
-specSinusoid2D (i,j) = specSinusoid3D (i,j,0)
+specSinusoid2D (i,j) = specSinusoid3D (i,j,1)
 
 -- | Create a specification for a elu layer.
 specSinusoid3D :: (Integer, Integer, Integer) -> SpecNet

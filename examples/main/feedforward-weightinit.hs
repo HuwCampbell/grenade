@@ -21,7 +21,7 @@ import           Grenade
 
 -- | The definition for a feed forward network using the dynamic module. Note the nested networks. This network clearly is over-engeneered for this example!
 netSpec :: SpecNet
-netSpec = specFullyConnected 2 40 |=> specTanh1D 40 |=> netSpecInner |=> specFullyConnected 20 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specRelu1D 20 |=> specFullyConnected 20 10 |=> specRelu1D 10 |=> specFullyConnected 10 1 |=> specLogit1D 1 |=> specNil1D 1
+netSpec = specFullyConnected 2 40 |=> specTanh1D 40 |=> specDropout 40 0.95 Nothing |=> netSpecInner |=> specFullyConnected 20 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specRelu1D 20 |=> specFullyConnected 20 10 |=> specRelu1D 10 |=> specFullyConnected 10 1 |=> specLogit1D 1 |=> specNil1D 1
   where netSpecInner = specFullyConnected 40 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specReshape1D2D 20 (2, 10) |=> specReshape2D1D (2, 10) 20 |=> specNil1D 20
 
 
