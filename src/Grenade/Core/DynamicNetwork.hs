@@ -381,12 +381,12 @@ specNil1D :: Integer -> SpecNet
 specNil1D  = SpecNNil1D
 
 -- | 2D Output layer for specification. Requieres output rows and cols.
-specNil2D :: Integer -> Integer -> SpecNet
-specNil2D = SpecNNil2D 
+specNil2D :: (Integer, Integer) -> SpecNet
+specNil2D = uncurry SpecNNil2D 
 
 -- | 3D Output layer for specification. Requieres output sizes.
-specNil3D :: Integer -> Integer -> Integer -> SpecNet
-specNil3D = SpecNNil3D 
+specNil3D :: (Integer, Integer, Integer) -> SpecNet
+specNil3D (rows, cols, depth) = SpecNNil3D rows cols depth
 
 -- | Helper functions to convert a given shape into a triple, where nonused dimensions are set to 0.
 tripleFromSomeShape :: SomeSing Shape -> (Integer, Integer, Integer)

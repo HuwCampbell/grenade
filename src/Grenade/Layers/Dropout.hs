@@ -59,13 +59,13 @@ randomDropout gen = Dropout True <$> uniform gen
 instance (KnownNat pct, KnownNat i) => Layer (Dropout pct) ('D1 i) ('D1 i) where
   type Tape (Dropout pct) ('D1 i) ('D1 i) = R i
   runForwards (Dropout act seed) (S1D x)
-    | not act = (vector (repeat 1), S1D $ dvmap (rate *) x) -- multily with rate to normalise throughput
-    | otherwise = (v, S1D $ x * v)
+    | not act = (v, S1D $ dvmap (rate *) x) -- multily with rate to normalise throughput
+    | otherwise = (v, S1D $ v * x)
     where
       rate = (/100) $ fromIntegral $ max 0 $ min 100 $ natVal (Proxy :: Proxy pct)
       v = dvmap mask $ randomVector seed Uniform
       mask r
-        | r < rate = 1
+        | not act || r < rate = 1
         | otherwise = 0
   runBackwards (Dropout _ _) v (S1D x) = ((), S1D $ x * v)
 
