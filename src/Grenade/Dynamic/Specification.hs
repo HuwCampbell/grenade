@@ -10,6 +10,13 @@
 {-# LANGUAGE RankNTypes                #-}
 {-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE TypeOperators             #-}
+{-|
+Module      : Grenade.Dynamic.Specification
+Description : Specifying network architectures for dynamically creating nets.
+Copyright   : (c) Manuel Schneckenreither, 2020
+License     : BSD2
+Stability   : experimental
+-}
 module Grenade.Dynamic.Specification
   ( FromDynamicLayer (..)
   , ToDynamicLayer (..)
@@ -244,7 +251,6 @@ instance ToDynamicLayer SpecNet where
                     case ( unsafeCoerce (Dict :: Dict ()) :: Dict (Head restShapes ~ Last xShapes)
                          , unsafeCoerce (Dict :: Dict ()) :: Dict (CreatableNetwork (Network xLayers xShapes : restLayers) (i ': restShapes))) of
                       (Dict, Dict) -> return $ SpecNetwork (x :~> xs :: Network (Network xLayers xShapes ': restLayers) (i ': restShapes))
-
 
 -- Data structures stances for Layers (needs to be defined here)
 

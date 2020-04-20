@@ -104,7 +104,7 @@ library:
 
     - condition: flag(fast)
       then:
-        ghc-options: -O0 # -fprof-auto
+        ghc-options: -O0 -Werror # -fprof-auto
       else:
         ghc-options: -O2
     - condition: flag(debug)

@@ -16,22 +16,15 @@
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-|
-Module      : Grenade.Layers.DynamicNetwork
-Description : Dynamic grenade networks
+Module      : Grenade.Dynamic.Network
+Description : Convienence functions for dynamic networks.
 Copyright   : (c) Manuel Schneckenreither, 2016-2020
 License     : BSD2
 Stability   : experimental
-
-This module defines types and functions for dynamic generation of networks.
 -}
-
 module Grenade.Dynamic.Network
-  ( SpecNetwork (..)
-  , SpecConcreteNetwork (..)
+  ( SpecConcreteNetwork (..)
   -- , withConcreteNetwork
-  , FromDynamicLayer (..)
-  , ToDynamicLayer (..)
-  , SpecNet (..)
   , networkFromSpecification
   , networkFromSpecificationWith
   , networkFromSpecificationGenericWith

@@ -55,6 +55,7 @@ import           Data.Kind                         (Type)
 #endif
 
 -- import           Grenade.Core.LearningParameters
+import           Grenade.Core.NetworkSettings
 import           Grenade.Core.Optimizer
 import           Grenade.Core.Shape
 import           Grenade.Core.WeightInitialization
@@ -77,6 +78,11 @@ class UpdateLayer x where
   -- | Update a layer with many Gradientsx1
   runUpdates      :: Optimizer opt -> x -> [Gradient x] -> x
   runUpdates rate = foldl' (runUpdate rate)
+
+  -- | Can be used to set configurations of layers, e.g. activate or
+  --   deactivate Dropout layers.
+  runSettingsUpdate :: NetworkSettings -> x -> x
+  runSettingsUpdate _ = id
 
   {-# MINIMAL runUpdate #-}
 
@@ -126,7 +132,6 @@ class (UpdateLayer x) => Layer x (i :: Shape) (o :: Shape) where
   --   Returns the gradient layer and the derivatives to push back
   --   further.
   runBackwards   :: x -> Tape x i o -> S o -> (Gradient x, S i)
-
 
 -- | Class for random initialization of a layer. This enables to use
 --   various initialization techniques for the networks. Every layer

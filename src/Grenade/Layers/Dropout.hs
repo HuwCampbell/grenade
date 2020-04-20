@@ -49,7 +49,7 @@ instance Serialize (Dropout pct) where
 instance UpdateLayer (Dropout pct) where
   type Gradient (Dropout pct) = ()
   runUpdate _ (Dropout act seed) _ = Dropout act (seed+1)
-
+  runSettingsUpdate set (Dropout _ seed) = Dropout (setDropoutActive set) seed
 
 instance RandomLayer (Dropout pct) where
   createRandomWith _ = randomDropout

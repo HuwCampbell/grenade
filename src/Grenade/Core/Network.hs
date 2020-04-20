@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
@@ -50,6 +51,7 @@ import           Data.Kind                         (Type)
 #endif
 
 import           Grenade.Core.Layer
+import           Grenade.Core.NetworkSettings
 import           Grenade.Core.Optimizer
 import           Grenade.Core.Shape
 import           Grenade.Core.WeightInitialization
@@ -179,6 +181,11 @@ applyUpdate :: Optimizer opt
 applyUpdate rate (layer :~> rest) (gradient :/> grest) = runUpdate rate layer gradient :~> applyUpdate rate rest grest
 applyUpdate _ NNil GNil = NNil
 
+-- | Apply network settings across the network.
+applySettingsUpdate :: NetworkSettings -> Network layers shapes -> Network layers shapes
+applySettingsUpdate settings (layer :~> rest) = runSettingsUpdate settings layer :~> applySettingsUpdate settings rest
+applySettingsUpdate _ NNil = NNil
+
 
 -- | A network can easily be created by hand with (:~>), but an easy way to
 --   initialise a random network is with the @randomNetworkWith@ function.
@@ -217,17 +224,19 @@ instance (SingI i, SingI o, Layer x i o, Serialize x, Serialize (Network xs (o '
 -- | Ultimate composition.
 --
 --   This allows a complete network to be treated as a layer in a larger network.
-instance CreatableNetwork sublayers subshapes => UpdateLayer (Network sublayers subshapes) where
+instance UpdateLayer (Network sublayers subshapes) where
   type Gradient (Network sublayers subshapes) = Gradients sublayers
   runUpdate = applyUpdate
+  runSettingsUpdate = applySettingsUpdate
 
 instance CreatableNetwork sublayers subshapes => RandomLayer (Network sublayers subshapes) where
   createRandomWith = randomNetworkWith
 
+
 -- | Ultimate composition.
 --
 --   This allows a complete network to be treated as a layer in a larger network.
-instance (CreatableNetwork sublayers subshapes, i ~ (Head subshapes), o ~ (Last subshapes)) => Layer (Network sublayers subshapes) i o where
+instance (i ~ (Head subshapes), o ~ (Last subshapes)) => Layer (Network sublayers subshapes) i o where
   type Tape (Network sublayers subshapes) i o = Tapes sublayers subshapes
   runForwards  = runNetwork
   runBackwards = runGradient
