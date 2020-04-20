@@ -34,6 +34,7 @@ import           Unsafe.Coerce   (unsafeCoerce)
 
 
 import           Grenade.Core
+import           Grenade.Dynamic
 
 -- | A Tanh layer.
 --   A layer which can act between any shape of the same dimension, performing a tanh function.

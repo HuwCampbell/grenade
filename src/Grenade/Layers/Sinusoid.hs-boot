@@ -15,6 +15,6 @@
 module Grenade.Layers.Sinusoid (
   ) where
 
-import {-# SOURCE #-} Grenade.Core.DynamicNetwork (ToDynamicLayer, SpecSinusoid)
+import {-# SOURCE #-} Grenade.Dynamic.Specification (ToDynamicLayer, SpecSinusoid)
 
 instance ToDynamicLayer SpecSinusoid where

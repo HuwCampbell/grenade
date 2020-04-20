@@ -15,6 +15,6 @@
 module Grenade.Layers.Tanh (
   ) where
 
-import {-# SOURCE #-} Grenade.Core.DynamicNetwork (ToDynamicLayer, SpecTanh)
+import {-# SOURCE #-} Grenade.Dynamic.Specification (ToDynamicLayer, SpecTanh)
 
 instance ToDynamicLayer SpecTanh where

@@ -48,6 +48,7 @@ import           Unsafe.Coerce                (unsafeCoerce)
 
 
 import           Grenade.Core
+import           Grenade.Dynamic
 import           Grenade.Layers.Trivial
 
 -- | Reshape Layer

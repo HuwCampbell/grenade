@@ -15,6 +15,6 @@
 module Grenade.Layers.Logit (
   ) where
 
-import {-# SOURCE #-} Grenade.Core.DynamicNetwork (ToDynamicLayer, SpecLogit)
+import {-# SOURCE #-} Grenade.Dynamic.Specification (ToDynamicLayer, SpecLogit)
 
 instance ToDynamicLayer SpecLogit where

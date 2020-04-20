@@ -102,12 +102,13 @@ library:
     - condition: impl(ghc >= 8.6)
       default-extensions: NoStarIsType
 
-    - condition: (flag(debug)) || (flag(fast))
+    - condition: flag(fast)
       then:
-        ghc-options: -O0 -Werror
-        cpp-options: -DDEBUG
+        ghc-options: -O0 # -fprof-auto
       else:
         ghc-options: -O2
+    - condition: flag(debug)
+      cpp-options: -DDEBUG
   c-sources:
     - cbits/im2col.c
     - cbits/gradient_descent.c

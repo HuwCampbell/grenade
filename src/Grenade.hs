@@ -19,10 +19,16 @@ module Grenade (
 
   , module Grenade.Types
 
+    -- * Dynamically generate networks (e.g. for serializing the architecture in addition to the weights).
+    -- See @networkToSpecification@ and @networkFromSpecification@ as good starting points.
+
+  , module Grenade.Dynamic
+
 
   ) where
 
 import           Grenade.Core
+import           Grenade.Dynamic
 import           Grenade.Layers
 import           Grenade.Types
 

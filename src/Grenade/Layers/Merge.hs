@@ -33,6 +33,7 @@ import           Data.Kind       (Type)
 #endif
 
 import           Grenade.Core
+import           Grenade.Dynamic
 
 
 -- | A Merging layer.

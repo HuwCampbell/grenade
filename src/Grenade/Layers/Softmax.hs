@@ -29,10 +29,10 @@ import           Data.Reflection              (reifyNat)
 import           Data.Singletons
 import           GHC.Generics                 (Generic)
 import           GHC.TypeLits
-import           Grenade.Core
-
-
 import           Numeric.LinearAlgebra.Static as LAS
+
+import           Grenade.Core
+import           Grenade.Dynamic
 
 -- | A Softmax layer
 --

@@ -24,7 +24,7 @@ Stability   : experimental
 This module defines types and functions for dynamic generation of networks.
 -}
 
-module Grenade.Core.DynamicNetwork
+module Grenade.Dynamic.Network
   ( SpecNetwork (..)
   , ToDynamicLayer (..)
   , SpecNet (..)

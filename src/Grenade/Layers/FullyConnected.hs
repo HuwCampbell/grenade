@@ -39,6 +39,7 @@ import qualified Numeric.LinearAlgebra          as LA
 import           Numeric.LinearAlgebra.Static
 
 import           Grenade.Core
+import           Grenade.Dynamic
 import           Grenade.Layers.Internal.Update
 import           Grenade.Utils.ListStore
 

@@ -29,9 +29,10 @@ import           Data.Serialize
 import           Data.Singletons
 import           GHC.Generics    (Generic)
 import           GHC.TypeLits
-import           Grenade.Core
 import           Unsafe.Coerce   (unsafeCoerce)
 
+import           Grenade.Core
+import           Grenade.Dynamic
 
 -- | A Sinusoid layer.
 --   A layer which can act between any shape of the same dimension, performing a sin function.

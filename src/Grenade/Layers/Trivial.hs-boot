@@ -15,6 +15,6 @@
 module Grenade.Layers.Trivial (
   ) where
 
-import {-# SOURCE #-} Grenade.Core.DynamicNetwork (ToDynamicLayer, SpecTrivial)
+import {-# SOURCE #-} Grenade.Dynamic.Specification (ToDynamicLayer, SpecTrivial)
 
 instance ToDynamicLayer SpecTrivial where

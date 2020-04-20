@@ -15,7 +15,7 @@
 module Grenade.Layers.Dropout (
   ) where
 
-import {-# SOURCE #-} Grenade.Core.DynamicNetwork (ToDynamicLayer, SpecDropout)
+import {-# SOURCE #-} Grenade.Dynamic.Specification (ToDynamicLayer, SpecDropout)
 
 instance ToDynamicLayer SpecDropout where
 

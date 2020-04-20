@@ -28,10 +28,12 @@ import           Data.Serialize
 import           Data.Singletons
 import           GHC.Generics                 (Generic)
 import           GHC.TypeLits
-import           Grenade.Core
 import qualified Numeric.LinearAlgebra.Static as LAS
 import           Unsafe.Coerce                (unsafeCoerce)
 
+
+import           Grenade.Core
+import           Grenade.Dynamic
 
 -- | An exponential linear unit.
 --   A layer which can act between any shape of the same dimension, acting as a

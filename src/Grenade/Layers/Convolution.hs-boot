@@ -15,6 +15,6 @@
 module Grenade.Layers.Convolution (
   ) where
 
-import {-# SOURCE #-} Grenade.Core.DynamicNetwork (ToDynamicLayer, SpecConvolution)
+import {-# SOURCE #-} Grenade.Dynamic.Specification (ToDynamicLayer, SpecConvolution)
 
 instance ToDynamicLayer SpecConvolution where

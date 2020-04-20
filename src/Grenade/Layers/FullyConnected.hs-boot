@@ -15,6 +15,6 @@
 module Grenade.Layers.FullyConnected (
   ) where
 
-import {-# SOURCE #-} Grenade.Core.DynamicNetwork (ToDynamicLayer, SpecFullyConnected)
+import {-# SOURCE #-} Grenade.Dynamic.Specification (ToDynamicLayer, SpecFullyConnected)
 
 instance ToDynamicLayer SpecFullyConnected where

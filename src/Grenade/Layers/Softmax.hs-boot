@@ -15,6 +15,6 @@
 module Grenade.Layers.Softmax (
   ) where
 
-import {-# SOURCE #-} Grenade.Core.DynamicNetwork (ToDynamicLayer, SpecSoftmax)
+import {-# SOURCE #-} Grenade.Dynamic.Specification (ToDynamicLayer, SpecSoftmax)
 
 instance ToDynamicLayer SpecSoftmax where

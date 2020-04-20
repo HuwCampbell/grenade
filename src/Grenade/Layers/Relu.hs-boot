@@ -15,6 +15,6 @@
 module Grenade.Layers.Relu (
   ) where
 
-import {-# SOURCE #-} Grenade.Core.DynamicNetwork (ToDynamicLayer, SpecRelu)
+import {-# SOURCE #-} Grenade.Dynamic.Specification (ToDynamicLayer, SpecRelu)
 
 instance ToDynamicLayer SpecRelu where

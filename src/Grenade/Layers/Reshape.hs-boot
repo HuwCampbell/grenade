@@ -12,6 +12,6 @@ module Grenade.Layers.Reshape
   (
   ) where
 
-import {-# SOURCE #-} Grenade.Core.DynamicNetwork (ToDynamicLayer, SpecReshape)
+import {-# SOURCE #-} Grenade.Dynamic.Specification (ToDynamicLayer, SpecReshape)
 
 instance ToDynamicLayer SpecReshape where

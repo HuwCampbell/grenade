@@ -25,6 +25,7 @@ import           Numeric.LinearAlgebra.Static hiding (Seed)
 import           System.Random.MWC
 
 import           Grenade.Core
+import           Grenade.Dynamic
 import           Grenade.Types
 
 -- Dropout layer help to reduce overfitting.

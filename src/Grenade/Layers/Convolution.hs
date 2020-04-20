@@ -46,6 +46,7 @@ import           System.Random.MWC                   (Gen)
 import           Unsafe.Coerce                       (unsafeCoerce)
 
 import           Grenade.Core
+import           Grenade.Dynamic
 import           Grenade.Layers.Internal.Convolution
 import           Grenade.Layers.Internal.Update
 import           Grenade.Utils.ListStore

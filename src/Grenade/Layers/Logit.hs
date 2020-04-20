@@ -33,6 +33,7 @@ import           GHC.TypeLits
 import           Unsafe.Coerce   (unsafeCoerce)
 
 import           Grenade.Core
+import           Grenade.Dynamic
 
 -- | A Logit layer.
 --

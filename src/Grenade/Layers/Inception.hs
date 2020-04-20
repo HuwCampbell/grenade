@@ -1,12 +1,12 @@
 {-# LANGUAGE DataKinds             #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE TypeOperators         #-}
-{-# LANGUAGE TypeFamilies          #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
 {-|
 Module      : Grenade.Core.Network
 Description : Inception style parallel convolutional network composition.
@@ -26,10 +26,10 @@ module Grenade.Layers.Inception (
 import           GHC.TypeLits
 
 import           Grenade.Core
-import           Grenade.Layers.Convolution
-import           Grenade.Layers.Pad
 import           Grenade.Layers.Concat
+import           Grenade.Layers.Convolution
 import           Grenade.Layers.Merge
+import           Grenade.Layers.Pad
 import           Grenade.Layers.Trivial
 
 -- | Type of an inception layer.

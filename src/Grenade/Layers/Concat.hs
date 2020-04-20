@@ -32,15 +32,15 @@ import           Control.DeepSeq              (NFData (..))
 import           Data.Singletons
 import           GHC.Generics                 (Generic)
 import           GHC.TypeLits
-
+import           Numeric.LinearAlgebra.Static (R, row, split, splitRows, unrow, ( # ),
+                                               (===))
 #if MIN_VERSION_base(4,9,0)
 import           Data.Kind                    (Type)
 #endif
 
 import           Grenade.Core
+import           Grenade.Dynamic
 
-import           Numeric.LinearAlgebra.Static (R, row, split, splitRows, unrow, ( # ),
-                                               (===))
 
 -- | A Concatenating Layer.
 --
