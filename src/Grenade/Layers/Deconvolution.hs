@@ -438,13 +438,13 @@ specDeconvolution3DInput inp channels filters kernelRows kernelCols strideRows s
 
 instance (KnownNat strideCols, KnownNat strideRows, KnownNat kernelCols, KnownNat kernelRows, KnownNat filters, KnownNat channels, KnownNat ((kernelRows * kernelCols) * filters)) =>
          GNum (Deconvolution channels filters kernelRows kernelCols strideRows strideCols) where
-  n |* (Deconvolution w m) = Deconvolution (fromRational n * w) m
-  (Deconvolution w m) |+ (Deconvolution w2 m2) = Deconvolution (fromRational 0.5 * (w + w2)) (zipWithListStore (\x y -> 0.5 * (x+y)) m m2)
+  n |* (Deconvolution w store) = Deconvolution (dmmap (fromRational n *) w) (n |* store)
+  (Deconvolution w1 store1) |+ (Deconvolution w2 store2) = Deconvolution (w1 + w2) (store1 |+ store2)
   gFromRational r = Deconvolution (fromRational r) mkListStore
 
 
 instance (KnownNat strideCols, KnownNat strideRows, KnownNat kernelCols, KnownNat kernelRows, KnownNat filters, KnownNat channels, KnownNat ((kernelRows * kernelCols) * filters)) =>
          GNum (Deconvolution' channels filters kernelRows kernelCols strideRows strideCols) where
-  _ |* (Deconvolution' g) = Deconvolution' g
-  (Deconvolution' g) |+ (Deconvolution' g2) = Deconvolution' (fromRational 0.5 * (g + g2))
+  n |* (Deconvolution' g) = Deconvolution' (dmmap (fromRational n *) g)
+  (Deconvolution' g) |+ (Deconvolution' g2) = Deconvolution' (g + g2)
   gFromRational r = Deconvolution' (fromRational r)

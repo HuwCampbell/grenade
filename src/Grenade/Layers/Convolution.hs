@@ -436,16 +436,16 @@ specConvolution3DInput inp channels filters kernelRows kernelCols strideRows str
 
 -------------------- GNum instances --------------------
 
-
-instance (KnownNat strideCols, KnownNat strideRows, KnownNat kernelCols, KnownNat kernelRows, KnownNat filters, KnownNat channels, KnownNat ((kernelRows * kernelCols) * channels)) =>
-         GNum (Convolution channels filters kernelRows kernelCols strideRows strideCols) where
-  n |* (Convolution w m) = Convolution (fromRational n * w) m
-  (Convolution w m) |+ (Convolution w2 m2) = Convolution (fromRational 0.5 * (w + w2)) (zipWithListStore (\x y -> 0.5 * (x + y)) m m2)
+instance (KnownNat striCols, KnownNat strideRows, KnownNat kernelCols, KnownNat kernelRows, KnownNat filters, KnownNat channels, KnownNat ((kernelRows * kernelCols) * channels)) =>
+         GNum (Convolution channels filters kernelRows kernelCols strideRows striCols) where
+  n |* (Convolution w store) = Convolution (dmmap (fromRational n *) w) (n |* store)
+  (Convolution w1 store1) |+ (Convolution w2 store2) = Convolution (w1 + w2) (store1 |+ store2)
   gFromRational r = Convolution (fromRational r) mkListStore
 
 
-instance (KnownNat strideCols, KnownNat strideRows, KnownNat kernelCols, KnownNat kernelRows, KnownNat filters, KnownNat channels, KnownNat ((kernelRows * kernelCols) * channels)) =>
-         GNum (Convolution' channels filters kernelRows kernelCols strideRows strideCols) where
-  _ |* (Convolution' g) = Convolution' g
-  (Convolution' g) |+ (Convolution' g2) = Convolution' (fromRational 0.5 * (g + g2))
+instance (KnownNat striCols, KnownNat strideRows, KnownNat kernelCols, KnownNat kernelRows, KnownNat filters, KnownNat channels, KnownNat ((kernelRows * kernelCols) * channels)) =>
+         GNum (Convolution' channels filters kernelRows kernelCols strideRows striCols) where
+  n |* (Convolution' g) = Convolution' (dmmap (fromRational n *) g)
+  (Convolution' g) |+ (Convolution' g2) = Convolution' (g + g2)
   gFromRational r = Convolution' (fromRational r)
+

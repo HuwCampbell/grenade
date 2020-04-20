@@ -48,6 +48,7 @@ import           Unsafe.Coerce                (unsafeCoerce)
 
 
 import           Grenade.Core
+import           Grenade.Layers.Trivial
 
 -- | Reshape Layer
 --
@@ -122,6 +123,12 @@ instance ToDynamicLayer SpecReshape where
     reifyNat depthO $ \(pxDO :: (KnownNat dO) => Proxy dO) ->
     case (singByProxy pxRI %* singByProxy pxDI, singByProxy pxRO %* singByProxy pxDO) of
           (SNat, SNat) ->
+            if (rowsI, colsI, depthI) == (rowsO, colsO, depthO)
+            then case (rowsI, colsI, depthI) of
+              (_,1,1) -> return $ SpecLayer Trivial (sing :: Sing ('D1 rI)) (sing :: Sing ('D1 rI))
+              (_,_,1) -> return $ SpecLayer Trivial (sing :: Sing ('D2 rI cI)) (sing :: Sing ('D2 rI cI))
+              (_,_,_) -> return $ SpecLayer Trivial (sing :: Sing ('D3 rI cI dI)) (sing :: Sing ('D3 rI cI dI))
+            else
             case ((rowsI, colsI, depthI), (rowsO, colsO, depthO)) of
               ((_,1,1), (_, _, 1)) | rowsI /= rowsO * colsO -> err
               ((_,1,1), (_, _, 1)) ->

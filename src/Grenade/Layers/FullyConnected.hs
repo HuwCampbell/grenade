@@ -42,17 +42,24 @@ import           Grenade.Core
 import           Grenade.Layers.Internal.Update
 import           Grenade.Utils.ListStore
 
-
 -- | A basic fully connected (or inner product) neural network layer.
 data FullyConnected i o = FullyConnected
                         !(FullyConnected' i o)   -- Neuron weights
                         !(ListStore (FullyConnected' i o))   -- momentum store
-                        deriving (Generic, NFData)
+                        deriving (Generic)
+
+instance NFData (FullyConnected i o) where
+  rnf (FullyConnected w store) = rnf w `seq` rnf store
+
 
 data FullyConnected' i o = FullyConnected'
                          !(R o)   -- Bias
                          !(L o i) -- Activations
-                        deriving (Generic, NFData)
+                        deriving (Generic)
+
+instance NFData (FullyConnected' i o) where
+  rnf (FullyConnected' b w) = rnf b `seq` rnf w
+
 
 instance Show (FullyConnected i o) where
   show FullyConnected {} = "FullyConnected"
@@ -154,13 +161,13 @@ specFullyConnected nrI nrO = SpecNetLayer $ SpecFullyConnected nrI nrO
 -------------------- GNum instances --------------------
 
 instance (KnownNat i, KnownNat o) => GNum (FullyConnected i o) where
-  s |* FullyConnected i o = FullyConnected (s |* i) o
-  FullyConnected i o |+ FullyConnected i2 o2 = FullyConnected (0.5 |* (i |+ i2)) (0.5 |* (o |+ o2))
+  s |* FullyConnected w store = FullyConnected (s |* w) (s |* store)
+  FullyConnected w1 store1 |+ FullyConnected w2 store2 = FullyConnected (w1 |+ w2) (store1 |+ store2)
   gFromRational r = FullyConnected (gFromRational r) mkListStore
 
 instance (KnownNat i, KnownNat o) => GNum (FullyConnected' i o) where
-  s |* FullyConnected' i o = FullyConnected' (fromRational s * i) o
-  FullyConnected' i o |+ FullyConnected' i2 o2 = FullyConnected' (0.5 * (i + i2)) (0.5 * (o + o2))
+  s |* FullyConnected' b w = FullyConnected' (dvmap (fromRational s *) b) (dmmap (fromRational s *) w)
+  FullyConnected' b1 w1 |+ FullyConnected' b2 w2 = FullyConnected' (b1 + b2) (w1 + w2)
   gFromRational r = FullyConnected' (fromRational r) (fromRational r)
 
 

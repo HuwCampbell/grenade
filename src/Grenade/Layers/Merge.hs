@@ -78,5 +78,5 @@ instance (Serialize a, Serialize b) => Serialize (Merge a b) where
 
 instance (GNum x, GNum y) => GNum (Merge x y) where
   n |* (Merge x y) = Merge (n |* x) (n |* y)
-  (Merge x y) |+ (Merge x2 y2) = Merge (0.5 |* (x |+ x2)) (0.5 |* (y |+ y2))
+  (Merge x y) |+ (Merge x2 y2) = Merge (x |+ x2) (y |+ y2)
   gFromRational r = Merge (gFromRational r) (gFromRational r)

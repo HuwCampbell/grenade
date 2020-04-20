@@ -38,11 +38,12 @@ module Grenade.Core.Network (
 import           Control.DeepSeq
 import           Control.Monad.IO.Class
 import           Control.Monad.Primitive           (PrimBase, PrimState)
-import           System.Random.MWC
-
 import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.Prelude
+import           GHC.TypeLits                      (KnownNat)
+import           Numeric.LinearAlgebra.Static
+import           System.Random.MWC
 
 #if MIN_VERSION_base(4,9,0)
 import           Data.Kind                         (Type)
@@ -52,6 +53,8 @@ import           Grenade.Core.Layer
 import           Grenade.Core.Optimizer
 import           Grenade.Core.Shape
 import           Grenade.Core.WeightInitialization
+
+import           Debug.Trace
 
 -- | Type of a network.
 --
@@ -74,12 +77,12 @@ infixr 5 :~>
 instance Show (Network '[] '[i]) where
   show NNil = "NNil"
 instance (Show x, Show (Network xs rs)) => Show (Network (x ': xs) (i ': rs)) where
-  show (x :~> xs) = show x ++ "\n~>\n" ++ show xs
+  show (x :~> xs) = show x ++ " ~> " ++ show xs
 
-instance NFData (Network '[] '[i]) where
+instance NFData (Network '[] '[ i]) where
   rnf NNil = ()
 instance (NFData x, NFData (Network xs rs)) => NFData (Network (x ': xs) (i ': rs)) where
-  rnf (x :~> xs) = rnf x `seq` rnf xs
+  rnf ((!x) :~> (!xs)) = rnf x `seq` rnf xs
 
 
 -- | Gradient of a network.
@@ -281,4 +284,13 @@ instance (GNum a, GNum b) => GNum (a, b) where
   (a1, b1) |+ (a2, b2) = (a1 |+ a2, b1 |+ b2)
   gFromRational v = (gFromRational v, gFromRational v)
 
+instance (KnownNat m) => GNum (R m) where
+  s |* vec = dvmap (fromRational s *) vec
+  (|+) = (+)
+  gFromRational = fromRational
+
+instance (KnownNat m, KnownNat n) => GNum (L m n) where
+  s |* mat = dmmap (fromRational s *) mat
+  (|+) = (+)
+  gFromRational = fromRational
 

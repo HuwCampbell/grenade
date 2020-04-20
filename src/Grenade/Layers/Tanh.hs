@@ -20,6 +20,7 @@ module Grenade.Layers.Tanh
   , specTanh1D
   , specTanh2D
   , specTanh3D
+  , specTanh
   ) where
 
 import           Control.DeepSeq (NFData (..))
@@ -75,17 +76,21 @@ instance ToDynamicLayer SpecTanh where
            Dict -> return $ SpecLayer Tanh (sing :: Sing ('D3 rows cols depth)) (sing :: Sing ('D3 rows cols depth))
 
 
--- | Create a specification for a elu layer.
+-- | Create a specification for a Tanh layer.
 specTanh1D :: Integer -> SpecNet
 specTanh1D i = specTanh3D (i, 1, 1)
 
--- | Create a specification for a elu layer.
+-- | Create a specification for a Tanh layer.
 specTanh2D :: (Integer, Integer) -> SpecNet
 specTanh2D (i,j) = specTanh3D (i,j,1)
 
--- | Create a specification for a elu layer.
+-- | Create a specification for a Tanh layer.
 specTanh3D :: (Integer, Integer, Integer) -> SpecNet
 specTanh3D = SpecNetLayer . SpecTanh
+
+-- | Create a specification for a Tanh layer.
+specTanh :: (Integer, Integer, Integer) -> SpecNet
+specTanh = SpecNetLayer . SpecTanh
 
 
 -------------------- GNum instances --------------------

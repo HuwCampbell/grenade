@@ -41,10 +41,13 @@ import           Grenade.Core
 
 -- | Simple store
 data ListStore a = ListStore !Int ![Maybe a]
-  deriving (Generic, NFData, Serialize)
+  deriving (Generic, Serialize)
 
 instance Functor ListStore where
   fmap f (ListStore n xs) = ListStore n $ map (fmap f) xs
+
+instance NFData (ListStore a) where
+  rnf (ListStore n xs) = rnf n `seq` map rwhnf xs `seq` () -- eval to Just or Nothing
 
 -- | Returns how often the the store was updated, i.e. how often @setListStore@ was called (regardless of the parameters).
 getStep :: ListStore a -> Int

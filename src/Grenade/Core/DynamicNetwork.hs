@@ -41,6 +41,7 @@ module Grenade.Core.DynamicNetwork
   , specNil1D
   , specNil2D
   , specNil3D
+  , specNil
   -- Data types
   , SpecFullyConnected (..)
   , SpecConvolution (..)
@@ -288,12 +289,11 @@ instance ToDynamicLayer SpecNet where
 type GeneralConcreteNetworkInstances layers shapes
    = ( FromDynamicLayer (Network layers shapes)
      , GNum (Gradients layers)
+     , GNum (Network layers shapes)
      , Layer (Network layers shapes) (Head shapes) (Last shapes)
-     , NFData (Network layers shapes)
      , NFData (Network layers shapes)
      , NFData (Tapes layers shapes)
      , RandomLayer (Network layers shapes)
-     , Serialize (Network layers shapes)
      , Serialize (Network layers shapes)
      , Show (Network layers shapes)
      , SingI (Head shapes)
@@ -387,6 +387,14 @@ specNil2D = uncurry SpecNNil2D
 -- | 3D Output layer for specification. Requieres output sizes.
 specNil3D :: (Integer, Integer, Integer) -> SpecNet
 specNil3D (rows, cols, depth) = SpecNNil3D rows cols depth
+
+specNil :: (Integer, Integer, Integer) -> SpecNet
+specNil dimensions =
+  case dimensions of
+    (rows, 1, 1) -> specNil1D rows
+    (rows, cols, 1) -> specNil2D (rows, cols)
+    (rows, cols, depth) -> specNil3D (rows, cols, depth)
+
 
 -- | Helper functions to convert a given shape into a triple, where nonused dimensions are set to 0.
 tripleFromSomeShape :: SomeSing Shape -> (Integer, Integer, Integer)
