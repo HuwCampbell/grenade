@@ -54,7 +54,6 @@ import           Grenade.Core.Optimizer
 import           Grenade.Core.Shape
 import           Grenade.Core.WeightInitialization
 
-import           Debug.Trace
 
 -- | Type of a network.
 --
