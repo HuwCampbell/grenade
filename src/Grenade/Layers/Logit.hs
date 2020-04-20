@@ -20,20 +20,22 @@ module Grenade.Layers.Logit (
   , specLogit1D
   , specLogit2D
   , specLogit3D
+  , logit
   ) where
 
 
-import           Control.DeepSeq (NFData)
-import           Data.Constraint (Dict (..))
+import           Control.DeepSeq                (NFData)
+import           Data.Constraint                (Dict (..))
 import           Data.Reflection
 import           Data.Serialize
 import           Data.Singletons
-import           GHC.Generics    (Generic)
+import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
-import           Unsafe.Coerce   (unsafeCoerce)
+import           Unsafe.Coerce                  (unsafeCoerce)
 
 import           Grenade.Core
 import           Grenade.Dynamic
+import           Grenade.Dynamic.Internal.Build
 
 -- | A Logit layer.
 --
@@ -102,6 +104,11 @@ specLogit2D (i, j) = specLogit3D (i, j, 1)
 -- | Create a specification for a elu layer.
 specLogit3D :: (Integer, Integer, Integer) -> SpecNet
 specLogit3D = SpecNetLayer . SpecLogit
+
+
+-- | Add a Logit layer to your build.
+logit :: BuildM ()
+logit = buildGetLastLayerOut >>= buildAddSpec . SpecNetLayer . SpecLogit
 
 
 -------------------- GNum instances --------------------

@@ -19,21 +19,23 @@ module Grenade.Layers.Elu
   , specElu1D
   , specElu2D
   , specElu3D
+  , elu
   ) where
 
-import           Control.DeepSeq              (NFData)
-import           Data.Constraint              (Dict (..))
-import           Data.Reflection              (reifyNat)
+import           Control.DeepSeq                (NFData)
+import           Data.Constraint                (Dict (..))
+import           Data.Reflection                (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
-import           GHC.Generics                 (Generic)
+import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
-import qualified Numeric.LinearAlgebra.Static as LAS
-import           Unsafe.Coerce                (unsafeCoerce)
+import qualified Numeric.LinearAlgebra.Static   as LAS
+import           Unsafe.Coerce                  (unsafeCoerce)
 
 
 import           Grenade.Core
 import           Grenade.Dynamic
+import           Grenade.Dynamic.Internal.Build
 
 -- | An exponential linear unit.
 --   A layer which can act between any shape of the same dimension, acting as a
@@ -111,6 +113,10 @@ specElu2D (i,j) = specElu3D (i,j,1)
 -- | Create a specification for a elu layer.
 specElu3D :: (Integer, Integer, Integer) -> SpecNet
 specElu3D = SpecNetLayer . SpecElu
+
+-- | Add a Elu layer to your build.
+elu :: BuildM ()
+elu = buildGetLastLayerOut >>= buildAddSpec . SpecNetLayer . SpecElu
 
 
 -------------------- GNum instances --------------------

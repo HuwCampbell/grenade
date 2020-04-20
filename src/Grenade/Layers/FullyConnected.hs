@@ -19,6 +19,7 @@ module Grenade.Layers.FullyConnected (
   , randomFullyConnected
   , SpecFullyConnected (..)
   , specFullyConnected
+  , fullyConnected
   ) where
 
 import           Control.DeepSeq
@@ -40,6 +41,7 @@ import           Numeric.LinearAlgebra.Static
 
 import           Grenade.Core
 import           Grenade.Dynamic
+import           Grenade.Dynamic.Internal.Build
 import           Grenade.Layers.Internal.Update
 import           Grenade.Utils.ListStore
 
@@ -144,7 +146,6 @@ randomFullyConnected m gen = do
 instance (KnownNat i, KnownNat o) => FromDynamicLayer (FullyConnected i o) where
   fromDynamicLayer _ _ _ = SpecNetLayer $ SpecFullyConnected (natVal (Proxy :: Proxy i)) (natVal (Proxy :: Proxy o))
 
-
 instance ToDynamicLayer SpecFullyConnected where
   toDynamicLayer wInit gen (SpecFullyConnected nrI nrO) =
     reifyNat nrI $ \(pxInp :: (KnownNat i) => Proxy i) ->
@@ -154,9 +155,17 @@ instance ToDynamicLayer SpecFullyConnected where
             (layer :: FullyConnected i o') <- randomFullyConnected wInit gen
             return $ SpecLayer layer (sing :: Sing ('D1 i)) (sing :: Sing ('D1 o'))
 
-
+-- | Make a specification of a fully connected layer (see Grenade.Dynamic.Build for a user-interface to specifications).
 specFullyConnected :: Integer -> Integer -> SpecNet
 specFullyConnected nrI nrO = SpecNetLayer $ SpecFullyConnected nrI nrO
+
+
+-- | A Fully-connected layer with input dimensions as given in last output layer and output dimensions specified. 1D only!
+fullyConnected :: Integer -> BuildM ()
+fullyConnected rows = do
+  (inRows, _, _) <- buildRequireLastLayerOut Is1D
+  buildAddSpec (SpecNetLayer $ SpecFullyConnected inRows rows)
+  buildSetLastLayer (rows, 1, 1)
 
 
 -------------------- GNum instances --------------------

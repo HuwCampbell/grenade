@@ -22,12 +22,10 @@ module Grenade.Dynamic.Specification
   ) where
 
 import           Control.DeepSeq
-import           Data.Proxy
 import           Data.Serialize
-import           GHC.Generics
-import Data.Typeable as T
-import Data.Singletons
-import Data.Singletons.Prelude.List
+import           Data.Typeable as T
+import           Data.Singletons
+import           Data.Singletons.Prelude.List
 #if MIN_VERSION_base(4,9,0)
 import           Data.Kind                         (Type)
 #endif

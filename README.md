@@ -49,6 +49,19 @@ but includes additional features:
     However, Beware! It is important to get the specification right, as otherwise the program will halt
     abruptly. So at best do not use it manually, but write functions for creating specifications!
 
+    Or probably better, use the simple interface:
+
+        buildNetViaInterface :: IO SpecConcreteNetwork
+        buildNetViaInterface =
+          buildModel $
+          inputLayer1D 2 >>
+          fullyConnected 10 >> dropout 0.89 >> relu >>
+          fullyConnected 4 >> relu >>
+          networkLayer (
+            inputLayer1D 4 >> fullyConnected 10 >> relu >> fullyConnected 4 >> sinusoid
+            ) >>
+          fullyConnected 1 >> tanhLayer
+
 
 Description
 ===========

@@ -21,20 +21,22 @@ module Grenade.Layers.Tanh
   , specTanh2D
   , specTanh3D
   , specTanh
+  , tanhLayer
   ) where
 
-import           Control.DeepSeq (NFData (..))
-import           Data.Constraint (Dict (..))
-import           Data.Reflection (reifyNat)
+import           Control.DeepSeq                (NFData (..))
+import           Data.Constraint                (Dict (..))
+import           Data.Reflection                (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
-import           GHC.Generics    (Generic)
+import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
-import           Unsafe.Coerce   (unsafeCoerce)
+import           Unsafe.Coerce                  (unsafeCoerce)
 
 
 import           Grenade.Core
 import           Grenade.Dynamic
+import           Grenade.Dynamic.Internal.Build
 
 -- | A Tanh layer.
 --   A layer which can act between any shape of the same dimension, performing a tanh function.
@@ -54,11 +56,11 @@ instance Serialize Tanh where
 
 instance (a ~ b, SingI a) => Layer Tanh a b where
   type Tape Tanh a b = S a
-  runForwards _ a = (a, tanh a)
-  runBackwards _ a g = ((), tanh' a * g)
+  runForwards _ a = (a, tanhF a)
+  runBackwards _ a g = ((), tanhF a * g)
 
-tanh' :: (Floating a) => a -> a
-tanh' t = 1 - s ^ (2 :: Int)  where s = tanh t
+tanhF :: (Floating a) => a -> a
+tanhF t = 1 - s ^ (2 :: Int)  where s = tanh t
 
 -------------------- DynamicNetwork instance --------------------
 
@@ -83,7 +85,7 @@ specTanh1D i = specTanh3D (i, 1, 1)
 
 -- | Create a specification for a Tanh layer.
 specTanh2D :: (Integer, Integer) -> SpecNet
-specTanh2D (i,j) = specTanh3D (i,j,1)
+specTanh2D (i, j) = specTanh3D (i, j, 1)
 
 -- | Create a specification for a Tanh layer.
 specTanh3D :: (Integer, Integer, Integer) -> SpecNet
@@ -92,6 +94,10 @@ specTanh3D = SpecNetLayer . SpecTanh
 -- | Create a specification for a Tanh layer.
 specTanh :: (Integer, Integer, Integer) -> SpecNet
 specTanh = SpecNetLayer . SpecTanh
+
+-- | Add a Tanh layer to your build.
+tanhLayer :: BuildM ()
+tanhLayer = buildGetLastLayerOut >>= buildAddSpec . SpecNetLayer . SpecTanh
 
 
 -------------------- GNum instances --------------------

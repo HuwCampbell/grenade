@@ -20,19 +20,21 @@ module Grenade.Layers.Softmax (
   , softmax'
   , SpecSoftmax (..)
   , specSoftmax
+  , softmaxLayer
   ) where
 
 import           Data.Serialize
 
-import           Control.DeepSeq              (NFData (..))
-import           Data.Reflection              (reifyNat)
+import           Control.DeepSeq                (NFData (..))
+import           Data.Reflection                (reifyNat)
 import           Data.Singletons
-import           GHC.Generics                 (Generic)
+import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
-import           Numeric.LinearAlgebra.Static as LAS
+import           Numeric.LinearAlgebra.Static   as LAS
 
 import           Grenade.Core
 import           Grenade.Dynamic
+import           Grenade.Dynamic.Internal.Build
 
 -- | A Softmax layer
 --
@@ -93,6 +95,12 @@ instance ToDynamicLayer SpecSoftmax where
 specSoftmax :: Integer -> SpecNet
 specSoftmax = SpecNetLayer . SpecSoftmax
 
+
+-- | Add a Softmax layer to your build.
+softmaxLayer :: BuildM ()
+softmaxLayer = buildRequireLastLayerOut Is1D >>= buildAddSpec . SpecNetLayer . SpecSoftmax . fst3
+  where
+    fst3 (x, _, _) = x
 
 -------------------- GNum instances --------------------
 

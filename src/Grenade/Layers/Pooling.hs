@@ -32,7 +32,6 @@ import           GHC.TypeLits
 
 
 import           Grenade.Core
-import           Grenade.Dynamic
 import           Grenade.Layers.Internal.Pooling
 
 import           Numeric.LinearAlgebra.Static    as LAS hiding (build, toRows, (|||))

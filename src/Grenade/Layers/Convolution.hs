@@ -25,6 +25,7 @@ module Grenade.Layers.Convolution (
   , SpecConvolution (..)
   , specConvolution2DInput
   , specConvolution3DInput
+  , convolution
   ) where
 
 import           Control.DeepSeq                     (NFData (..))
@@ -47,6 +48,7 @@ import           Unsafe.Coerce                       (unsafeCoerce)
 
 import           Grenade.Core
 import           Grenade.Dynamic
+import           Grenade.Dynamic.Internal.Build
 import           Grenade.Layers.Internal.Convolution
 import           Grenade.Layers.Internal.Update
 import           Grenade.Utils.ListStore
@@ -434,6 +436,21 @@ specConvolution3DInput ::
 specConvolution3DInput inp channels filters kernelRows kernelCols strideRows strideCols =
   SpecNetLayer $ SpecConvolution inp channels filters kernelRows kernelCols strideRows strideCols
 
+-- | A convolution layer. 2D and 3D input/output only!
+convolution ::
+     Integer -- ^ Number of channels, for the first layer this could be RGB for instance.
+  -> Integer -- ^ Number of filters, this is the number of channels output by the layer.
+  -> Integer -- ^ The number of rows in the kernel filter
+  -> Integer -- ^ The number of column in the kernel filter
+  -> Integer -- ^ The row stride of the convolution filter
+  -> Integer -- ^ The cols stride of the convolution filter
+  -> BuildM ()
+convolution channels filters kernelRows kernelCols strideRows strideCols = do
+  inp@(r, c, _) <- buildRequireLastLayerOut IsNot1D
+  let outRows = (r - kernelRows) `div` strideRows + 1
+      outCols = (c - kernelCols) `div` strideCols + 1
+  buildAddSpec $ SpecNetLayer $ SpecConvolution inp channels filters kernelRows kernelCols strideRows strideCols
+  buildSetLastLayer (outRows, outCols, filters)
 
 -------------------- GNum instances --------------------
 

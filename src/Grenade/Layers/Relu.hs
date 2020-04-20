@@ -19,20 +19,22 @@ module Grenade.Layers.Relu (
   , specRelu1D
   , specRelu2D
   , specRelu3D
+  , relu
   ) where
 
-import           Control.DeepSeq              (NFData (..))
-import           Data.Constraint              (Dict (..))
-import           Data.Reflection              (reifyNat)
+import           Control.DeepSeq                (NFData (..))
+import           Data.Constraint                (Dict (..))
+import           Data.Reflection                (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
-import           GHC.Generics                 (Generic)
+import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
-import qualified Numeric.LinearAlgebra.Static as LAS
-import           Unsafe.Coerce                (unsafeCoerce)
+import qualified Numeric.LinearAlgebra.Static   as LAS
+import           Unsafe.Coerce                  (unsafeCoerce)
 
 import           Grenade.Core
 import           Grenade.Dynamic
+import           Grenade.Dynamic.Internal.Build
 
 
 -- | A rectifying linear unit.
@@ -112,6 +114,11 @@ specRelu2D (i, j) = specRelu3D (i, j, 1)
 -- | Create a specification for a elu layer.
 specRelu3D :: (Integer, Integer, Integer) -> SpecNet
 specRelu3D = SpecNetLayer . SpecRelu
+
+
+-- | Add a Relu layer to your build.
+relu :: BuildM ()
+relu = buildGetLastLayerOut >>= buildAddSpec . SpecNetLayer . SpecRelu
 
 
 -------------------- GNum instances --------------------

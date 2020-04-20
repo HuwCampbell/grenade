@@ -96,6 +96,7 @@ data SpecNet
   | SpecNCons !SpecNet !SpecNet           -- ^ x :~> xs, where x can also be a network
   | forall spec . (ToDynamicLayer spec, Typeable spec, Ord spec, Eq spec, Show spec, Serialize spec, NFData spec) => SpecNetLayer !spec -- ^ Specification of a layer
 
+type Dimensions = (Integer, Integer, Integer)
 
 -- Data structures instances for Layers (needs to be defined here)
 
@@ -104,27 +105,27 @@ data SpecFullyConnected = SpecFullyConnected !Integer !Integer
 -- data SpecConcat = SpecConcat SpecNet SpecNet
 
 data SpecConvolution =
-  SpecConvolution !(Integer, Integer, Integer) !Integer !Integer !Integer !Integer !Integer !Integer
+  SpecConvolution !Dimensions !Integer !Integer !Integer !Integer !Integer !Integer
 
 data SpecDeconvolution =
-  SpecDeconvolution !(Integer, Integer, Integer) !Integer !Integer !Integer !Integer !Integer !Integer
+  SpecDeconvolution !Dimensions !Integer !Integer !Integer !Integer !Integer !Integer
 
 data SpecDropout = SpecDropout !Integer !RealNum !(Maybe Int)
 
-newtype SpecElu = SpecElu (Integer, Integer, Integer)
+newtype SpecElu = SpecElu Dimensions
 
-newtype SpecLogit = SpecLogit (Integer, Integer, Integer)
+newtype SpecLogit = SpecLogit Dimensions
 
-newtype SpecRelu = SpecRelu (Integer, Integer, Integer)
+newtype SpecRelu = SpecRelu Dimensions
 
-data SpecReshape = SpecReshape !(Integer, Integer, Integer) !(Integer, Integer, Integer)
+data SpecReshape = SpecReshape !Dimensions !Dimensions
 
-newtype SpecSinusoid = SpecSinusoid (Integer, Integer, Integer)
+newtype SpecSinusoid = SpecSinusoid Dimensions
 
 newtype SpecSoftmax = SpecSoftmax Integer
 
-newtype SpecTanh = SpecTanh (Integer, Integer, Integer)
+newtype SpecTanh = SpecTanh Dimensions
 
-newtype SpecTrivial = SpecTrivial (Integer, Integer, Integer)
+newtype SpecTrivial = SpecTrivial Dimensions
 
 

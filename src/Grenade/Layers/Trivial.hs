@@ -20,19 +20,21 @@ module Grenade.Layers.Trivial
   , specTrivial1D
   , specTrivial2D
   , specTrivial3D
+  , trivial
   ) where
 
-import           Control.DeepSeq (NFData (..))
-import           Data.Constraint (Dict (..))
-import           Data.Reflection (reifyNat)
+import           Control.DeepSeq                (NFData (..))
+import           Data.Constraint                (Dict (..))
+import           Data.Reflection                (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
-import           GHC.Generics    (Generic)
+import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
-import           Unsafe.Coerce   (unsafeCoerce)
+import           Unsafe.Coerce                  (unsafeCoerce)
 
 import           Grenade.Core
 import           Grenade.Dynamic
+import           Grenade.Dynamic.Internal.Build
 
 
 -- | A Trivial layer.
@@ -86,6 +88,11 @@ specTrivial2D (i, j) = specTrivial3D (i, j, 1)
 -- | Create a specification for a elu layer.
 specTrivial3D :: (Integer, Integer, Integer) -> SpecNet
 specTrivial3D = SpecNetLayer . SpecTrivial
+
+-- | Add a Trivial layer to your build.
+trivial :: BuildM ()
+trivial = buildGetLastLayerOut >>= buildAddSpec . SpecNetLayer . SpecTrivial
+
 
 -------------------- GNum instances --------------------
 

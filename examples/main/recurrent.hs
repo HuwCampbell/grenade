@@ -8,8 +8,7 @@
 
 import           Control.Monad                (foldM)
 import           Control.Monad.Random         (MonadRandom, getRandomR)
-import           Data.List                    (cycle, unfoldr)
-import           Data.Semigroup               ((<>))
+import           Data.List                    (unfoldr)
 import qualified Numeric.LinearAlgebra.Static as SA
 import           Options.Applicative
 

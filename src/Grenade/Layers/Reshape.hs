@@ -26,29 +26,31 @@ module Grenade.Layers.Reshape
   , specReshape2D3D
   , specReshape1D2D
   , specReshape1D3D
+  , reshape
   ) where
 
 #if MIN_VERSION_singletons(2,6,0)
-import           Data.Singletons.TypeLits     (SNat (..))
+import           Data.Singletons.TypeLits       (SNat (..))
 #endif
 
 
+import           Control.DeepSeq                (NFData (..))
+import           Control.Monad                  (when)
+import           Data.Constraint                (Dict (..))
+import           Data.Reflection                (reifyNat)
 import           Data.Serialize
-
-import           Control.DeepSeq              (NFData (..))
-import           Data.Constraint              (Dict (..))
-import           Data.Reflection              (reifyNat)
 import           Data.Singletons
-import           Data.Singletons.Prelude.Num  ((%*))
-import           GHC.Generics                 (Generic)
+import           Data.Singletons.Prelude.Num    ((%*))
+import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
-import           Numeric.LinearAlgebra.Data   as LA (flatten)
+import           Numeric.LinearAlgebra.Data     as LA (flatten)
 import           Numeric.LinearAlgebra.Static
-import           Unsafe.Coerce                (unsafeCoerce)
+import           Unsafe.Coerce                  (unsafeCoerce)
 
 
 import           Grenade.Core
 import           Grenade.Dynamic
+import           Grenade.Dynamic.Internal.Build
 import           Grenade.Layers.Trivial
 
 -- | Reshape Layer
@@ -181,6 +183,14 @@ specReshape1D3D rows = specReshape (rows, 1, 1)
 specReshape1D2D :: Integer -> (Integer, Integer) -> SpecNet
 specReshape1D2D rowsI (rowsO, colsO) = specReshape (rowsI, 1, 1) (rowsO, colsO, 1)
 
+-- | Reshape to the given dimensions. Input and output nodes must match. If the input and output dimensions are the same, then this layer is omitted.
+reshape :: Dimensions -> BuildM ()
+reshape inp@(rIn, cIn, dIn) = do
+  out@(rOut, cOut, dOut) <- buildGetLastLayerOut
+  when (rIn * cIn * dIn /= rOut * cOut * dOut) $ error "Number of input and output nodes do not match in reshape!"
+  if rIn == rOut && cIn == cOut && dIn == dOut
+    then return () -- ignore as same size
+    else buildAddSpec (specReshape inp out) >> buildSetLastLayer out
 
 -------------------- GNum instances --------------------
 

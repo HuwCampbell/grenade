@@ -20,19 +20,21 @@ module Grenade.Layers.Sinusoid
   , specSinusoid1D
   , specSinusoid2D
   , specSinusoid3D
+  , sinusoid
   ) where
 
-import           Control.DeepSeq (NFData)
-import           Data.Constraint (Dict (..))
-import           Data.Reflection (reifyNat)
+import           Control.DeepSeq                (NFData)
+import           Data.Constraint                (Dict (..))
+import           Data.Reflection                (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
-import           GHC.Generics    (Generic)
+import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
-import           Unsafe.Coerce   (unsafeCoerce)
+import           Unsafe.Coerce                  (unsafeCoerce)
 
 import           Grenade.Core
 import           Grenade.Dynamic
+import           Grenade.Dynamic.Internal.Build
 
 -- | A Sinusoid layer.
 --   A layer which can act between any shape of the same dimension, performing a sin function.
@@ -84,6 +86,11 @@ specSinusoid2D (i,j) = specSinusoid3D (i,j,1)
 -- | Create a specification for a elu layer.
 specSinusoid3D :: (Integer, Integer, Integer) -> SpecNet
 specSinusoid3D = SpecNetLayer . SpecSinusoid
+
+
+-- | Add a Sinusoid layer to your build.
+sinusoid :: BuildM ()
+sinusoid = buildGetLastLayerOut >>= buildAddSpec . SpecNetLayer . SpecSinusoid
 
 
 -------------------- GNum instances --------------------

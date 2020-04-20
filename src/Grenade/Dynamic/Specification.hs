@@ -23,6 +23,7 @@ module Grenade.Dynamic.Specification
   , SpecNetwork (..)
   , SpecNet (..)
   -- Layer specific data types
+  , Dimensions
   , SpecFullyConnected(..)
   , SpecConvolution(..)
   , SpecDeconvolution(..)
@@ -254,6 +255,8 @@ instance ToDynamicLayer SpecNet where
 
 -- Data structures stances for Layers (needs to be defined here)
 
+type Dimensions = (Integer, Integer, Integer)
+
 -- | Data Structure to save a fully connected layer. Saves number of input and output nodes.
 data SpecFullyConnected = SpecFullyConnected !Integer !Integer
   deriving (Show, Eq, Ord, Serialize, Generic, NFData)
@@ -263,12 +266,12 @@ data SpecFullyConnected = SpecFullyConnected !Integer !Integer
 
 -- | Specifiation of a convolutional layer. Saves input and channels, filters, kernelRows, kernelColumns, strideRows, strideColumns, and kernelFlattened.
 data SpecConvolution =
-  SpecConvolution !(Integer, Integer, Integer) !Integer !Integer !Integer !Integer !Integer !Integer
+  SpecConvolution !Dimensions !Integer !Integer !Integer !Integer !Integer !Integer
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 -- | Specifiation of a deconvolutional layer. Saves input and channels, filters, kernelRows, kernelColumns, strideRows, strideColumns, and kernelFlattened.
 data SpecDeconvolution =
-  SpecDeconvolution !(Integer, Integer, Integer) !Integer !Integer !Integer !Integer !Integer !Integer
+  SpecDeconvolution !Dimensions !Integer !Integer !Integer !Integer !Integer !Integer
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 -- | Specification of a dropout filter. Saves number of input nodes, ratio and maybe a seed.
@@ -276,23 +279,23 @@ data SpecDropout = SpecDropout !Integer !RealNum !(Maybe Int)
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 -- | Specification of Elu, saves input dimensions as triple, where every element >= 1.
-newtype SpecElu = SpecElu (Integer, Integer, Integer)
+newtype SpecElu = SpecElu Dimensions
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 -- | Specification of Logit, saves input dimensions as triple, where every element >= 1.
-newtype SpecLogit = SpecLogit (Integer, Integer, Integer)
+newtype SpecLogit = SpecLogit Dimensions
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 -- | Specification of Relu, saves input dimensions as triple, where every element >= 1.
-newtype SpecRelu = SpecRelu (Integer, Integer, Integer)
+newtype SpecRelu = SpecRelu Dimensions
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 -- | Specification of a reshape layer, saves input and output dimensions, where every element >= 1.
-data SpecReshape = SpecReshape !(Integer, Integer, Integer) !(Integer, Integer, Integer)
+data SpecReshape = SpecReshape !Dimensions !Dimensions
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 -- | Specification of Sinusoid, saves input dimensions as triple, where every element >= 1.
-newtype SpecSinusoid = SpecSinusoid (Integer, Integer, Integer)
+newtype SpecSinusoid = SpecSinusoid Dimensions
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 -- | Specification of Softmax, saves input dimensions as triple, where every element >= 1.
@@ -300,11 +303,11 @@ newtype SpecSoftmax = SpecSoftmax Integer
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 -- | Specification of Tanh, saves input dimensions as triple, where every element >= 1.
-newtype SpecTanh = SpecTanh (Integer, Integer, Integer)
+newtype SpecTanh = SpecTanh Dimensions
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 -- | Specification of Trivial, saves input dimensions as triple, where every element >= 1.
-newtype SpecTrivial = SpecTrivial (Integer, Integer, Integer)
+newtype SpecTrivial = SpecTrivial Dimensions
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
 
 

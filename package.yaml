@@ -69,6 +69,7 @@ dependencies:
   - ghc-prim                        >= 0.5.3
   - data-default
   - binary                          >= 0.8
+  - mtl
 when:
   condition: flag(use-float)
   then:

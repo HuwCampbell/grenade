@@ -32,7 +32,6 @@ import           Numeric.LinearAlgebra        (diagBlock, konst, subMatrix)
 import           Numeric.LinearAlgebra.Static (create, extract)
 
 import           Grenade.Core
-import           Grenade.Dynamic
 import           Grenade.Layers.Internal.Pad
 
 

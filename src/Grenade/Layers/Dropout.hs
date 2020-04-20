@@ -11,21 +11,24 @@ module Grenade.Layers.Dropout (
   , randomDropout
   , SpecDropout (..)
   , specDropout
+  , dropout
+  , dropoutWithSeed
   ) where
 
 import           Control.DeepSeq
-import           Control.Monad.Primitive      (PrimBase, PrimState)
+import           Control.Monad.Primitive        (PrimBase, PrimState)
 import           Data.Proxy
-import           Data.Reflection              (reifyNat)
+import           Data.Reflection                (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
-import           GHC.Generics                 hiding (R)
+import           GHC.Generics                   hiding (R)
 import           GHC.TypeLits
-import           Numeric.LinearAlgebra.Static hiding (Seed)
+import           Numeric.LinearAlgebra.Static   hiding (Seed)
 import           System.Random.MWC
 
 import           Grenade.Core
 import           Grenade.Dynamic
+import           Grenade.Dynamic.Internal.Build
 import           Grenade.Types
 
 -- Dropout layer help to reduce overfitting.
@@ -92,6 +95,14 @@ instance ToDynamicLayer SpecDropout where
 -- | Create a specification for a droput layer by providing the input size of the vector (1D allowed only!), a rate of nodes to keep (e.g. 0.95) and maybe a seed.
 specDropout :: Integer -> RealNum -> Maybe Int -> SpecNet
 specDropout i rate seed = SpecNetLayer $ SpecDropout i rate seed
+
+-- | Create a dropout layer with the specified keep rate of nodes. The seed will be randomly initialized when the network is created. See also @dropoutWithSeed@.
+dropout :: RealNum -> BuildM ()
+dropout ratio = dropoutWithSeed ratio Nothing
+
+-- | Create a dropout layer with the specified keep rate of nodes. The seed will be randomly initialized when the network is created. See also @dropoutWithSeed@.
+dropoutWithSeed :: RealNum -> Maybe Int -> BuildM ()
+dropoutWithSeed ratio mSeed = buildRequireLastLayerOut Is1D >>= \(i, _, _) -> buildAddSpec (specDropout i ratio mSeed)
 
 
 -------------------- GNum instance --------------------

@@ -46,9 +46,6 @@ import           Data.Singletons.Prelude
 import           Data.Singletons.TypeLits          hiding (natVal)
 import           GHC.TypeLits
 import           System.Random.MWC
-#if MIN_VERSION_base(4,9,0)
-import           Data.Kind                         (Type)
-#endif
 
 import           Grenade.Core.Layer
 import           Grenade.Core.Network
