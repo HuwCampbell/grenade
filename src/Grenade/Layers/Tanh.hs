@@ -56,11 +56,11 @@ instance Serialize Tanh where
 
 instance (a ~ b, SingI a) => Layer Tanh a b where
   type Tape Tanh a b = S a
-  runForwards _ a = (a, tanhF a)
-  runBackwards _ a g = ((), tanhF a * g)
+  runForwards _ a = (a, tanh a)
+  runBackwards _ a g = ((), tanh' a * g)
 
-tanhF :: (Floating a) => a -> a
-tanhF t = 1 - s ^ (2 :: Int)  where s = tanh t
+tanh' :: (Floating a) => a -> a
+tanh' t = 1 - s ^ (2 :: Int)  where s = tanh t
 
 -------------------- DynamicNetwork instance --------------------
 
