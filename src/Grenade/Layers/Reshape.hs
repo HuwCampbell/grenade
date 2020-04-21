@@ -185,9 +185,9 @@ specReshape1D2D rowsI (rowsO, colsO) = specReshape (rowsI, 1, 1) (rowsO, colsO, 
 
 -- | Reshape to the given dimensions. Input and output nodes must match. If the input and output dimensions are the same, then this layer is omitted.
 reshape :: Dimensions -> BuildM ()
-reshape inp@(rIn, cIn, dIn) = do
-  out@(rOut, cOut, dOut) <- buildGetLastLayerOut
-  when (rIn * cIn * dIn /= rOut * cOut * dOut) $ error "Number of input and output nodes do not match in reshape!"
+reshape out@(rIn, cIn, dIn) = do
+  inp@(rOut, cOut, dOut) <- buildGetLastLayerOut
+  when (rIn * cIn * dIn /= rOut * cOut * dOut) $ error $ "Number of input and output nodes do not match in reshape! From " ++ show inp ++ " to " ++ show out
   if rIn == rOut && cIn == cOut && dIn == dOut
     then return () -- ignore as same size
     else buildAddSpec (specReshape inp out) >> buildSetLastLayer out
