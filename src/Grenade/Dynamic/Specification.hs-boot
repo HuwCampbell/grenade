@@ -51,10 +51,10 @@ data SpecNetwork :: Type where
   SpecNetwork
     :: (SingI shapes, SingI (Head shapes), SingI (Last shapes), Show (Network layers shapes), FromDynamicLayer (Network layers shapes), NFData (Network layers shapes)
        , Layer (Network layers shapes) (Head shapes) (Last shapes), RandomLayer (Network layers shapes), Serialize (Network layers shapes), GNum (Network layers shapes)
-       , NFData (Tapes layers shapes), GNum (Gradients layers))
+       , NFData (Tapes layers shapes), GNum (Gradients layers), Typeable layers, Typeable shapes, Typeable (Head shapes))
     => !(Network layers shapes)
     -> SpecNetwork
-  SpecLayer :: (FromDynamicLayer x, RandomLayer x, Serialize x, NFData (Tape x i o), GNum (Gradient x), GNum x, NFData x, Show x, Layer x i o) => !x -> !(Sing i) -> !(Sing o) -> SpecNetwork
+  SpecLayer :: (FromDynamicLayer x, RandomLayer x, Serialize x, Typeable x, Typeable i, NFData (Tape x i o), GNum (Gradient x), GNum x, NFData x, Show x, Layer x i o) => !x -> !(Sing i) -> !(Sing o) -> SpecNetwork
 
 
 data SpecNet

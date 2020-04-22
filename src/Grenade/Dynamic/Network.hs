@@ -40,12 +40,15 @@ module Grenade.Dynamic.Network
   ) where
 
 import           Control.DeepSeq
+import           Data.Constraint                   (Dict (..))
 import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.Prelude
 import           Data.Singletons.TypeLits          hiding (natVal)
+import           Data.Typeable                     (Typeable)
 import           GHC.TypeLits
 import           System.Random.MWC
+import           Unsafe.Coerce                     (unsafeCoerce)
 
 import           Grenade.Core.Layer
 import           Grenade.Core.Network
@@ -69,7 +72,10 @@ type GeneralConcreteNetworkInstances layers shapes
      , Show (Network layers shapes)
      , SingI (Head shapes)
      , SingI (Last shapes)
-     , SingI shapes)
+     , SingI shapes
+     , Typeable layers
+     , Typeable shapes
+     )
 
 
 -- | This is the result type when calling @networkFromSpecification@. It specifies the input and output type. For a generic version (where input and output type are unknown) see @SpecNetwork@ and
@@ -115,19 +121,20 @@ networkFromSpecification = networkFromSpecificationWith UniformInit
 networkFromSpecificationWith :: WeightInitMethod -> SpecNet -> IO SpecConcreteNetwork
 networkFromSpecificationWith wInit spec = do
   SpecNetwork (net :: Network layers shapes) <- withSystemRandom . asGenST $ \gen -> toDynamicLayer wInit gen spec
-  case (sing :: Sing (Head shapes), sing :: Sing (Last shapes)) of
-    (inp :: Sing (Head shapes), out :: Sing (Last shapes)) ->
+  case (sing :: Sing (Head shapes), sing :: Sing (Last shapes), unsafeCoerce (Dict :: Dict ()) :: Dict ()) of
+    (inp :: Sing (Head shapes), out :: Sing (Last shapes), Dict
+      ) ->
       withSingI inp $
       withSingI out $
       case (inp, out) of
-        (D1Sing SNat, D1Sing SNat) -> return $ SpecConcreteNetwork1D1D net
-        (D1Sing SNat, D2Sing SNat SNat) -> return $ SpecConcreteNetwork1D2D net
-        (D1Sing SNat, D3Sing SNat SNat SNat) -> return $ SpecConcreteNetwork1D3D net
-        (D2Sing SNat SNat, D1Sing SNat) -> return $ SpecConcreteNetwork2D1D net
-        (D2Sing SNat SNat, D2Sing SNat SNat) -> return $ SpecConcreteNetwork2D2D net
-        (D2Sing SNat SNat, D3Sing SNat SNat SNat) -> return $ SpecConcreteNetwork2D3D net
-        (D3Sing SNat SNat SNat, D1Sing SNat) -> return $ SpecConcreteNetwork3D1D net
-        (D3Sing SNat SNat SNat, D2Sing SNat SNat) -> return $ SpecConcreteNetwork3D2D net
+        (D1Sing SNat, D1Sing SNat)                     -> return $ SpecConcreteNetwork1D1D net
+        (D1Sing SNat, D2Sing SNat SNat)                -> return $ SpecConcreteNetwork1D2D net
+        (D1Sing SNat, D3Sing SNat SNat SNat)           -> return $ SpecConcreteNetwork1D3D net
+        (D2Sing SNat SNat, D1Sing SNat)                -> return $ SpecConcreteNetwork2D1D net
+        (D2Sing SNat SNat, D2Sing SNat SNat)           -> return $ SpecConcreteNetwork2D2D net
+        (D2Sing SNat SNat, D3Sing SNat SNat SNat)      -> return $ SpecConcreteNetwork2D3D net
+        (D3Sing SNat SNat SNat, D1Sing SNat)           -> return $ SpecConcreteNetwork3D1D net
+        (D3Sing SNat SNat SNat, D2Sing SNat SNat)      -> return $ SpecConcreteNetwork3D2D net
         (D3Sing SNat SNat SNat, D3Sing SNat SNat SNat) -> return $ SpecConcreteNetwork3D3D net
 
 -- | Create a network according to the given specification. See @DynamicNetwork@. This version uses UniformInit and the system random number generator. WARNING: This also allows to build unsafe
