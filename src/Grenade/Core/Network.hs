@@ -102,6 +102,14 @@ instance NFData (Gradients '[]) where
 instance (NFData (Gradient x), NFData (Gradients xs)) => NFData (Gradients (x ': xs)) where
   rnf (g :/> gs) = rnf g `seq` rnf gs
 
+instance Serialize (Gradients '[]) where
+  put GNil = put ()
+  get = return GNil
+instance (UpdateLayer x, Serialize (Gradient x), Serialize (Gradients xs)) => Serialize (Gradients (x ': xs)) where
+  put (g :/> gs) = put g >> put gs
+  get = (:/>) <$> get <*> get
+
+
 -- | Wegnert Tape of a network.
 --
 --   Parameterised on the layers and shapes of the network.

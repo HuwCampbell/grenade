@@ -218,6 +218,21 @@ instance ( KnownNat channels
       store <- fmap (fromMaybe (error "Vector of incorrect size") . create . reshape f . LA.fromList)  <$> get
       return $ Convolution wN store
 
+instance ( KnownNat channels
+         , KnownNat filters
+         , KnownNat kernelRows
+         , KnownNat kernelColumns
+         , KnownNat strideRows
+         , KnownNat strideColumns
+         , KnownNat (kernelRows * kernelColumns * channels)
+         ) =>
+         Serialize (Convolution' channels filters kernelRows kernelColumns strideRows strideColumns) where
+  put (Convolution' w) = putListOf put . toList . flatten . extract $ w
+  get = do
+    let f = fromIntegral $ natVal (Proxy :: Proxy channels)
+    wN <- maybe (fail "Vector of incorrect size") return . create . reshape f . LA.fromList =<< getListOf get
+    return $ Convolution' wN
+
 -- | A three dimensional image (or 2d with many channels) can have
 --   an appropriately sized convolution filter run across it.
 instance ( KnownNat kernelRows

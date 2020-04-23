@@ -85,6 +85,23 @@ data Deconvolution :: Nat -- Number of channels, for the first layer this could 
 instance NFData (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) where
   rnf (Deconvolution a b) = rnf a `seq` rnf b
 
+instance ( KnownNat channels
+         , KnownNat filters
+         , KnownNat kernelRows
+         , KnownNat kernelColumns
+         , KnownNat strideRows
+         , KnownNat strideColumns
+         , KnownNat (kernelRows * kernelColumns * filters)
+         ) => Serialize (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) where
+  put (Deconvolution w store) = do
+    putListOf put . toList . flatten . extract $ w
+    put (fmap (toList . flatten . extract) store)
+  get = do
+      let f  = fromIntegral $ natVal (Proxy :: Proxy channels)
+      wN    <- maybe (fail "Vector of incorrect size") return . create . reshape f . LA.fromList =<< getListOf get
+      store <- fmap (fromMaybe (error "Vector of incorrect size") . create . reshape f . LA.fromList)  <$> get
+      return $ Deconvolution wN store
+
 
 data Deconvolution' :: Nat -- Number of channels, for the first layer this could be RGB for instance.
                     -> Nat -- Number of filters, this is the number of channels output by the layer.
@@ -106,6 +123,21 @@ data Deconvolution' :: Nat -- Number of channels, for the first layer this could
 
 instance NFData (Deconvolution' channels filters kernelRows kernelColumns strideRows strideColumns) where
   rnf (Deconvolution' a) = rnf a `seq` ()
+
+instance ( KnownNat channels
+         , KnownNat filters
+         , KnownNat kernelRows
+         , KnownNat kernelColumns
+         , KnownNat strideRows
+         , KnownNat strideColumns
+         , KnownNat (kernelRows * kernelColumns * filters)
+         ) =>
+         Serialize (Deconvolution' channels filters kernelRows kernelColumns strideRows strideColumns) where
+  put (Deconvolution' w) = putListOf put . toList . flatten . extract $ w
+  get = do
+    let f = fromIntegral $ natVal (Proxy :: Proxy channels)
+    wN <- maybe (fail "Vector of incorrect size") return . create . reshape f . LA.fromList =<< getListOf get
+    return $ Deconvolution' wN
 
 
 instance Show (Deconvolution c f k k' s s') where
@@ -197,23 +229,6 @@ instance ( KnownNat channels
   setData = setListStore
   newData _ _ = konst 0
 
-
-instance ( KnownNat channels
-         , KnownNat filters
-         , KnownNat kernelRows
-         , KnownNat kernelColumns
-         , KnownNat strideRows
-         , KnownNat strideColumns
-         , KnownNat (kernelRows * kernelColumns * filters)
-         ) => Serialize (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) where
-  put (Deconvolution w store) = do
-    putListOf put . toList . flatten . extract $ w
-    put (fmap (toList . flatten . extract) store)
-  get = do
-      let f  = fromIntegral $ natVal (Proxy :: Proxy channels)
-      wN    <- maybe (fail "Vector of incorrect size") return . create . reshape f . LA.fromList =<< getListOf get
-      store <- fmap (fromMaybe (error "Vector of incorrect size") . create . reshape f . LA.fromList)  <$> get
-      return $ Deconvolution wN store
 
 -- | A two dimentional image may have a Deconvolution filter applied to it
 instance ( KnownNat kernelRows
