@@ -61,8 +61,9 @@ buildModel = buildModelWith UniformInit def
 buildModelWith :: WeightInitMethod -> BuildSetup -> BuildM () -> IO SpecConcreteNetwork
 buildModelWith wInit setup builder = do
   let spec = snd $ buildSpec setup builder
-  putStrLn "Build following model specification: "
-  print spec
+  when (printResultingSpecification setup) $ do
+    putStrLn "Build following model specification: "
+    print spec
   networkFromSpecificationWith wInit spec
 
 
