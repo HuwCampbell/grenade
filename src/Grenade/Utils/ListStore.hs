@@ -46,8 +46,8 @@ data ListStore a = ListStore !Int ![Maybe a]
 instance Functor ListStore where
   fmap f (ListStore n xs) = ListStore n $ map (fmap f) xs
 
-instance NFData (ListStore a) where
-  rnf (ListStore n xs) = rnf n `seq` map rwhnf xs `seq` () -- eval to Just or Nothing
+instance (NFData a) => NFData (ListStore a) where
+  rnf (ListStore n xs) = rnf n `seq` rnf1 xs `seq` () -- eval to Just or Nothing
 
 -- | Returns how often the the store was updated, i.e. how often @setListStore@ was called (regardless of the parameters).
 getStep :: ListStore a -> Int
