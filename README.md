@@ -62,6 +62,8 @@ but includes additional features:
             ) >>
           fullyConnected 1 >> tanhLayer
 
+ 5. **Gradient Clipping**. You can clip gradients using the function `clipByGlobalNorm`.
+
 
 Description
 ===========

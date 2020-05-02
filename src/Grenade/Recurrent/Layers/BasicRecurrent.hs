@@ -30,6 +30,7 @@ import           GHC.TypeLits
 
 import           Grenade.Core
 import           Grenade.Recurrent.Core
+import           Grenade.Utils.LinearAlgebra
 
 data BasicRecurrent :: Nat -- Input layer size
                     -> Nat -- Output layer size
@@ -57,6 +58,10 @@ data BasicRecurrent' :: Nat -- Input layer size
 
 instance Show (BasicRecurrent i o) where
   show BasicRecurrent {} = "BasicRecurrent"
+
+instance FoldableGradient (BasicRecurrent' input output) where
+  mapGradient f (BasicRecurrent' bias act) = BasicRecurrent' (dvmap f bias) (dmmap f act)
+  squaredSums (BasicRecurrent' bias act) = [sumV . squareV $ bias, sumM . squareM $ act]
 
 instance (KnownNat i, KnownNat o, KnownNat (i + o)) => UpdateLayer (BasicRecurrent i o) where
   type Gradient (BasicRecurrent i o) = (BasicRecurrent' i o)

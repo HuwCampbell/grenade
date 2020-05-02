@@ -34,6 +34,7 @@ import qualified Numeric.LinearAlgebra as LA
 import           Numeric.LinearAlgebra.Static
 
 import           Grenade.Core
+import           Grenade.Utils.LinearAlgebra
 import           Grenade.Recurrent.Core
 import           Grenade.Layers.Internal.Update
 
@@ -69,6 +70,23 @@ data LSTMWeights :: Nat -> Nat -> Type where
 
 instance Show (LSTM i o) where
   show LSTM {} = "LSTM"
+
+instance FoldableGradient (LSTMWeights input output) where
+  mapGradient f (LSTMWeights wf uf bf wi ui bi wo uo bo wc bc) =
+    LSTMWeights (dmmap f wf) (dmmap f uf) (dvmap f bf) (dmmap f wi) (dmmap f ui) (dvmap f bi) (dmmap f wo) (dmmap f uo) (dvmap f bo) (dmmap f wc) (dvmap f bc)
+  squaredSums (LSTMWeights wf uf bf wi ui bi wo uo bo wc bc) =
+    [ sumM . squareM $ wf
+    , sumM . squareM $ uf
+    , sumV . squareV $ bf
+    , sumM . squareM $ wi
+    , sumM . squareM $ ui
+    , sumV . squareV $ bi
+    , sumM . squareM $ wo
+    , sumM . squareM $ uo
+    , sumV . squareV $ bo
+    , sumM . squareM $ wc
+    , sumV . squareV $ bc
+    ]
 
 instance (KnownNat i, KnownNat o) => UpdateLayer (LSTM i o) where
   -- The gradients are the same shape as the weights and momentum

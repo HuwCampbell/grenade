@@ -55,6 +55,7 @@ import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
 import           Grenade.Layers.Internal.Convolution
 import           Grenade.Layers.Internal.Update
+import           Grenade.Utils.LinearAlgebra
 import           Grenade.Utils.ListStore
 
 -- | A Deconvolution layer for a neural network.
@@ -138,6 +139,15 @@ instance ( KnownNat channels
     let f = fromIntegral $ natVal (Proxy :: Proxy channels)
     wN <- maybe (fail "Vector of incorrect size") return . create . reshape f . LA.fromList =<< getListOf get
     return $ Deconvolution' wN
+
+instance (KnownNat channels
+         , KnownNat filters
+         , KnownNat kernelRows
+         , KnownNat kernelColumns
+         , KnownNat strideRows
+         , KnownNat strideColumns) => FoldableGradient (Deconvolution' channels filters kernelRows kernelColumns strideRows strideColumns) where
+  mapGradient f (Deconvolution' kernelGradient) = Deconvolution' (dmmap f kernelGradient)
+  squaredSums (Deconvolution' kernelGradient) = [sumM . squareM $ kernelGradient]
 
 
 instance Show (Deconvolution c f k k' s s') where

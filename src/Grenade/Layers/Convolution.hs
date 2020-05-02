@@ -51,6 +51,7 @@ import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
 import           Grenade.Layers.Internal.Convolution
 import           Grenade.Layers.Internal.Update
+import           Grenade.Utils.LinearAlgebra
 import           Grenade.Utils.ListStore
 
 
@@ -199,6 +200,15 @@ instance ( KnownNat channels
   getData = getListStore
   setData = setListStore
   newData _ _ = konst 0
+
+instance (KnownNat channels
+         , KnownNat filters
+         , KnownNat kernelRows
+         , KnownNat kernelColumns
+         , KnownNat strideRows
+         , KnownNat strideColumns) => FoldableGradient (Convolution' channels filters kernelRows kernelColumns strideRows strideColumns) where
+  mapGradient f (Convolution' kernelGradient) = Convolution' (dmmap f kernelGradient)
+  squaredSums (Convolution' kernelGradient) = [sumM . squareM $ kernelGradient]
 
 
 instance ( KnownNat channels

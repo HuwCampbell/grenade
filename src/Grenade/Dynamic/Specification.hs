@@ -91,6 +91,7 @@ class (Show spec) => ToDynamicLayer spec where
 data SpecNetwork :: Type where
   SpecNetwork
     :: ( FromDynamicLayer (Network layers shapes)
+       , FoldableGradient (Gradients layers)
        , GNum (Gradients layers)
        , GNum (Network layers shapes)
        , Layer (Network layers shapes) (Head shapes) (Last shapes)
@@ -111,7 +112,21 @@ data SpecNetwork :: Type where
     => !(Network layers shapes)
     -> SpecNetwork
   SpecLayer
-    :: (FromDynamicLayer x, GNum (Gradient x), GNum x, Layer x i o, NFData (Gradient x), NFData (Tape x i o), NFData x, RandomLayer x, Serialize x, Serialize (Gradient x), Show x, Typeable i, Typeable x)
+    :: ( FromDynamicLayer x
+       , FoldableGradient (Gradient x)
+       , GNum (Gradient x)
+       , GNum x
+       , Layer x i o
+       , NFData (Gradient x)
+       , NFData (Tape x i o)
+       , NFData x
+       , RandomLayer x
+       , Serialize x
+       , Serialize (Gradient x)
+       , Show x
+       , Typeable i
+       , Typeable x
+       )
     => !x
     -> !(Sing i)
     -> !(Sing o)

@@ -2,6 +2,7 @@
 {-# LANGUAGE CPP                   #-}
 {-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DefaultSignatures     #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE GADTs                 #-}
@@ -40,6 +41,7 @@ runtime errors.
 module Grenade.Core.Layer (
     Layer (..)
   , UpdateLayer (..)
+  , FoldableGradient (..)
   , LayerOptimizerData (..)
   , RandomLayer (..)
   , createRandom
@@ -54,11 +56,11 @@ import           Data.List                         (foldl')
 import           Data.Kind                         (Type)
 #endif
 
--- import           Grenade.Core.LearningParameters
 import           Grenade.Core.NetworkSettings
 import           Grenade.Core.Optimizer
 import           Grenade.Core.Shape
 import           Grenade.Core.WeightInitialization
+import           Grenade.Types
 
 -- | Class for updating a layer. All layers implement this, as it
 --   describes how to create and update the layer.
@@ -85,6 +87,29 @@ class UpdateLayer x where
   runSettingsUpdate _ = id
 
   {-# MINIMAL runUpdate #-}
+
+
+-- | Class to map and reduce gradients, e.g. to scale the gradients by the global norm.
+class FoldableGradient x where
+
+  -- | Map the gradients elements.
+  mapGradient :: (RealNum -> RealNum) -> x -> x
+
+  -- | This is L2 without the square root. Supposed to return one value for each matrix/vector.
+  squaredSums :: x -> [RealNum]
+
+  {-# MINIMAL mapGradient, squaredSums #-}
+
+-- | Instance for activiation functions.
+instance FoldableGradient () where
+  mapGradient _ x = x
+  squaredSums _ = []
+
+-- | Instance for tuples.
+instance (FoldableGradient x, FoldableGradient y) => FoldableGradient (x, y) where
+  mapGradient f (x, y) = (mapGradient f x, mapGradient f y)
+  squaredSums (x, y) = squaredSums x ++ squaredSums y
+
 
 -- | This is the class which abstracts on how to store the data
 --   in the learning process using the different optimizers. A layer

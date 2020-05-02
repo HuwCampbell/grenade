@@ -43,6 +43,7 @@ import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
 import           Grenade.Layers.Internal.Update
+import           Grenade.Utils.LinearAlgebra
 import           Grenade.Utils.ListStore
 
 -- | A basic fully connected (or inner product) neural network layer.
@@ -97,6 +98,10 @@ instance (KnownNat i, KnownNat o, KnownNat (i * o)) => LayerOptimizerData (Fully
   setData = setListStore
   newData _ _ = FullyConnected' (konst 0) (konst 0)
 
+
+instance (KnownNat i, KnownNat o) => FoldableGradient (FullyConnected' i o) where
+  mapGradient f (FullyConnected' bias activations) = FullyConnected' (dvmap f bias) (dmmap f activations)
+  squaredSums (FullyConnected' bias activations) = [sumV . squareV $ bias, sumM . squareM $ activations]
 
 instance (KnownNat i, KnownNat o, KnownNat (i * o)) => Layer (FullyConnected i o) ('D1 i) ('D1 o) where
   type Tape (FullyConnected i o) ('D1 i) ('D1 o) = R i

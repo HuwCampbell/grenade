@@ -62,6 +62,7 @@ import           Grenade.Dynamic.Specification
 -- | Instances all networks implement.
 type GeneralConcreteNetworkInstances layers shapes
    = ( FromDynamicLayer (Network layers shapes)
+     , FoldableGradient (Gradients layers)
      , GNum (Gradients layers)
      , GNum (Network layers shapes)
      , Layer (Network layers shapes) (Head shapes) (Last shapes)

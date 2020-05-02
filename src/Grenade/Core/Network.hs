@@ -28,7 +28,10 @@ module Grenade.Core.Network (
   , Gradients (..)
   , Tapes (..)
   , GNum (..)
+  , FoldableGradient (..)
 
+  , l2Norm
+  , clipByGlobalNorm
   , runNetwork
   , runGradient
   , applyUpdate
@@ -55,7 +58,7 @@ import           Grenade.Core.NetworkSettings
 import           Grenade.Core.Optimizer
 import           Grenade.Core.Shape
 import           Grenade.Core.WeightInitialization
-
+import           Grenade.Types
 
 -- | Type of a network.
 --
@@ -101,6 +104,7 @@ instance NFData (Gradients '[]) where
   rnf GNil = ()
 instance (NFData (Gradient x), NFData (Gradients xs)) => NFData (Gradients (x ': xs)) where
   rnf (g :/> gs) = rnf g `seq` rnf gs
+
 
 instance Serialize (Gradients '[]) where
   put GNil = put ()
@@ -236,6 +240,27 @@ instance UpdateLayer (Network sublayers subshapes) where
   type Gradient (Network sublayers subshapes) = Gradients sublayers
   runUpdate = applyUpdate
   runSettingsUpdate = applySettingsUpdate
+
+instance FoldableGradient (Gradients '[]) where
+  mapGradient _ GNil = GNil
+  squaredSums GNil = []
+
+instance (FoldableGradient (Gradient x), FoldableGradient (Gradients xs)) => FoldableGradient (Gradients (x ': xs)) where
+  mapGradient f (x :/> xs) = mapGradient f x :/> mapGradient f xs
+  squaredSums (x :/> xs) = squaredSums x ++ squaredSums xs
+
+-- | Get the L2 Norm of a Foldable Gradient.
+l2Norm :: (FoldableGradient x) => x -> RealNum
+l2Norm grad = sqrt (sum $ squaredSums grad)
+
+-- | Clip the gradients by the global norm.
+clipByGlobalNorm :: (FoldableGradient (Gradients xs)) => Double -> Gradients xs -> Gradients xs
+clipByGlobalNorm c grads =
+  let divisor = sqrt $ sum $ squaredSums grads
+   in if divisor > c
+        then mapGradient (* (c / divisor)) grads
+        else grads
+
 
 instance CreatableNetwork sublayers subshapes => RandomLayer (Network sublayers subshapes) where
   createRandomWith = randomNetworkWith
