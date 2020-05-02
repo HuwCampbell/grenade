@@ -116,12 +116,12 @@ data instance Sing (opt :: OptimizerAlgorithm) where
   SAdam :: Sing 'Adam
 
 instance SingI opt => Serialize (Optimizer opt) where
-  put (OptSGD rate m reg) = put rate >> put m >> put reg
-  put (OptAdam a b1 b2 e) = put a >> put b1 >> put b2 >> put e
+  put (OptSGD rate m reg)   = put rate >> put m >> put reg
+  put (OptAdam a b1 b2 e w) = put a >> put b1 >> put b2 >> put e >> put w
   get =
     case (sing :: Sing opt) of
       SSGD  -> OptSGD <$> get <*> get <*> get
-      SAdam -> OptAdam <$> get <*> get <*> get <*> get
+      SAdam -> OptAdam <$> get <*> get <*> get <*> get <*> get
 #endif
 
 instance SingI 'SGD where
