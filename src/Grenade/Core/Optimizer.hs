@@ -57,6 +57,7 @@ data Optimizer (o :: OptimizerAlgorithm) where
        , adamBeta1   :: !RealNum -- ^ Beta 1 [Default: 0.9]
        , adamBeta2   :: !RealNum -- ^ Beta 2 [Default: 0.999]
        , adamEpsilon :: !RealNum -- ^ Epsilon [Default: 1e-7]
+       , adamWeightDecayLambda :: !RealNum -- ^ Weight decay to use [Default: 0.001]
        }
     -> Optimizer 'Adam
 
@@ -70,7 +71,7 @@ instance Default (Optimizer 'SGD) where
 
 -- | Default settings for the SGD optimizer.
 instance Default (Optimizer 'Adam) where
-  def = OptAdam 0.001 0.9 0.999 1e-7
+  def = OptAdam 0.001 0.9 0.999 1e-7 0.001
 
 -- | Default SGD optimizer.
 defSGD :: Optimizer 'SGD
@@ -84,11 +85,11 @@ defAdam = def
 
 instance Show (Optimizer o) where
   show (OptSGD r m l2) = "SGD" ++ show (r, m, l2)
-  show (OptAdam alpha beta1 beta2 epsilon) = "Adam" ++ show (alpha, beta1, beta2, epsilon)
+  show (OptAdam alpha beta1 beta2 epsilon wD) = "Adam" ++ show (alpha, beta1, beta2, epsilon, wD)
 
 instance NFData (Optimizer o) where
   rnf (OptSGD r m l2) = rnf r `seq` rnf m `seq` rnf l2
-  rnf (OptAdam alpha beta1 beta2 epsilon) = rnf alpha `seq` rnf beta1 `seq` rnf beta2 `seq` rnf epsilon
+  rnf (OptAdam alpha beta1 beta2 epsilon wD) = rnf alpha `seq` rnf beta1 `seq` rnf beta2 `seq` rnf epsilon `seq` rnf wD
 
 
 #if MIN_VERSION_singletons(2,6,0)
@@ -101,12 +102,12 @@ data SOpt (opt :: OptimizerAlgorithm) where
   SAdam :: SOpt 'Adam
 
 instance SingI opt => Serialize (Optimizer opt) where
-  put (OptSGD rate m reg) = put rate >> put m >> put reg
-  put (OptAdam a b1 b2 e) = put a >> put b1 >> put b2 >> put e
+  put (OptSGD rate m reg)   = put rate >> put m >> put reg
+  put (OptAdam a b1 b2 e w) = put a >> put b1 >> put b2 >> put e >> put w
   get =
     case sing :: SOpt opt of
       SSGD  -> OptSGD <$> get <*> get <*> get
-      SAdam -> OptAdam <$> get <*> get <*> get <*> get
+      SAdam -> OptAdam <$> get <*> get <*> get <*> get <*> get
 
 
 #else

@@ -109,6 +109,7 @@ mnist' = MnistOpts <$> argument str (metavar "TRAIN")
                        <*> option auto (long "beta1" <> value 0.9)
                        <*> option auto (long "beta2" <> value 0.999)
                        <*> option auto (long "epsilon" <> value 1e-4)
+                       <*> option auto (long "lambda" <> value 1e-3)
                       )
 
 main :: IO ()

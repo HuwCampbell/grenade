@@ -89,7 +89,7 @@ descendMatrix (OptSGD rate momentum regulariser) (MatrixValuesSGD weights gradie
       mw           = U.matrixFromVector U.ColumnMajor rows cols vw
       mm           = U.matrixFromVector U.ColumnMajor rows cols vm
   in  MatrixResultSGD (fromJust . create $ mw) (fromJust . create $ mm)
-descendMatrix (OptAdam alpha beta1 beta2 epsilon) (MatrixValuesAdam step weights gradient m v) =
+descendMatrix (OptAdam alpha beta1 beta2 epsilon lambda) (MatrixValuesAdam step weights gradient m v) =
   let (rows, cols) = size weights
       len          = rows * cols
       -- Most gradients come in in ColumnMajor,
@@ -101,7 +101,7 @@ descendMatrix (OptAdam alpha beta1 beta2 epsilon) (MatrixValuesAdam step weights
       gradient' = flatten . tr . extract $ gradient
       m'        = flatten . tr . extract $ m
       v'        = flatten . tr . extract $ v
-      (vw, vm, vv)     = descendUnsafeAdam len step alpha beta1 beta2 epsilon weights' gradient' m' v'
+      (vw, vm, vv)     = descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights' gradient' m' v'
 
       -- Note that it's ColumnMajor, as we did a transpose before
       -- using the internal vectors.
@@ -119,13 +119,13 @@ descendVector (OptSGD rate momentum regulariser) (VectorValuesSGD weights gradie
       lastUpdate'  = extract lastUpdate
       (vw, vm)     = descendUnsafeSGD len rate momentum regulariser weights' gradient' lastUpdate'
   in  VectorResultSGD (fromJust $ create vw) (fromJust $ create vm)
-descendVector (OptAdam alpha beta1 beta2 epsilon) (VectorValuesAdam step weights gradient m v) =
+descendVector (OptAdam alpha beta1 beta2 epsilon lambda) (VectorValuesAdam step weights gradient m v) =
   let len       = size weights
       weights'  = extract weights
       gradient' = extract gradient
       m'        = extract m
       v'        = extract v
-      (vw, vm, vv)     = descendUnsafeAdam len step alpha beta1 beta2 epsilon weights' gradient' m' v'
+      (vw, vm, vv)     = descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights' gradient' m' v'
   in  VectorResultAdam (fromJust $ create vw) (fromJust $ create vm) (fromJust $ create vv)
 descendVector opt _ = error $ "optimzer does not match to VectorInputValues in implementation! Optimizer: " ++ show opt
 
@@ -155,12 +155,13 @@ descendUnsafeAdam ::
   -> RealNum -- Beta1
   -> RealNum -- Beta2
   -> RealNum -- Epsilon
+  -> RealNum -- Lambda
   -> Vector RealNum -- Weights
   -> Vector RealNum -- Gradient
   -> Vector RealNum -- M
   -> Vector RealNum -- V
   -> (Vector RealNum, Vector RealNum, Vector RealNum)
-descendUnsafeAdam len step alpha beta1 beta2 epsilon weights gradient m v =
+descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v =
   unsafePerformIO $ do
     outWPtr <- mallocForeignPtrArray len
     outMPtr <- mallocForeignPtrArray len
@@ -175,7 +176,7 @@ descendUnsafeAdam len step alpha beta1 beta2 epsilon weights gradient m v =
           withForeignPtr vPtr $ \vPtr' ->
             withForeignPtr outWPtr $ \outWPtr' ->
               withForeignPtr outMPtr $ \outMPtr' ->
-                withForeignPtr outVPtr $ \outVPtr' -> descend_adam_cpu len step alpha beta1 beta2 epsilon wPtr' gPtr' mPtr' vPtr' outWPtr' outMPtr' outVPtr'
+                withForeignPtr outVPtr $ \outVPtr' -> descend_adam_cpu len step alpha beta1 beta2 epsilon lambda wPtr' gPtr' mPtr' vPtr' outWPtr' outMPtr' outVPtr'
     return (U.unsafeFromForeignPtr0 outWPtr len, U.unsafeFromForeignPtr0 outMPtr len, U.unsafeFromForeignPtr0 outVPtr len)
 
 
@@ -185,5 +186,5 @@ foreign import ccall unsafe
 
 foreign import ccall unsafe
     descend_adam_cpu
-      :: Int -> Int -> RealNum -> RealNum -> RealNum -> RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> IO ()
+      :: Int -> Int -> RealNum -> RealNum -> RealNum -> RealNum -> RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> IO ()
 

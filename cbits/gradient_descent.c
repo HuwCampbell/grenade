@@ -13,7 +13,7 @@ void descend_sgd_cpu(int len, RealNum rate, RealNum momentum, RealNum regularise
 }
 
 
-void descend_adam_cpu(int len, int t, RealNum alpha, RealNum beta1, RealNum beta2, RealNum epsilon,
+void descend_adam_cpu(int len, int t, RealNum alpha, RealNum beta1, RealNum beta2, RealNum epsilon, RealNum lambda,
   const RealNum* weights,
   const RealNum* gradient,
   const RealNum* m,
@@ -31,7 +31,7 @@ void descend_adam_cpu(int len, int t, RealNum alpha, RealNum beta1, RealNum beta
 
     // Slightly more performant version (as described in Section 2 of the paper)
     RealNum alphaT = alpha * sqrt(1 - pow(beta2, t)) / ( 1 - pow(beta1, t));
-    outputWeights[i] = weights[i] - alphaT * outputM[i] / (sqrt(outputV[i]) + epsilon);
+    outputWeights[i] = weights[i] - alphaT * (outputM[i] / (sqrt(outputV[i]) + epsilon) + lambda * weights[i]);
   }
 
 }
