@@ -29,6 +29,7 @@ module Grenade.Dynamic.Specification
   , SpecDeconvolution(..)
   , SpecDropout(..)
   , SpecElu(..)
+  , SpecLeakyRelu(..)
   , SpecLogit(..)
   , SpecRelu(..)
   , SpecReshape(..)
@@ -58,6 +59,7 @@ import {-# SOURCE #-} Grenade.Layers.Deconvolution  ()
 import {-# SOURCE #-} Grenade.Layers.Dropout        ()
 import {-# SOURCE #-} Grenade.Layers.Elu            ()
 import {-# SOURCE #-} Grenade.Layers.FullyConnected ()
+import {-# SOURCE #-} Grenade.Layers.LeakyRelu      ()
 import {-# SOURCE #-} Grenade.Layers.Logit          ()
 import {-# SOURCE #-} Grenade.Layers.Relu           ()
 import {-# SOURCE #-} Grenade.Layers.Reshape        ()
@@ -213,6 +215,7 @@ parseSpecDataConstructor repStr
   | repStr == show (typeRep (Proxy :: Proxy SpecDeconvolution))  = SpecNetLayer <$> (get :: Get SpecDeconvolution)
   | repStr == show (typeRep (Proxy :: Proxy SpecDropout))        = SpecNetLayer <$> (get :: Get SpecDropout)
   | repStr == show (typeRep (Proxy :: Proxy SpecElu))            = SpecNetLayer <$> (get :: Get SpecElu)
+  | repStr == show (typeRep (Proxy :: Proxy SpecLeakyRelu))           = SpecNetLayer <$> (get :: Get SpecLeakyRelu)
   | repStr == show (typeRep (Proxy :: Proxy SpecLogit))          = SpecNetLayer <$> (get :: Get SpecLogit)
   | repStr == show (typeRep (Proxy :: Proxy SpecRelu))           = SpecNetLayer <$> (get :: Get SpecRelu)
   | repStr == show (typeRep (Proxy :: Proxy SpecReshape))        = SpecNetLayer <$> (get :: Get SpecReshape)
@@ -316,6 +319,11 @@ data SpecDropout = SpecDropout !Integer !RealNum !(Maybe Int)
 -- | Specification of Elu, saves input dimensions as triple, where every element >= 1.
 newtype SpecElu = SpecElu Dimensions
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
+
+-- | Specification of Leaky Relu (with 0.01), saves input dimensions as triple, where every element >= 1.
+newtype SpecLeakyRelu = SpecLeakyRelu Dimensions
+  deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
+
 
 -- | Specification of Logit, saves input dimensions as triple, where every element >= 1.
 newtype SpecLogit = SpecLogit Dimensions

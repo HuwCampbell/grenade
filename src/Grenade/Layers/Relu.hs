@@ -54,7 +54,7 @@ instance Serialize Relu where
   put _ = return ()
   get = return Relu
 
-instance ( KnownNat i) => Layer Relu ('D1 i) ('D1 i) where
+instance (KnownNat i) => Layer Relu ('D1 i) ('D1 i) where
   type Tape Relu ('D1 i) ('D1 i) = S ('D1 i)
 
   runForwards _ (S1D y) = (S1D y, S1D (relu y))

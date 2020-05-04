@@ -12,6 +12,7 @@ module Grenade.Dynamic.Specification
   , SpecDeconvolution(..)
   , SpecDropout(..)
   , SpecElu(..)
+  , SpecLeakyRelu(..)
   , SpecLogit(..)
   , SpecRelu(..)
   , SpecReshape(..)
@@ -114,6 +115,8 @@ data SpecDeconvolution =
 data SpecDropout = SpecDropout !Integer !RealNum !(Maybe Int)
 
 newtype SpecElu = SpecElu (Integer, Integer, Integer)
+
+newtype SpecLeakyRelu = SpecLeakyRelu (Integer, Integer, Integer)
 
 newtype SpecLogit = SpecLogit (Integer, Integer, Integer)
 
