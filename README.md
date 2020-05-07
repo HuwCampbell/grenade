@@ -41,29 +41,28 @@ but includes additional features:
     However, currently this works only for feedforward networks composed of fully-connected, dropout,
     deconvolution and convolution layers plus all activation functions. Example (also see
     `feedforward-netinit` in example folder):
-```haskell
-        let spec :: SpecNet
-            spec = specFullyConnected 40 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specNil1D 20
-        SpecConcreteNetwork1D1D (net0 :: Network layers shapes) <- networkFromSpecificationWith HeEtAl spec
-```
+    ```haskell
+       let spec :: SpecNet
+           spec = specFullyConnected 40 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specNil1D 20
+       SpecConcreteNetwork1D1D (net0 :: Network layers shapes) <- networkFromSpecificationWith HeEtAl spec
+    ```
 
     However, Beware! It is important to get the specification right, as otherwise the program will halt
     abruptly. So at best do not use it manually, but write functions for creating specifications!
 
     Or probably better, use the simple interface:
 
-```haskell
-        buildNetViaInterface :: IO SpecConcreteNetwork
-        buildNetViaInterface =
-          buildModel $
-          inputLayer1D 2 >>
-          fullyConnected 10 >> dropout 0.89 >> relu >>
-          fullyConnected 4 >> relu >>
-          networkLayer (
-            inputLayer1D 4 >> fullyConnected 10 >> relu >> fullyConnected 4 >> sinusoid
-            ) >>
-          fullyConnected 1 >> tanhLayer
-```
+    ```haskell
+       buildNetViaInterface :: IO SpecConcreteNetwork
+       buildNetViaInterface =
+         buildModel $
+         inputLayer1D 2 >>
+         fullyConnected 10 >> dropout 0.89 >> relu >>
+         fullyConnected 4 >> relu >>
+         networkLayer (
+           inputLayer1D 4 >> fullyConnected 10 >> relu >> fullyConnected 4 >> sinusoid) >>
+         fullyConnected 1 >> tanhLayer
+    ```
  5. **Gradient Clipping**. You can clip gradients using the function `clipByGlobalNorm`.
 
  6. **More Activation Functions**. This branch supports `Dropout` (which is unimplemented in the
