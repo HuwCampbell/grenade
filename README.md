@@ -46,10 +46,12 @@ but includes additional features:
             spec = specFullyConnected 40 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specNil1D 20
         SpecConcreteNetwork1D1D (net0 :: Network layers shapes) <- networkFromSpecificationWith HeEtAl spec
 ```
+
     However, Beware! It is important to get the specification right, as otherwise the program will halt
     abruptly. So at best do not use it manually, but write functions for creating specifications!
 
     Or probably better, use the simple interface:
+
 ```haskell
         buildNetViaInterface :: IO SpecConcreteNetwork
         buildNetViaInterface =
