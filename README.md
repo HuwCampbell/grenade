@@ -12,8 +12,10 @@ but includes additional features:
     optimizers than just SGD with momentum and regularization. Currently we support *Adam* for
     feedforward neural networks also!
 
- 2. **Weight Initialization**. Initializing the weights in different ways. Currently implement:
-    Uniform, HeEtAl, Xavier. The default is Uniform!
+ 2. **Weight Initialization**. Initializing the weights in different ways. Currently implemented:
+    Uniform, HeEtAl, Xavier. The default is Uniform! See chapter 6 of this [seminar
+    report](docs/seminar_report_ANN_analysis_2018.pdf "Seminar Report ANN Analysis") for a small
+    evaluation of the implemented weight initialization methods.
 
  3. **Data Type Representation**: You can easily switch from `Double` to `Float` vectors and
     matrices. Just provide the corresponding flag (`use-float`) when compiling (to all packages
