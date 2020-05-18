@@ -70,6 +70,7 @@ dependencies:
   - data-default
   - binary                          >= 0.8
   - mtl
+  - parallel
 when:
   condition: flag(use-float)
   then:

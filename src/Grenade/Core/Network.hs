@@ -42,6 +42,7 @@ module Grenade.Core.Network (
 import           Control.DeepSeq
 import           Control.Monad.IO.Class
 import           Control.Monad.Primitive           (PrimBase, PrimState)
+import           Control.Parallel.Strategies
 import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.Prelude
@@ -190,12 +191,18 @@ applyUpdate :: Optimizer opt
             -> Network layers shapes
             -> Gradients layers
             -> Network layers shapes
-applyUpdate rate (layer :~> rest) (gradient :/> grest) = runUpdate rate layer gradient :~> applyUpdate rate rest grest
+applyUpdate rate (layer :~> rest) (gradient :/> grest) =
+  let layer' = runUpdate rate layer gradient
+      rest' = applyUpdate rate rest grest `using` rpar
+   in layer' :~> rest'
 applyUpdate _ NNil GNil = NNil
 
 -- | Apply network settings across the network.
 applySettingsUpdate :: NetworkSettings -> Network layers shapes -> Network layers shapes
-applySettingsUpdate settings (layer :~> rest) = runSettingsUpdate settings layer :~> applySettingsUpdate settings rest
+applySettingsUpdate settings (layer :~> rest) =
+  let layer' = runSettingsUpdate settings layer
+      layers' = applySettingsUpdate settings rest `using` rpar
+   in layer' :~> layers'
 applySettingsUpdate _ NNil = NNil
 
 
@@ -246,7 +253,10 @@ instance FoldableGradient (Gradients '[]) where
   squaredSums GNil = []
 
 instance (FoldableGradient (Gradient x), FoldableGradient (Gradients xs)) => FoldableGradient (Gradients (x ': xs)) where
-  mapGradient f (x :/> xs) = mapGradient f x :/> mapGradient f xs
+  mapGradient f (x :/> xs) =
+    let x' = mapGradient f x
+        xs' = mapGradient f xs
+     in x' :/> xs'
   squaredSums (x :/> xs) = squaredSums x ++ squaredSums xs
 
 -- | Get the L2 Norm of a Foldable Gradient.
@@ -295,9 +305,15 @@ instance (SingI i) => GNum (Network '[] '[ i]) where
   _ |+ NNil = NNil
   gFromRational _ = NNil
 
-instance (SingI i, SingI o, Layer x i o, GNum x, GNum (Network xs (o ': rs))) => GNum (Network (x ': xs) (i ': o ': rs)) where
-  s |* (x :~> xs) = (s |* x) :~> (s |* xs)
-  (x :~> xs) |+ (y :~> ys) = (x |+ y) :~> (xs |+ ys)
+instance (SingI i, SingI o, Layer x i o, NFData x, NFData (Network xs (o ': rs)), GNum x, GNum (Network xs (o ': rs))) => GNum (Network (x ': xs) (i ': o ': rs)) where
+  s |* (x :~> xs) =
+    let x' = (s |* x)
+        xs' = (s |* xs) `using` rdeepseq
+     in x' :~> xs'
+  (x :~> xs) |+ (y :~> ys) =
+    let x' = (x |+ y)
+        xs' = (xs |+ ys) `using` rdeepseq
+     in x' :~> xs'
   gFromRational r = gFromRational r :~> gFromRational r
 
 instance GNum (Gradients '[]) where
@@ -310,9 +326,15 @@ instance (GNum a) => GNum [a] where
   xs |+ ys = zipWith (|+) xs ys
   gFromRational _ = error "Cannot create a list of elements using gFromRational"
 
-instance (UpdateLayer x, GNum (Gradient x), GNum (Gradients xs)) => GNum (Gradients (x ': xs)) where
-  s |* (x :/> xs) = (s |* x) :/> (s |* xs)
-  (x :/> xs) |+ (y :/> ys) = (x |+ y) :/> (xs |+ ys)
+instance (UpdateLayer x, GNum (Gradient x), GNum (Gradients xs), NFData (Gradient x), NFData (Gradients xs)) => GNum (Gradients (x ': xs)) where
+  s |* (x :/> xs) =
+    let x' = (s |* x)
+        xs' = (s |* xs) `using` rdeepseq
+     in x' :/> xs'
+  (x :/> xs) |+ (y :/> ys) =
+    let x' = (x |+ y)
+        xs' = (xs |+ ys) `using` rdeepseq
+     in x' :/> xs'
   gFromRational r = gFromRational r :/> gFromRational r
 
 instance GNum () where

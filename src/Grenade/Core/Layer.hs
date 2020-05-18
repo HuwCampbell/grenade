@@ -48,6 +48,7 @@ module Grenade.Core.Layer (
   ) where
 
 import           Control.Monad.Primitive           (PrimBase, PrimState)
+import           Control.Parallel.Strategies
 import           System.Random.MWC
 
 import           Data.List                         (foldl')
@@ -107,7 +108,7 @@ instance FoldableGradient () where
 
 -- | Instance for tuples.
 instance (FoldableGradient x, FoldableGradient y) => FoldableGradient (x, y) where
-  mapGradient f (x, y) = (mapGradient f x, mapGradient f y)
+  mapGradient f (x, y) = (mapGradient f x `using` rpar, mapGradient f y `using` rpar)
   squaredSums (x, y) = squaredSums x ++ squaredSums y
 
 
