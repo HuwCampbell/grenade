@@ -305,7 +305,7 @@ instance (SingI i) => GNum (Network '[] '[ i]) where
   _ |+ NNil = NNil
   gFromRational _ = NNil
 
-instance (SingI i, SingI o, Layer x i o, NFData x, NFData (Network xs (o ': rs)), GNum x, GNum (Network xs (o ': rs))) => GNum (Network (x ': xs) (i ': o ': rs)) where
+instance (SingI i, SingI o, Layer x i o, NFData (Network xs (o ': rs)), GNum x, GNum (Network xs (o ': rs))) => GNum (Network (x ': xs) (i ': o ': rs)) where
   s |* (x :~> xs) =
     let x' = (s |* x)
         xs' = (s |* xs) `using` rdeepseq
@@ -326,7 +326,7 @@ instance (GNum a) => GNum [a] where
   xs |+ ys = zipWith (|+) xs ys
   gFromRational _ = error "Cannot create a list of elements using gFromRational"
 
-instance (UpdateLayer x, GNum (Gradient x), GNum (Gradients xs), NFData (Gradient x), NFData (Gradients xs)) => GNum (Gradients (x ': xs)) where
+instance (UpdateLayer x, GNum (Gradient x), GNum (Gradients xs), NFData (Gradients xs)) => GNum (Gradients (x ': xs)) where
   s |* (x :/> xs) =
     let x' = (s |* x)
         xs' = (s |* xs) `using` rdeepseq
