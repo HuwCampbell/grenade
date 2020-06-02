@@ -112,6 +112,7 @@ data SpecNetwork :: Type where
        , Typeable (Head shapes)
        , Typeable layers
        , Typeable shapes
+       , CreatableNetwork layers shapes
        )
     => !(Network layers shapes)
     -> SpecNetwork
@@ -130,6 +131,7 @@ data SpecNetwork :: Type where
        , Show x
        , Typeable i
        , Typeable x
+       , CreatableNetwork '[x] '[i,o]
        )
     => !x
     -> !(Sing i)
@@ -283,16 +285,14 @@ instance ToDynamicLayer SpecNet where
                 case (singIn, singOut) of
                   (pxIn :: Sing inShape, pxOut :: Sing outShape) ->
                     withSingI pxIn $ withSingI h $ withSingI pxOut $
-                     case ( unsafeCoerce (Dict :: Dict ()) :: Dict (outShape ~ h)
-                          , unsafeCoerce (Dict :: Dict ()) :: Dict (CreatableNetwork (xType ': restLayers) (inShape ': restShapes))) of
-                       (Dict, Dict) -> return $ SpecNetwork (x :~> xs :: Network (xType ': restLayers) (inShape ': restShapes))
+                     case (unsafeCoerce (Dict :: Dict ()) :: Dict (outShape ~ h)) of
+                       Dict -> return $ SpecNetwork (x :~> xs :: Network (xType ': restLayers) (inShape ': restShapes))
               SpecNetwork (x :: Network xLayers xShapes) ->
                 case (sing :: Sing xShapes) of
                   SNil -> error "unexpected empty network (SpecNNil) as layer in specification. Cannot proceed."
                   SCons (i :: Sing i) (xHs :: Sing xHs) -> withSingI i $ withSingI xHs $
-                    case ( unsafeCoerce (Dict :: Dict ()) :: Dict (Head restShapes ~ Last xShapes)
-                         , unsafeCoerce (Dict :: Dict ()) :: Dict (CreatableNetwork (Network xLayers xShapes : restLayers) (i ': restShapes))) of
-                      (Dict, Dict) -> return $ SpecNetwork (x :~> xs :: Network (Network xLayers xShapes ': restLayers) (i ': restShapes))
+                    case ( unsafeCoerce (Dict :: Dict ()) :: Dict (Head restShapes ~ Last xShapes)) of
+                      Dict -> return $ SpecNetwork (x :~> xs :: Network (Network xLayers xShapes ': restLayers) (i ': restShapes))
 
 -- Data structures stances for Layers (needs to be defined here)
 

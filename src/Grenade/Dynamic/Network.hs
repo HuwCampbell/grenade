@@ -78,6 +78,7 @@ type GeneralConcreteNetworkInstances layers shapes
      , SingI shapes
      , Typeable layers
      , Typeable shapes
+     , CreatableNetwork layers shapes
      )
 
 
@@ -125,8 +126,7 @@ networkFromSpecificationWith :: WeightInitMethod -> SpecNet -> IO SpecConcreteNe
 networkFromSpecificationWith wInit spec = do
   SpecNetwork (net :: Network layers shapes) <- withSystemRandom . asGenST $ \gen -> toDynamicLayer wInit gen spec
   case (sing :: Sing (Head shapes), sing :: Sing (Last shapes), unsafeCoerce (Dict :: Dict ()) :: Dict ()) of
-    (inp :: Sing (Head shapes), out :: Sing (Last shapes), Dict
-      ) ->
+    (inp :: Sing (Head shapes), out :: Sing (Last shapes), Dict) ->
       withSingI inp $
       withSingI out $
       case (inp, out) of
@@ -141,7 +141,7 @@ networkFromSpecificationWith wInit spec = do
         (D3Sing SNat SNat SNat, D3Sing SNat SNat SNat) -> return $ SpecConcreteNetwork3D3D net
 
 -- | Create a network according to the given specification. See @DynamicNetwork@. This version uses UniformInit and the system random number generator. WARNING: This also allows to build unsafe
--- networks where input and output layers do not match! Thus use with care!
+-- networks where input and output layers do not match! Thus use with care! Furthermore, if you need to specify the actual I/O types, see @networkFromSpecificationWith@ for implementation details!
 networkFromSpecificationGenericWith :: WeightInitMethod -> SpecNet -> IO SpecNetwork
 networkFromSpecificationGenericWith wInit spec = withSystemRandom . asGenST $ \gen -> toDynamicLayer wInit gen spec
 
