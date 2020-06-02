@@ -91,6 +91,14 @@ instance NFData (Optimizer o) where
   rnf (OptSGD r m l2) = rnf r `seq` rnf m `seq` rnf l2
   rnf (OptAdam alpha beta1 beta2 epsilon wD) = rnf alpha `seq` rnf beta1 `seq` rnf beta2 `seq` rnf epsilon `seq` rnf wD
 
+instance Eq (Optimizer o) where
+  (OptSGD lr1 mom1 reg1) == (OptSGD lr2 mom2 reg2) = (lr1, mom1, reg1) == (lr2, mom2, reg2)
+  (OptAdam al1 b11 b21 eps1 lmd1) == (OptAdam al2 b12 b22 eps2 lmd2) = (al1, b11, b21, eps1, lmd1) == (al2, b12, b22, eps2, lmd2)
+
+instance Ord (Optimizer o) where
+  (OptSGD lr1 mom1 reg1) `compare` (OptSGD lr2 mom2 reg2) = (lr1, mom1, reg1) `compare` (lr2, mom2, reg2)
+  (OptAdam al1 b11 b21 eps1 lmd1) `compare` (OptAdam al2 b12 b22 eps2 lmd2) = (al1, b11, b21, eps1, lmd1) `compare` (al2, b12, b22, eps2, lmd2)
+
 
 #if MIN_VERSION_singletons(2,6,0)
 -- In singletons 2.6 Sing switched from a data family to a type family.
