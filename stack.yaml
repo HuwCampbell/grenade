@@ -49,10 +49,10 @@ packages:
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
 #
 extra-deps:
- - typelits-witnesses-0.4.0.0@sha256:1d7092ba98fdc33f4b413e04144eb3ead7b105f74b2998e3c74a8a0feee685a9,1985
- - dependent-sum-0.7.1.0@sha256:5599aa89637db434431b1dd3fa7c34bc3d565ee44f0519bfbc877be1927c2531,2068
-# - constraints-extras-0.3.0.2@sha256:bf6884be65958e9188ae3c9e5547abfd6d201df021bff8a4704c2c4fe1e1ae5b,1784
- - some-1.0.1@sha256:26e5bab7276f48b25ea8660d3fd1166c0f20fd497dac879a40f408e23211f93e,2055
+ # - typelits-witnesses-0.4.0.0@sha256:1d7092ba98fdc33f4b413e04144eb3ead7b105f74b2998e3c74a8a0feee685a9,1985
+ # - dependent-sum-0.7.1.0@sha256:5599aa89637db434431b1dd3fa7c34bc3d565ee44f0519bfbc877be1927c2531,2068
+ # - constraints-extras-0.3.0.2@sha256:bf6884be65958e9188ae3c9e5547abfd6d201df021bff8a4704c2c4fe1e1ae5b,1784
+ # - some-1.0.1@sha256:26e5bab7276f48b25ea8660d3fd1166c0f20fd497dac879a40f408e23211f93e,2055
  - git: https://github.com/schnecki/hmatrix-float
    commit: 20ad30db8edb97ce735d8218937f9ded878e3217
 
