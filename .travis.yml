@@ -17,6 +17,10 @@ matrix:
     compiler: ": #stack default"
     addons: {apt: {packages: [ libblas3,liblapack3,liblapack-dev,libblas-dev,pkg-config]}}
 
+  - env: BUILD=stack ARGS="--resolver lts-16.20"
+    compiler: ": #stack 8.8.4"
+    addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config]}}
+
   - env: BUILD=stack ARGS="--resolver lts-15.8"
     compiler: ": #stack 8.8.3"
     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config]}}
@@ -89,4 +93,3 @@ script:
    stack test --no-terminal $ARGS --ghc-options=-Wno-unused-imports
    stack test --no-terminal $ARGS --ghc-options=-Wno-unused-imports
    set +ex
-
