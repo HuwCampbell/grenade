@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
@@ -6,6 +7,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
+{-# LANGUAGE ViewPatterns        #-}
 {-|
 Module      : Grenade.Core.WeightInitialization
 Description : Defines the Weight Initialization methods of Grenade.
@@ -24,6 +26,7 @@ module Grenade.Core.WeightInitialization
     , WeightInitMethod (..)
     ) where
 
+import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.Primitive         (PrimBase, PrimState)
 import           Data.Proxy
@@ -48,7 +51,7 @@ getRandomVector ::
   -> WeightInitMethod
   -> Gen (PrimState m)
   -> m (R n)
-getRandomVector i o method gen = do 
+getRandomVector i o method gen = do
   unifRands <- vector <$> replicateM n (uniformR (-1, 1) gen)
   gaussRands <- vector <$> replicateM n (realToFrac <$> standard gen)
   return $
@@ -68,9 +71,9 @@ getRandomMatrix ::
   -> WeightInitMethod
   -> Gen (PrimState m)
   -> m (L r n)
-getRandomMatrix i o method gen = do 
-  unifRands <- matrix <$> replicateM nr (uniformR (-1, 1) gen)
-  gaussRands <- matrix <$> replicateM nr (realToFrac <$> standard gen)
+getRandomMatrix i o method gen = do
+  (force -> !unifRands) <- matrix <$> replicateM nr (uniformR (-1, 1) gen)
+  (force -> !gaussRands) <- matrix <$> replicateM nr (realToFrac <$> standard gen)
   return $
     case method of
       UniformInit -> (1 / sqrt (fromIntegral i)) * unifRands

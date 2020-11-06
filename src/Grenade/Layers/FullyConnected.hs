@@ -72,18 +72,19 @@ instance Show (FullyConnected i o) where
 instance (KnownNat i, KnownNat o, KnownNat (i * o)) => UpdateLayer (FullyConnected i o) where
   type Gradient (FullyConnected i o) = (FullyConnected' i o)
   type MomentumStore (FullyConnected i o) = ListStore (FullyConnected' i o)
-  runUpdate opt@OptSGD{} x@(FullyConnected (FullyConnected' oldBias oldActivations) store) (FullyConnected' biasGradient activationGradient) =
+  runUpdate opt@OptSGD {} x@(FullyConnected (FullyConnected' oldBias oldActivations) store) (FullyConnected' biasGradient activationGradient) =
     let (FullyConnected' oldBiasMomentum oldMomentum) = getData opt x store
         VectorResultSGD newBias newBiasMomentum = descendVector opt (VectorValuesSGD oldBias biasGradient oldBiasMomentum)
         MatrixResultSGD newActivations newMomentum = descendMatrix opt (MatrixValuesSGD oldActivations activationGradient oldMomentum)
         newStore = setData opt x store (FullyConnected' newBiasMomentum newMomentum)
      in FullyConnected (FullyConnected' newBias newActivations) newStore
-  runUpdate opt@OptAdam{} x@(FullyConnected (FullyConnected' oldBias oldActivations) store) (FullyConnected' biasGradient activationGradient) =
+  runUpdate opt@OptAdam {} x@(FullyConnected (FullyConnected' oldBias oldActivations) store) (FullyConnected' biasGradient activationGradient) =
     let [FullyConnected' oldMBias oldMActivations, FullyConnected' oldVBias oldVActivations] = getData opt x store
         VectorResultAdam newBias newMBias newVBias = descendVector opt (VectorValuesAdam (getStep store) oldBias biasGradient oldMBias oldVBias)
-        MatrixResultAdam newActivations newMActivations newVActivations = descendMatrix opt (MatrixValuesAdam (getStep store) oldActivations activationGradient oldMActivations oldVActivations)
+        MatrixResultAdam newActivations newMActivations newVActivations =
+          descendMatrix opt (MatrixValuesAdam (getStep store) oldActivations activationGradient oldMActivations oldVActivations)
         newStore = setData opt x store [FullyConnected' newMBias newMActivations, FullyConnected' newVBias newVActivations]
-    in FullyConnected (FullyConnected' newBias newActivations) newStore
+     in FullyConnected (FullyConnected' newBias newActivations) newStore
 
 instance (KnownNat i, KnownNat o, KnownNat (i * o)) => LayerOptimizerData (FullyConnected i o) (Optimizer 'SGD) where
   type MomentumDataType (FullyConnected i o) (Optimizer 'SGD) = FullyConnected' i o
@@ -142,7 +143,7 @@ randomFullyConnected :: forall m i o . (PrimBase m, KnownNat i, KnownNat o, Know
 randomFullyConnected m gen = do
   wN <- getRandomMatrix i o m gen
   wB <- getRandomVector i o m gen
-  return $ FullyConnected (FullyConnected' wB wN) mkListStore
+  return $!! FullyConnected (FullyConnected' wB wN) mkListStore
   where i = natVal (Proxy :: Proxy i)
         o = natVal (Proxy :: Proxy o)
 
@@ -184,5 +185,3 @@ instance (KnownNat i, KnownNat o) => GNum (FullyConnected' i o) where
   s |* FullyConnected' b w = FullyConnected' (dvmap (fromRational s *) b) (dmmap (fromRational s *) w)
   FullyConnected' b1 w1 |+ FullyConnected' b2 w2 = FullyConnected' (b1 + b2) (w1 + w2)
   gFromRational r = FullyConnected' (fromRational r) (fromRational r)
-
-

@@ -129,6 +129,36 @@ descendVector (OptAdam alpha beta1 beta2 epsilon lambda) (VectorValuesAdam step 
   in  VectorResultAdam (fromJust $ create vw) (fromJust $ create vm) (fromJust $ create vv)
 descendVector opt _ = error $ "optimzer does not match to VectorInputValues in implementation! Optimizer: " ++ show opt
 
+
+-- -- | Caching of data
+-- type CacheKey = (LookupType, ProxyType, StateFeatures)
+
+-- cacheMVar :: MVar (M.Map CacheKey [Values])
+-- cacheMVar = unsafePerformIO $ newMVar mempty
+-- {-# NOINLINE cacheMVar #-}
+
+-- emptyCache :: MonadIO m => m ()
+-- emptyCache = liftIO $ modifyMVar_ cacheMVar (const mempty)
+
+-- addCache :: (MonadIO m) => CacheKey -> [Values] -> m ()
+-- addCache k val = liftIO $ modifyMVar_ cacheMVar (return . M.insert k val)
+
+-- lookupCache :: (MonadIO m) => CacheKey -> m (Maybe [Values])
+-- lookupCache k = liftIO $ (M.lookup k =<<) <$> tryReadMVar cacheMVar
+
+
+-- -- | Get output of function f, if possible from cache according to key (st).
+-- cached :: (MonadIO m) => (LookupType, ProxyType, StateFeatures) -> m [Values] -> m [Values]
+-- cached st ~f = do
+--   c <- lookupCache st
+--   case c of
+--     Nothing -> do
+--       res <- f
+--       res `seq` addCache st res
+--       return res
+--     Just res -> return res
+
+
 descendUnsafeSGD :: Int -> RealNum -> RealNum -> RealNum -> Vector RealNum -> Vector RealNum -> Vector RealNum -> (Vector RealNum, Vector RealNum)
 descendUnsafeSGD len rate momentum regulariser weights gradient lastUpdate =
   unsafePerformIO $ do
@@ -187,4 +217,3 @@ foreign import ccall unsafe
 foreign import ccall unsafe
     descend_adam_cpu
       :: Int -> Int -> RealNum -> RealNum -> RealNum -> RealNum -> RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> IO ()
-
