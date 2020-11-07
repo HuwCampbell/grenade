@@ -42,7 +42,7 @@ class FromDynamicLayer x where
   fromDynamicLayer :: SomeSing Shape -> SomeSing Shape -> x -> SpecNet
 
 class (Show spec) => ToDynamicLayer spec where
-  toDynamicLayer :: (PrimBase m) => WeightInitMethod -> Gen (PrimState m) -> spec -> m SpecNetwork
+  toDynamicLayer :: (PrimBase m) => NetworkInitSettings -> Gen (PrimState m) -> spec -> m SpecNetwork
 
 
 ----------------------------------------

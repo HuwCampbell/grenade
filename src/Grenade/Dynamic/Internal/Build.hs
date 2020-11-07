@@ -6,7 +6,7 @@ License     : BSD2
 Stability   : experimental
 -}
 module Grenade.Dynamic.Internal.Build
-    ( BuildSetup (..)
+    ( DynamicBuildSetup (..)
     , BuildInfo (..)
     , BuildM
     -- builder tools for layer implementations
@@ -27,13 +27,13 @@ import           Grenade.Dynamic.Specification
 
 
 -- | Defines how to build the network.
-newtype BuildSetup =
-  BuildSetup
+newtype DynamicBuildSetup =
+  DynamicBuildSetup
     { printResultingSpecification :: Bool -- ^ Print the result [Default: False]
     }
 
-instance Default BuildSetup where
-  def = BuildSetup False
+instance Default DynamicBuildSetup where
+  def = DynamicBuildSetup False
 
 -- | Build Info, only used internally.
 data BuildInfo = BuildInfo
@@ -41,7 +41,7 @@ data BuildInfo = BuildInfo
   , lastLayerOut :: !(Maybe Dimensions)
   }
 
-type BuildM = StateT BuildInfo (Reader BuildSetup)
+type BuildM = StateT BuildInfo (Reader DynamicBuildSetup)
 
 -- | Get the build info.
 buildGetInfo :: BuildM BuildInfo
@@ -77,5 +77,3 @@ buildSetLastLayer dim = modify $ \info -> info {lastLayerOut = Just dim}
 
 buildAddSpec :: SpecNet -> BuildM ()
 buildAddSpec spec = modify $ \info -> info { buildSpecs = spec : buildSpecs info }
-
-

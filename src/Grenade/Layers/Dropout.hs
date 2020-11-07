@@ -21,6 +21,7 @@ import           Data.Proxy
 import           Data.Reflection                (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
+import qualified Data.Vector.Storable           as V
 import           GHC.Generics                   hiding (R)
 import           GHC.TypeLits
 import           Numeric.LinearAlgebra.Static   hiding (Seed)
@@ -71,7 +72,17 @@ instance (KnownNat pct, KnownNat i) => Layer (Dropout pct) ('D1 i) ('D1 i) where
       mask r
         | not act || r < rate = 1
         | otherwise = 0
-  runBackwards (Dropout _ _) v (S1D x) = ((), S1D $ x * v)
+  runForwards (Dropout act seed) (S1DV x)
+    | not act = (v, S1DV $ V.map (rate *) x) -- multily with rate to normalise throughput
+    | otherwise = (v, S1DV $ extract v * x)
+    where
+      rate = (/100) $ fromIntegral $ max 0 $ min 100 $ natVal (Proxy :: Proxy pct)
+      v = dvmap mask $ randomVector seed Uniform
+      mask r
+        | not act || r < rate = 1
+        | otherwise = 0
+  runBackwards _ v (S1D x)  = ((), S1D $ x * v)
+  runBackwards _ v (S1DV x) = ((), S1DV $ x * extract v)
 
 -------------------- DynamicNetwork instance --------------------
 

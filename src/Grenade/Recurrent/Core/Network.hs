@@ -30,6 +30,7 @@ module Grenade.Recurrent.Core.Network (
 
 
 import           Control.Monad.Primitive      (PrimBase, PrimState)
+import           Data.Default
 import           System.Random.MWC
 
 import           Data.Serialize
@@ -214,14 +215,14 @@ instance (Show x, Show (RecurrentNetwork xs rs)) => Show (RecurrentNetwork (Recu
 --   recurrent network and a set of random inputs for it is with the randomRecurrent.
 class CreatableRecurrent (xs :: [Type]) (ss :: [Shape]) where
   -- | Create a network of the types requested
-  randomRecurrentWith :: PrimBase m => WeightInitMethod -> Gen (PrimState m) -> m (RecurrentNetwork xs ss)
+  randomRecurrentWith :: PrimBase m => NetworkInitSettings -> Gen (PrimState m) -> m (RecurrentNetwork xs ss)
 
 -- | Create a random recurrent network using uniform distribution.
 randomRecurrent :: (CreatableRecurrent xs ss) => IO (RecurrentNetwork xs ss)
-randomRecurrent = withSystemRandom . asGenST $ \gen -> randomRecurrentWith UniformInit gen
+randomRecurrent = withSystemRandom . asGenST $ \gen -> randomRecurrentWith def gen
 
 -- | Create a random recurrent network using the specified weight initialization method.
-randomRecurrentInitWith :: (CreatableRecurrent xs ss) => WeightInitMethod -> IO (RecurrentNetwork xs ss)
+randomRecurrentInitWith :: (CreatableRecurrent xs ss) => NetworkInitSettings -> IO (RecurrentNetwork xs ss)
 randomRecurrentInitWith m = withSystemRandom . asGenST $ \gen -> randomRecurrentWith m gen
 
 

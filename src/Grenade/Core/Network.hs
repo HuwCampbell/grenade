@@ -41,24 +41,25 @@ module Grenade.Core.Network (
 
 import           Control.DeepSeq
 import           Control.Monad.IO.Class
-import           Control.Monad.Primitive           (PrimBase, PrimState)
+import           Control.Monad.Primitive          (PrimBase, PrimState)
 import           Control.Parallel.Strategies
+import           Data.Default
 import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.Prelude
-import           GHC.TypeLits                      (KnownNat)
+import           GHC.TypeLits                     (KnownNat)
 import           Numeric.LinearAlgebra.Static
 import           System.Random.MWC
 
 #if MIN_VERSION_base(4,9,0)
-import           Data.Kind                         (Type)
+import           Data.Kind                        (Type)
 #endif
 
 import           Grenade.Core.Layer
+import           Grenade.Core.NetworkInitSettings
 import           Grenade.Core.NetworkSettings
 import           Grenade.Core.Optimizer
 import           Grenade.Core.Shape
-import           Grenade.Core.WeightInitialization
 import           Grenade.Types
 
 -- | Type of a network.
@@ -214,14 +215,14 @@ class CreatableNetwork (xs :: [Type]) (ss :: [Shape])
   --   Calls to this function will not compile if the type of the neural
   --   network is not sound.
   where
-  randomNetworkWith :: PrimBase m => WeightInitMethod -> Gen (PrimState m) -> m (Network xs ss)
+  randomNetworkWith :: PrimBase m => NetworkInitSettings -> Gen (PrimState m) -> m (Network xs ss)
 
 -- | Create a random network using uniform distribution.
 randomNetwork :: (MonadIO m, CreatableNetwork xs ss) => m (Network xs ss)
-randomNetwork = randomNetworkInitWith UniformInit
+randomNetwork = randomNetworkInitWith def
 
 -- | Create a random network using the specified weight initialization method.
-randomNetworkInitWith :: (MonadIO m, CreatableNetwork xs ss) => WeightInitMethod -> m (Network xs ss)
+randomNetworkInitWith :: (MonadIO m, CreatableNetwork xs ss) => NetworkInitSettings -> m (Network xs ss)
 randomNetworkInitWith m = liftIO $ withSystemRandom . asGenST $ \gen -> randomNetworkWith m gen
 
 
@@ -356,4 +357,3 @@ instance (KnownNat m, KnownNat n) => GNum (L m n) where
   s |* mat = dmmap (fromRational s *) mat
   (|+) = (+)
   gFromRational = fromRational
-

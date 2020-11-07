@@ -40,20 +40,21 @@ module Grenade.Dynamic.Network
   ) where
 
 import           Control.DeepSeq
-import           Data.Constraint                   (Dict (..))
+import           Data.Constraint                  (Dict (..))
+import           Data.Default
 import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.Prelude
-import           Data.Singletons.TypeLits          hiding (natVal)
-import           Data.Typeable                     (Typeable)
+import           Data.Singletons.TypeLits         hiding (natVal)
+import           Data.Typeable                    (Typeable)
 import           GHC.TypeLits
 import           System.Random.MWC
-import           Unsafe.Coerce                     (unsafeCoerce)
+import           Unsafe.Coerce                    (unsafeCoerce)
 
 import           Grenade.Core.Layer
 import           Grenade.Core.Network
+import           Grenade.Core.NetworkInitSettings
 import           Grenade.Core.Shape
-import           Grenade.Core.WeightInitialization
 import           Grenade.Dynamic.Specification
 
 ----------------------------------------
@@ -117,12 +118,12 @@ data SpecConcreteNetwork where
 -- | Create a network according to the given specification. See @DynamicNetwork@. This version uses UniformInit and the system random number generator. WARNING: This also allows to build unsafe
 -- networks where input and output layers do not match! Thus use with care!
 networkFromSpecification :: SpecNet -> IO SpecConcreteNetwork
-networkFromSpecification = networkFromSpecificationWith UniformInit
+networkFromSpecification = networkFromSpecificationWith def
 
 
 -- | Create a network according to the given specification. See @DynamicNetwork@. This version uses UniformInit and the system random number generator. WARNING: This also allows to build unsafe
 -- networks where input and output layers do not match! Thus use with care!
-networkFromSpecificationWith :: WeightInitMethod -> SpecNet -> IO SpecConcreteNetwork
+networkFromSpecificationWith :: NetworkInitSettings -> SpecNet -> IO SpecConcreteNetwork
 networkFromSpecificationWith wInit spec = do
   SpecNetwork (net :: Network layers shapes) <- withSystemRandom . asGenST $ \gen -> toDynamicLayer wInit gen spec
   case (sing :: Sing (Head shapes), sing :: Sing (Last shapes), unsafeCoerce (Dict :: Dict ()) :: Dict ()) of
@@ -142,7 +143,7 @@ networkFromSpecificationWith wInit spec = do
 
 -- | Create a network according to the given specification. See @DynamicNetwork@. This version uses UniformInit and the system random number generator. WARNING: This also allows to build unsafe
 -- networks where input and output layers do not match! Thus use with care! Furthermore, if you need to specify the actual I/O types, see @networkFromSpecificationWith@ for implementation details!
-networkFromSpecificationGenericWith :: WeightInitMethod -> SpecNet -> IO SpecNetwork
+networkFromSpecificationGenericWith :: NetworkInitSettings -> SpecNet -> IO SpecNetwork
 networkFromSpecificationGenericWith wInit spec = withSystemRandom . asGenST $ \gen -> toDynamicLayer wInit gen spec
 
 
@@ -187,5 +188,3 @@ tripleFromSomeShape someShape =
         D1Sing r@SNat               -> (natVal r, 1, 1)
         D2Sing r@SNat c@SNat        -> (natVal r, natVal c, 1)
         D3Sing r@SNat c@SNat d@SNat -> (natVal r, natVal c, natVal d)
-
-

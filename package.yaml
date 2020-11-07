@@ -71,6 +71,7 @@ dependencies:
   - binary                          >= 0.8
   - mtl
   - parallel
+  - hblas
 when:
   condition: flag(use-float)
   then:
@@ -153,5 +154,3 @@ benchmarks:
     dependencies:
       - grenade
       - criterion                       >= 1.1        && < 1.6
-
-

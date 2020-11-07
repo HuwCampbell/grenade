@@ -47,20 +47,21 @@ module Grenade.Core.Layer (
   , createRandom
   ) where
 
-import           Control.Monad.Primitive           (PrimBase, PrimState)
+import           Control.Monad.Primitive          (PrimBase, PrimState)
 import           Control.Parallel.Strategies
+import           Data.Default
 import           System.Random.MWC
 
-import           Data.List                         (foldl')
+import           Data.List                        (foldl')
 
 #if MIN_VERSION_base(4,9,0)
-import           Data.Kind                         (Type)
+import           Data.Kind                        (Type)
 #endif
 
+import           Grenade.Core.NetworkInitSettings
 import           Grenade.Core.NetworkSettings
 import           Grenade.Core.Optimizer
 import           Grenade.Core.Shape
-import           Grenade.Core.WeightInitialization
 import           Grenade.Types
 
 -- | Class for updating a layer. All layers implement this, as it
@@ -166,12 +167,10 @@ class (UpdateLayer x) => Layer x (i :: Shape) (o :: Shape) where
 --   @UpdateLayer@ instances.
 class RandomLayer x where
   -- | Create a random layer according to given initialization method.
-  createRandomWith    :: (PrimBase m) => WeightInitMethod -> Gen (PrimState m) -> m x
+  createRandomWith    :: (PrimBase m) => NetworkInitSettings -> Gen (PrimState m) -> m x
 
 
 -- | Create a new random network. This uses the uniform initialization,
 -- see @WeightInitMethod@ and @createRandomWith@.
 createRandom :: (RandomLayer x)  => IO x
-createRandom = withSystemRandom . asGenST $ \gen -> createRandomWith UniformInit gen
-
-
+createRandom = withSystemRandom . asGenST $ \gen -> createRandomWith def gen

@@ -85,7 +85,7 @@ class FromDynamicLayer x where
 
 -- | Class for generating layers from a specification. See the function @networkFromSpecification@.
 class (Show spec) => ToDynamicLayer spec where
-  toDynamicLayer :: (PrimBase m) => WeightInitMethod -> Gen (PrimState m) -> spec -> m SpecNetwork
+  toDynamicLayer :: (PrimBase m) => NetworkInitSettings -> Gen (PrimState m) -> spec -> m SpecNetwork
 
 
 ----------------------------------------
@@ -358,5 +358,3 @@ newtype SpecTanh = SpecTanh Dimensions
 -- | Specification of Trivial, saves input dimensions as triple, where every element >= 1.
 newtype SpecTrivial = SpecTrivial Dimensions
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
-
-

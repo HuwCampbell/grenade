@@ -20,7 +20,7 @@ module Grenade.Recurrent.Layers.LSTM (
 
 import           Control.Monad.Primitive           (PrimBase, PrimState)
 import           System.Random.MWC hiding (create)
-import GHC.TypeLits 
+import GHC.TypeLits
 
 -- import           Data.List ( foldl1' )
 import           Data.Proxy
@@ -233,11 +233,11 @@ instance (KnownNat i, KnownNat o) => RecurrentLayer (LSTM i o) ('D1 i) ('D1 o) w
 --   https://github.com/karpathy/char-rnn/commit/0dfeaa454e687dd0278f036552ea1e48a0a408c9
 --
 randomLSTM :: forall m i o. (PrimBase m, KnownNat i, KnownNat o, KnownNat (i*o),KnownNat (o*o))
-           => WeightInitMethod -> Gen (PrimState m) -> m (LSTM i o)
-randomLSTM m gen = do
-  let w = getRandomMatrix i o m gen 
-  let u = getRandomMatrix i o m gen 
-  let v = getRandomVector i o m gen 
+           => NetworkInitSettings -> Gen (PrimState m) -> m (LSTM i o)
+randomLSTM (NetworkInitSettings m HMatrix) gen = do
+  let w = getRandomMatrix i o m gen
+  let u = getRandomMatrix i o m gen
+  let v = getRandomVector i o m gen
 
   let w0 = konst 0
       u0 = konst 0
@@ -248,7 +248,7 @@ randomLSTM m gen = do
 
   where i = natVal (Proxy :: Proxy i)
         o = natVal (Proxy :: Proxy o)
-
+randomLSTM (NetworkInitSettings _ cpu) _ = error $ "CPU backend " ++ show cpu ++ " not supported by LSTM layer"
 
 -- | Maths
 --

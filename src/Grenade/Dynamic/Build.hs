@@ -6,7 +6,7 @@ License     : BSD2
 Stability   : experimental
 -}
 module Grenade.Dynamic.Build
-    ( BuildSetup (..)
+    ( DynamicBuildSetup (..)
     , BuildM
     , buildModel
     , buildModelWith
@@ -20,11 +20,11 @@ module Grenade.Dynamic.Build
 
 import           Control.Monad.Reader
 import           Control.Monad.State
-import           Data.Default                      (Default (..))
-import           Data.List                         (foldl')
-import           Data.Maybe                        (fromMaybe)
+import           Data.Default                     (Default (..))
+import           Data.List                        (foldl')
+import           Data.Maybe                       (fromMaybe)
 
-import           Grenade.Core.WeightInitialization
+import           Grenade.Core.NetworkInitSettings
 import           Grenade.Dynamic.Internal.Build
 import           Grenade.Dynamic.Network
 import           Grenade.Dynamic.Specification
@@ -54,11 +54,11 @@ networkLayer build = do
 
 -- | Build a model specified in the BuildM monad using UniformInit as weight initialization method.
 buildModel :: BuildM () -> IO SpecConcreteNetwork
-buildModel = buildModelWith UniformInit def
+buildModel = buildModelWith def def
 
 
 -- | Build a model specified in the BuildM monad using the given weight initialization method.
-buildModelWith :: WeightInitMethod -> BuildSetup -> BuildM () -> IO SpecConcreteNetwork
+buildModelWith :: NetworkInitSettings -> DynamicBuildSetup -> BuildM () -> IO SpecConcreteNetwork
 buildModelWith wInit setup builder = do
   let spec = snd $ buildSpec setup builder
   when (printResultingSpecification setup) $ do
@@ -68,7 +68,7 @@ buildModelWith wInit setup builder = do
 
 
 -- | Build a specification.
-buildSpec :: BuildSetup -> BuildM () -> (BuildInfo, SpecNet)
+buildSpec :: DynamicBuildSetup -> BuildM () -> (BuildInfo, SpecNet)
 buildSpec setup builder =
   let buildInfo = runReader (execStateT builder emptyBuildInfo) setup
       mkSpecNet = foldl' (flip SpecNCons)
@@ -80,4 +80,3 @@ buildSpec setup builder =
   in (buildInfo, spec)
   where
     emptyBuildInfo = BuildInfo [] Nothing
-

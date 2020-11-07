@@ -178,12 +178,12 @@ instance ( KnownNat channels
          , KnownNat (channels * ((kernelRows * kernelColumns) * filters))
          ) =>
          RandomLayer (Deconvolution channels filters kernelRows kernelColumns strideRows strideColumns) where
-  createRandomWith m gen = do
+  createRandomWith (NetworkInitSettings m HMatrix) gen = do
     wN <- getRandomMatrix i i m gen
     return $ Deconvolution wN mkListStore
     where
       i = natVal (Proxy :: Proxy ((kernelRows * kernelColumns) * channels))
-
+  createRandomWith (NetworkInitSettings _ cpu) _ = error $ "CPU backend " ++ show cpu ++ " not supported by Deconvolution layer"
 
 instance ( KnownNat channels
          , KnownNat filters
@@ -391,7 +391,7 @@ instance (KnownNat channels, KnownNat filters, KnownNat kernelRows, KnownNat ker
 instance ToDynamicLayer SpecDeconvolution where
   toDynamicLayer  = toDynamicLayer'
 
-toDynamicLayer' :: (PrimBase m) => WeightInitMethod -> Gen (PrimState m) -> SpecDeconvolution -> m SpecNetwork
+toDynamicLayer' :: (PrimBase m) => NetworkInitSettings -> Gen (PrimState m) -> SpecDeconvolution -> m SpecNetwork
 toDynamicLayer' _ _ (SpecDeconvolution inp@(_, 1, 1) _ _ _ _ _ _) = error $ "1D input to a deconvolutional layer is not permited! you specified: " ++ show inp
 toDynamicLayer' wInit gen (SpecDeconvolution (rows, cols, depth) ch fil kerRows kerCols strRows strCols) =
     reifyNat ch $ \(pxCh :: (KnownNat channels) => Proxy channels) ->

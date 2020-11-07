@@ -38,6 +38,7 @@ resolver: lts-16.20
 packages:
   - .
   - examples
+  # - hblas
 
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
@@ -55,6 +56,8 @@ extra-deps:
  - some-1.0.1@sha256:26e5bab7276f48b25ea8660d3fd1166c0f20fd497dac879a40f408e23211f93e,2055
  - git: https://github.com/schnecki/hmatrix-float
    commit: 20ad30db8edb97ce735d8218937f9ded878e3217
+ - git: https://github.com/schnecki/hblas
+   commit: b551e74ec278503d45bcd341c8c71a1f06558d92
 
 drop-packages:
  - constraints-extras
@@ -62,7 +65,9 @@ drop-packages:
  - typelits-witnesses
 
 # Override default flag values for local packages and extra-deps
-# flags: {}
+flags:
+  hblas:
+    CBLAS: true
 
 # Extra package databases containing global packages
 # extra-package-dbs: []

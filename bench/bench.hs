@@ -6,6 +6,7 @@
 import           Control.Monad
 import           Control.Monad.Random
 import           Criterion.Main
+import           Data.Default
 import           Data.List                           (foldl')
 import           Data.Singletons
 import           Data.Singletons.Prelude.List
@@ -34,53 +35,58 @@ main = do
   putStrLn $ "Benchmarking with type: " ++ nameF
   x :: S ('D2 60 60) <- randomOfShape
   y :: S ('D3 60 60 1) <- randomOfShape
-  SpecConcreteNetwork1D1D netFF <- networkFromSpecificationWith Xavier ff
-  SpecConcreteNetwork1D1D netHuge <- networkFromSpecificationWith Xavier hugeFf
+  SpecConcreteNetwork1D1D netFF <- networkFromSpecificationWith def ff
+  SpecConcreteNetwork1D1D netHuge <- networkFromSpecificationWith def hugeFf
+  SpecConcreteNetwork1D1D netHugeHBlas <- networkFromSpecificationWith (def { cpuBackend = HBLAS }) hugeFf
   defaultMain
-    [ bgroup
-        "im2col"
-        [ bench "im2col 3x4" $ whnf (im2col 2 2 1 1) ((3 >< 4) [1 ..])
-        , bench "im2col 28x28" $ whnf (im2col 5 5 1 1) ((28 >< 28) [1 ..])
-        , bench "im2col 100x100" $ whnf (im2col 10 10 1 1) ((100 >< 100) [1 ..])
-        ]
-    , bgroup
-        "col2im"
-        [ bench "col2im 3x4" $ whnf (col2im 2 2 1 1 3 4) ((6 >< 4) [1 ..])
-        , bench "col2im 28x28" $ whnf (col2im 5 5 1 1 28 28) ((576 >< 25) [1 ..])
-        , bench "col2im 100x100" $ whnf (col2im 10 10 1 1 100 100) ((8281 >< 100) [1 ..])
-        ]
-    , bgroup
-        "poolfw"
-        [ bench "poolforwards 3x4" $ whnf (poolForward 1 3 4 2 2 1 1) ((3 >< 4) [1 ..])
-        , bench "poolforwards 28x28" $ whnf (poolForward 1 28 28 5 5 1 1) ((28 >< 28) [1 ..])
-        , bench "poolforwards 100x100" $ whnf (poolForward 1 100 100 10 10 1 1) ((100 >< 100) [1 ..])
-        ]
-    , bgroup
-        "poolbw"
-        [ bench "poolbackwards 3x4" $ whnf (poolBackward 1 3 4 2 2 1 1 ((3 >< 4) [1 ..])) ((2 >< 3) [1 ..])
-        , bench "poolbackwards 28x28" $ whnf (poolBackward 1 28 28 5 5 1 1 ((28 >< 28) [1 ..])) ((24 >< 24) [1 ..])
-        , bench "poolbackwards 100x100" $ whnf (poolBackward 1 100 100 10 10 1 1 ((100 >< 100) [1 ..])) ((91 >< 91) [1 ..])
-        ]
-    , bgroup
-        "padcrop"
-        [ bench "pad 2D 60x60" $ whnf (testRun2D Pad) x
-        , bench "pad 3D 60x60" $ whnf (testRun3D Pad) y
-        , bench "crop 2D 60x60" $ whnf (testRun2D' Crop) x
-        , bench "crop 3D 60x60" $ whnf (testRun3D' Crop) y
-        ]
-    , bgroup
-        "feedforward SGD"
-        [ bench "ANN 1000 training steps" $ nfIO $ netTrain netFF defSGD 1000
-        , bench "ANN 10000 training steps" $ nfIO $ netTrain netFF defSGD 10000
-        , bench "ANN Huge 100 train steps" $ nfIO $ netTrain netHuge defSGD 100
-        , bench "ANN Huge 1000 train steps" $ nfIO $ netTrain netHuge defSGD 1000
-        ]
-    , bgroup
+    [ -- bgroup
+    --     "im2col"
+    --     [ bench "im2col 3x4" $ whnf (im2col 2 2 1 1) ((3 >< 4) [1 ..])
+    --     , bench "im2col 28x28" $ whnf (im2col 5 5 1 1) ((28 >< 28) [1 ..])
+    --     , bench "im2col 100x100" $ whnf (im2col 10 10 1 1) ((100 >< 100) [1 ..])
+    --     ]
+    -- , bgroup
+    --     "col2im"
+    --     [ bench "col2im 3x4" $ whnf (col2im 2 2 1 1 3 4) ((6 >< 4) [1 ..])
+    --     , bench "col2im 28x28" $ whnf (col2im 5 5 1 1 28 28) ((576 >< 25) [1 ..])
+    --     , bench "col2im 100x100" $ whnf (col2im 10 10 1 1 100 100) ((8281 >< 100) [1 ..])
+    --     ]
+    -- , bgroup
+    --     "poolfw"
+    --     [ bench "poolforwards 3x4" $ whnf (poolForward 1 3 4 2 2 1 1) ((3 >< 4) [1 ..])
+    --     , bench "poolforwards 28x28" $ whnf (poolForward 1 28 28 5 5 1 1) ((28 >< 28) [1 ..])
+    --     , bench "poolforwards 100x100" $ whnf (poolForward 1 100 100 10 10 1 1) ((100 >< 100) [1 ..])
+    --     ]
+    -- , bgroup
+    --     "poolbw"
+    --     [ bench "poolbackwards 3x4" $ whnf (poolBackward 1 3 4 2 2 1 1 ((3 >< 4) [1 ..])) ((2 >< 3) [1 ..])
+    --     , bench "poolbackwards 28x28" $ whnf (poolBackward 1 28 28 5 5 1 1 ((28 >< 28) [1 ..])) ((24 >< 24) [1 ..])
+    --     , bench "poolbackwards 100x100" $ whnf (poolBackward 1 100 100 10 10 1 1 ((100 >< 100) [1 ..])) ((91 >< 91) [1 ..])
+    --     ]
+    -- , bgroup
+    --     "padcrop"
+    --     [ bench "pad 2D 60x60" $ whnf (testRun2D Pad) x
+    --     , bench "pad 3D 60x60" $ whnf (testRun3D Pad) y
+    --     , bench "crop 2D 60x60" $ whnf (testRun2D' Crop) x
+    --     , bench "crop 3D 60x60" $ whnf (testRun3D' Crop) y
+    --     ]
+    -- , bgroup
+    --     "feedforward SGD"
+    --     [ bench "ANN 1000 training steps" $ nfIO $ netTrain netFF defSGD 1000
+    --     , bench "ANN 10000 training steps" $ nfIO $ netTrain netFF defSGD 10000
+    --     , bench "ANN Huge 100 train steps" $ nfIO $ netTrain netHuge defSGD 100
+    --     , bench "ANN Huge 1000 train steps" $ nfIO $ netTrain netHuge defSGD 1000
+    --     ]
+    -- ,
+      bgroup
         "feedforward Adam"
-        [ bench "ANN 1000 training steps" $ nfIO $ netTrain netFF defAdam 1000
-        , bench "ANN 10000 training steps" $ nfIO $ netTrain netFF defAdam 10000
-        , bench "ANN Huge 100 train steps" $ nfIO $ netTrain netHuge defAdam 100
-        , bench "ANN Huge 1000 train steps" $ nfIO $ netTrain netHuge defAdam 1000
+        [ -- bench "ANN 1000 training steps" $ nfIO $ netTrain netFF defAdam 1000
+        -- , bench "ANN 10000 training steps" $ nfIO $ netTrain netFF defAdam 10000
+        -- ,
+          bench "ANN Huge 100 train steps" $ nfIO $ netTrain netHuge defAdam 100
+        -- , bench "ANN Huge 1000 train steps" $ nfIO $ netTrain netHuge defAdam 1000
+        , bench "ANN Huge HBLAS 100 train steps" $ nfIO $ netTrain netHugeHBlas defAdam 100
+        -- , bench "ANN Huge HBLAS 1000 train steps" $ nfIO $ netTrain netHugeHBlas defAdam 1000
         ]
     ]
   putStrLn $ "Benchmarked with type: " ++ nameF

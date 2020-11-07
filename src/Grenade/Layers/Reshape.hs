@@ -73,32 +73,40 @@ instance RandomLayer Reshape where
 
 instance (KnownNat a, KnownNat x, KnownNat y, a ~ (x * y)) => Layer Reshape ('D2 x y) ('D1 a) where
   type Tape Reshape ('D2 x y) ('D1 a) = ()
-  runForwards _ (S2D y)   =  ((), fromJust' . fromStorable . flatten . extract $ y)
-  runBackwards _ _ (S1D y) = ((), fromJust' . fromStorable . extract $ y)
+  runForwards _ (S2D y)  =  ((), fromJust' . fromStorable . flatten . extract $ y)
+  runForwards _ (S2DV y) = ((), S1DV y)
+  runBackwards _ _ (S1D y)  = ((), fromJust' . fromStorable . extract $ y)
+  runBackwards _ _ (S1DV y) = ((), S2DV y)
 
 instance (KnownNat a, KnownNat x, KnownNat y, KnownNat (x * z), KnownNat z, a ~ (x * y * z)) => Layer Reshape ('D3 x y z) ('D1 a) where
   type Tape Reshape ('D3 x y z) ('D1 a) = ()
   runForwards _ (S3D y)     = ((), fromJust' . fromStorable . flatten . extract $ y)
-  runBackwards _ _ (S1D y) = ((), fromJust' . fromStorable . extract $ y)
+  runBackwards _ _ (S1D y)  = ((), fromJust' . fromStorable . extract $ y)
+  runBackwards _ _ (S1DV _) = error "not yet implemented"
 
 instance (KnownNat y, KnownNat x, KnownNat z, z ~ 1) => Layer Reshape ('D3 x y z) ('D2 x y) where
   type Tape Reshape ('D3 x y z) ('D2 x y) = ()
   runForwards _ (S3D y)    = ((), S2D y)
   runBackwards _ _ (S2D y) = ((), S3D y)
+  runBackwards _ _ _       = error "not yet implemented"
 
 instance (KnownNat y, KnownNat x, KnownNat z, z ~ 1) => Layer Reshape ('D2 x y) ('D3 x y z) where
   type Tape Reshape ('D2 x y) ('D3 x y z) = ()
-  runForwards _ (S2D y)    = ((), S3D y)
+  runForwards _ (S2D y)  = ((), S3D y)
+  runForwards _ (S2DV _) = error "not yet implemented"
   runBackwards _ _ (S3D y) = ((), S2D y)
 
 instance (KnownNat a, KnownNat x, KnownNat y, a ~ (x * y)) => Layer Reshape ('D1 a) ('D2 x y) where
   type Tape Reshape ('D1 a) ('D2 x y) = ()
-  runForwards _ (S1D y)   =  ((), fromJust' . fromStorable . extract $ y)
-  runBackwards _ _ (S2D y) = ((), fromJust' . fromStorable . flatten . extract $ y)
+  runForwards _ (S1D y)  =  ((), fromJust' . fromStorable . extract $ y)
+  runForwards _ (S1DV y) =  ((), S2DV y)
+  runBackwards _ _ (S2D y)  = ((), fromJust' . fromStorable . flatten . extract $ y)
+  runBackwards _ _ (S2DV y) = ((), S1DV y)
 
 instance (KnownNat a, KnownNat x, KnownNat y, KnownNat (x * z), KnownNat z, a ~ (x * y * z)) => Layer Reshape ('D1 a) ('D3 x y z) where
   type Tape Reshape ('D1 a) ('D3 x y z) = ()
-  runForwards _ (S1D y)     = ((), fromJust' . fromStorable . extract $ y)
+  runForwards _ (S1D y)  = ((), fromJust' . fromStorable . extract $ y)
+  runForwards _ (S1DV _) = error "not yet implemented"
   runBackwards _ _ (S3D y)  = ((), fromJust' . fromStorable . flatten . extract $ y)
 
 instance Serialize Reshape where
