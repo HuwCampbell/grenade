@@ -65,9 +65,7 @@ drop-packages:
  - typelits-witnesses
 
 # Override default flag values for local packages and extra-deps
-flags:
-  hblas:
-    CBLAS: true
+flags: {}
 
 # Extra package databases containing global packages
 # extra-package-dbs: []

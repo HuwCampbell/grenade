@@ -29,6 +29,9 @@ ff = specFullyConnected 2 40 |=> specTanh1D 40 |=> netSpecInner |=> specFullyCon
 hugeFf :: SpecNet
 hugeFf = specFullyConnected 2 150 |=> specTanh1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specRelu1D 20 |=> specFullyConnected 20 10 |=> specRelu1D 10 |=> specFullyConnected 10 1 |=> specLogit1D 1 |=> specNil1D 1
 
+hugeBigFf :: SpecNet
+hugeBigFf = specFullyConnected 2 1500 |=> specTanh1D 1500 |=> specFullyConnected 1500 750 |=> specRelu1D 750 |=> specFullyConnected 750 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specRelu1D 20 |=> specFullyConnected 20 10 |=> specRelu1D 10 |=> specFullyConnected 10 1 |=> specLogit1D 1 |=> specNil1D 1
+
 
 main :: IO ()
 main = do
@@ -37,7 +40,9 @@ main = do
   y :: S ('D3 60 60 1) <- randomOfShape
   SpecConcreteNetwork1D1D netFF <- networkFromSpecificationWith def ff
   SpecConcreteNetwork1D1D netHuge <- networkFromSpecificationWith def hugeFf
+  SpecConcreteNetwork1D1D netHugeBig <- networkFromSpecificationWith def hugeBigFf
   SpecConcreteNetwork1D1D netHugeHBlas <- networkFromSpecificationWith (def { cpuBackend = HBLAS }) hugeFf
+  SpecConcreteNetwork1D1D netHugeBigHBlas <- networkFromSpecificationWith (def { cpuBackend = HBLAS }) hugeBigFf
   defaultMain
     [ -- bgroup
     --     "im2col"
@@ -80,13 +85,16 @@ main = do
     -- ,
       bgroup
         "feedforward Adam"
-        [ -- bench "ANN 1000 training steps" $ nfIO $ netTrain netFF defAdam 1000
-        -- , bench "ANN 10000 training steps" $ nfIO $ netTrain netFF defAdam 10000
-        -- ,
-          bench "ANN Huge 100 train steps" $ nfIO $ netTrain netHuge defAdam 100
-        -- , bench "ANN Huge 1000 train steps" $ nfIO $ netTrain netHuge defAdam 1000
-        , bench "ANN Huge HBLAS 100 train steps" $ nfIO $ netTrain netHugeHBlas defAdam 100
-        -- , bench "ANN Huge HBLAS 1000 train steps" $ nfIO $ netTrain netHugeHBlas defAdam 1000
+        [ bench "ANN 100 Huge train steps" $ nfIO $ netTrain netHuge defAdam 100
+        , bench "ANN 100 Huge HBLAS train steps" $ nfIO $ netTrain netHugeHBlas defAdam 100
+        , bench "ANN 100 Huge Big train steps" $ nfIO $ netTrain netHugeBig defAdam 100
+        , bench "ANN 100 Huge HBLAS Big train steps" $ nfIO $ netTrain netHugeBigHBlas defAdam 100
+        , bench "ANN 1000 Huge train steps" $ nfIO $ netTrain netHuge defAdam 1000
+        , bench "ANN 1000 Huge HBLAS train steps" $ nfIO $ netTrain netHugeHBlas defAdam 1000
+        , bench "ANN 1000 Huge Big train steps" $ nfIO $ netTrain netHugeBig defAdam 1000
+        , bench "ANN 1000 Huge HBLAS Big train steps" $ nfIO $ netTrain netHugeBigHBlas defAdam 1000
+        , bench "ANN 1000 training steps" $ nfIO $ netTrain netFF defAdam 1000
+        , bench "ANN 10000 training steps" $ nfIO $ netTrain netFF defAdam 10000
         ]
     ]
   putStrLn $ "Benchmarked with type: " ++ nameF

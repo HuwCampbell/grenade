@@ -71,7 +71,6 @@ dependencies:
   - binary                          >= 0.8
   - mtl
   - parallel
-  - hblas
 when:
   condition: flag(use-float)
   then:
@@ -112,6 +111,7 @@ library:
         ghc-options: -O2
     - condition: flag(debug)
       cpp-options: -DDEBUG
+  extra-libraries: cblas
   c-sources:
     - cbits/im2col.c
     - cbits/gradient_descent.c

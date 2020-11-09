@@ -74,6 +74,7 @@ executables:
       - constraints
       - deepseq
       - reflection
+      - mwc-random
 
   mnist:
     ghc-options:       -Wall -threaded -O2

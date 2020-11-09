@@ -4,6 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE Strict                #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-|
@@ -22,12 +23,15 @@ module Grenade.Layers.Relu (
   , relu
   ) where
 
-import           Control.DeepSeq                (NFData (..))
+import           Control.DeepSeq                (NFData (..), force)
+import           Control.Monad.ST.Safe          (ST)
+import           Control.Parallel.Strategies
 import           Data.Constraint                (Dict (..))
 import           Data.Reflection                (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
 import qualified Data.Vector.Storable           as V
+import qualified Data.Vector.Storable.Mutable   as VM
 import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
 import qualified Numeric.LinearAlgebra.Static   as LAS
@@ -36,6 +40,7 @@ import           Unsafe.Coerce                  (unsafeCoerce)
 import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
+import           Grenade.Types
 
 
 -- | A rectifying linear unit.
@@ -60,9 +65,24 @@ runForward1D :: (KnownNat i) => Relu -> S ('D1 i) -> (Tape Relu ('D1 i) ('D1 i),
 runForward1D _ (S1D y) = (S1D y, S1D (relu y))
     where
       relu = LAS.dvmap (\a -> if a <= 0 then 0 else a)
-runForward1D _ (S1DV y) = (S1DV y, S1DV (relu y))
-    where
-      relu = V.map (\a -> if a <= 0 then 0 else a)
+runForward1D _ (S1DV y) = force (S1DV y, S1DV (V.modify slicedRelu y))
+  where
+    splitSize = 10
+    slicedRelu :: forall s . V.MVector s RealNum -> ST s ()
+    slicedRelu vec
+      | len < splitSize = recRelu vec
+      | otherwise = do
+          slicedRelu v1 `using` rpar
+          slicedRelu v2 `using` rpar
+      where
+        (v1, v2) = VM.splitAt idx vec
+        idx = len `div` 2
+        len = VM.length vec
+    recRelu :: forall s . V.MVector s RealNum -> ST s ()
+    recRelu v = mapM_ (VM.modify v relu) [0 .. VM.length v - 1]
+    relu a
+      | a <= 0 = 0
+      | otherwise = a
 
 
 -- Run backward 1D
@@ -72,7 +92,7 @@ runBackward1D _ (S1D y) (S1D dEdy) = ((), S1D (relu' y * dEdy))
       relu' = LAS.dvmap (\a -> if a <= 0 then 0 else 1)
 runBackward1D _ (S1DV y) (S1DV dEdy) = ((), S1DV (relu' y * dEdy))
     where
-      relu' = V.map (\a -> if a <= 0 then 0 else 1)
+      relu' vec = V.map (\a -> if a <= 0 then 0 else 1) vec
 runBackward1D x y@S1DV{} (S1D dEdy) = runBackward1D x y (S1DV $ LAS.extract dEdy)
 runBackward1D x (S1D y) dEdy@S1DV{} = runBackward1D x (S1DV $ LAS.extract y) dEdy
 

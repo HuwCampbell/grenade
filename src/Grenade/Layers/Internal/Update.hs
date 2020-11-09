@@ -7,11 +7,18 @@ module Grenade.Layers.Internal.Update (
   , MatrixResult (..)
   , VectorInputValues (..)
   , VectorResult (..)
+  , descendMatrixV
+  , descendVectorV
+  , MatrixInputValuesV (..)
+  , MatrixResultV (..)
+  , VectorInputValuesV (..)
+  , VectorResultV (..)
   ) where
 
 import           Data.Maybe                   (fromJust)
 import qualified Data.Vector.Storable         as U (unsafeFromForeignPtr0,
                                                     unsafeToForeignPtr0)
+import qualified Data.Vector.Storable         as V
 import           Foreign                      (mallocForeignPtrArray, withForeignPtr)
 import           Foreign.Ptr                  (Ptr)
 import           GHC.TypeLits
@@ -35,6 +42,14 @@ data MatrixInputValues rows columns
       !(L rows columns) -- ^ current m
       !(L rows columns) -- ^ current v
 
+data MatrixInputValuesV
+  = MatrixValuesAdamV
+      !Int   -- ^ Step
+      !(V.Vector RealNum) -- ^ current weights
+      !(V.Vector RealNum) -- ^ gradients
+      !(V.Vector RealNum) -- ^ current m
+      !(V.Vector RealNum) -- ^ current v
+
 
 data MatrixResult rows columns
   = MatrixResultSGD
@@ -46,6 +61,13 @@ data MatrixResult rows columns
       , matrixM           :: !(L rows columns) -- ^ new m
       , matrixV           :: !(L rows columns) -- ^ new v
       }
+
+data MatrixResultV =
+  MatrixResultAdamV
+    { matrixActivationsV :: !(V.Vector RealNum) -- ^ new activations (weights)
+    , matrixMV           :: !(V.Vector RealNum) -- ^ new m
+    , matrixVV           :: !(V.Vector RealNum) -- ^ new v
+    }
 
 data VectorInputValues r
   = VectorValuesSGD
@@ -59,6 +81,14 @@ data VectorInputValues r
       !(R r) -- ^ current m
       !(R r) -- ^ current v
 
+data VectorInputValuesV =
+  VectorValuesAdamV
+    !Int -- ^ Step
+    !(V.Vector RealNum) -- ^ current weights
+    !(V.Vector RealNum) -- ^ current gradients
+    !(V.Vector RealNum) -- ^ current m
+    !(V.Vector RealNum) -- ^ current v
+
 data VectorResult r
   = VectorResultSGD
       { vectorBias     :: !(R r) -- ^ new activations (bias)
@@ -69,6 +99,13 @@ data VectorResult r
       , vectorM    :: !(R r) -- ^ new m
       , vectorV    :: !(R r) -- ^ new v
       }
+
+data VectorResultV =
+  VectorResultAdamV
+    { vectorBiasV :: !(V.Vector RealNum) -- ^ new activations (bias)
+    , vectorMV    :: !(V.Vector RealNum) -- ^ new m
+    , vectorVV    :: !(V.Vector RealNum) -- ^ new v
+    }
 
 descendMatrix :: (KnownNat rows, KnownNat columns) => Optimizer o -> MatrixInputValues rows columns -> MatrixResult rows columns
 descendMatrix (OptSGD rate momentum regulariser) (MatrixValuesSGD weights gradient lastUpdate) =
@@ -111,6 +148,14 @@ descendMatrix (OptAdam alpha beta1 beta2 epsilon lambda) (MatrixValuesAdam step 
   in  MatrixResultAdam (fromJust . create $ mw) (fromJust . create $ mm) (fromJust . create $ mv)
 descendMatrix opt _ = error $ "optimzer does not match to MatrixInputValues in implementation! Optimizer: " ++ show opt
 
+
+descendMatrixV :: Optimizer o -> MatrixInputValuesV -> MatrixResultV
+descendMatrixV (OptAdam alpha beta1 beta2 epsilon lambda) (MatrixValuesAdamV step weights gradient m v) =
+  let len          = V.length weights
+      (vw, vm, vv) = descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v
+  in  MatrixResultAdamV vw vm vv
+descendMatrixV opt _ = error $ "optimzer does not match to MatrixInputValues in implementation! Optimizer: " ++ show opt
+
 descendVector :: (KnownNat r) => Optimizer o -> VectorInputValues r -> VectorResult r
 descendVector (OptSGD rate momentum regulariser) (VectorValuesSGD weights gradient lastUpdate) =
   let len          = size weights
@@ -128,6 +173,13 @@ descendVector (OptAdam alpha beta1 beta2 epsilon lambda) (VectorValuesAdam step 
       (vw, vm, vv)     = descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights' gradient' m' v'
   in  VectorResultAdam (fromJust $ create vw) (fromJust $ create vm) (fromJust $ create vv)
 descendVector opt _ = error $ "optimzer does not match to VectorInputValues in implementation! Optimizer: " ++ show opt
+
+descendVectorV :: Optimizer o -> VectorInputValuesV -> VectorResultV
+descendVectorV (OptAdam alpha beta1 beta2 epsilon lambda) (VectorValuesAdamV step weights gradient m v) =
+  let len = V.length weights
+      (vw, vm, vv) = descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v
+   in VectorResultAdamV vw vm vv
+descendVectorV opt _ = error $ "optimzer does not match to VectorInputValues in implementation! Optimizer: " ++ show opt
 
 
 -- -- | Caching of data

@@ -47,11 +47,7 @@ import           GHC.TypeLits                 hiding (natVal)
 import qualified Numeric.LinearAlgebra        as NLA
 import           Numeric.LinearAlgebra.Static
 import qualified Numeric.LinearAlgebra.Static as H
-import           System.IO.Unsafe             (unsafePerformIO)
 import           System.Random.MWC
-
-import           Control.Monad.ST             (RealWorld)
-import qualified Numerical.HBLAS.MatrixTypes  as HBLAS
 
 import           Grenade.Types
 
@@ -240,7 +236,7 @@ instance SingI x => Serialize (S x) where
       1 -> do
        Just i <- fromStorable . V.fromList <$> getListOf get
        return i
-      2 -> do
+      2 ->
         fromStorableV . V.fromList <$> get
       _ -> error "unexpected case in get in Serialize instance in Shape.hs"
 
