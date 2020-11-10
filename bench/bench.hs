@@ -27,10 +27,27 @@ ff = specFullyConnected 2 40 |=> specTanh1D 40 |=> netSpecInner |=> specFullyCon
   where netSpecInner = specFullyConnected 40 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specNil1D 20
 
 hugeFf :: SpecNet
-hugeFf = specFullyConnected 2 150 |=> specTanh1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specRelu1D 20 |=> specFullyConnected 20 10 |=> specRelu1D 10 |=> specFullyConnected 10 1 |=> specLogit1D 1 |=> specNil1D 1
+hugeFf = specFullyConnected 2 4000 |=> specRelu1D 4000 |=> specFullyConnected 4000 1 |=> specLogit1D 1 |=> specNil1D 1
 
 hugeBigFf :: SpecNet
-hugeBigFf = specFullyConnected 2 1500 |=> specTanh1D 1500 |=> specFullyConnected 1500 750 |=> specRelu1D 750 |=> specFullyConnected 750 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specRelu1D 20 |=> specFullyConnected 20 10 |=> specRelu1D 10 |=> specFullyConnected 10 1 |=> specLogit1D 1 |=> specNil1D 1
+hugeBigFf =
+      specFullyConnected 2 4500
+  |=> specTanh1D 4500
+  |=> specFullyConnected 4500 750
+  |=> specRelu1D 750
+  |=> specFullyConnected 750 150
+  |=> specRelu1D 150
+  |=> specFullyConnected 150 150
+  |=> specRelu1D 150
+  |=> specFullyConnected 150 30
+  |=> specRelu1D 30
+  |=> specFullyConnected 30 20
+  |=> specRelu1D 20
+  |=> specFullyConnected 20 10
+  |=> specRelu1D 10
+  |=> specFullyConnected 10 1
+  |=> specLogit1D 1
+  |=> specNil1D 1
 
 
 main :: IO ()
@@ -41,8 +58,8 @@ main = do
   SpecConcreteNetwork1D1D netFF <- networkFromSpecificationWith def ff
   SpecConcreteNetwork1D1D netHuge <- networkFromSpecificationWith def hugeFf
   SpecConcreteNetwork1D1D netHugeBig <- networkFromSpecificationWith def hugeBigFf
-  SpecConcreteNetwork1D1D netHugeHBlas <- networkFromSpecificationWith (def { cpuBackend = HBLAS }) hugeFf
-  SpecConcreteNetwork1D1D netHugeBigHBlas <- networkFromSpecificationWith (def { cpuBackend = HBLAS }) hugeBigFf
+  SpecConcreteNetwork1D1D netHugeHBlas <- networkFromSpecificationWith (NetworkInitSettings UniformInit CBLAS) hugeFf
+  SpecConcreteNetwork1D1D netHugeBigHBlas <- networkFromSpecificationWith (NetworkInitSettings UniformInit CBLAS) hugeBigFf
   defaultMain
     [ -- bgroup
     --     "im2col"
@@ -86,13 +103,13 @@ main = do
       bgroup
         "feedforward Adam"
         [ bench "ANN 100 Huge train steps" $ nfIO $ netTrain netHuge defAdam 100
-        , bench "ANN 100 Huge HBLAS train steps" $ nfIO $ netTrain netHugeHBlas defAdam 100
+        , bench "ANN 100 Huge CBLAS train steps" $ nfIO $ netTrain netHugeHBlas defAdam 100
         , bench "ANN 100 Huge Big train steps" $ nfIO $ netTrain netHugeBig defAdam 100
-        , bench "ANN 100 Huge HBLAS Big train steps" $ nfIO $ netTrain netHugeBigHBlas defAdam 100
+        , bench "ANN 100 Huge CBLAS Big train steps" $ nfIO $ netTrain netHugeBigHBlas defAdam 100
         , bench "ANN 1000 Huge train steps" $ nfIO $ netTrain netHuge defAdam 1000
-        , bench "ANN 1000 Huge HBLAS train steps" $ nfIO $ netTrain netHugeHBlas defAdam 1000
+        , bench "ANN 1000 Huge CBLAS train steps" $ nfIO $ netTrain netHugeHBlas defAdam 1000
         , bench "ANN 1000 Huge Big train steps" $ nfIO $ netTrain netHugeBig defAdam 1000
-        , bench "ANN 1000 Huge HBLAS Big train steps" $ nfIO $ netTrain netHugeBigHBlas defAdam 1000
+        , bench "ANN 1000 Huge CBLAS Big train steps" $ nfIO $ netTrain netHugeBigHBlas defAdam 1000
         , bench "ANN 1000 training steps" $ nfIO $ netTrain netFF defAdam 1000
         , bench "ANN 10000 training steps" $ nfIO $ netTrain netFF defAdam 10000
         ]

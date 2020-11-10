@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <math.h>
 #include "type.h"
+#include <omp.h>
+
 
 void descend_sgd_cpu(int len, RealNum rate, RealNum momentum, RealNum regulariser,
     const RealNum* weights,
@@ -16,4 +18,3 @@ void descend_adam_cpu(int len, int t, RealNum alpha, RealNum beta1, RealNum beta
   const RealNum* m,
   const RealNum* v,
   RealNum* outputWeights, RealNum* outputM, RealNum* outputV);
-

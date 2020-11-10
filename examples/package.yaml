@@ -64,11 +64,11 @@ when:
 
 executables:
   feedforward:
-    ghc-options:       -Wall -threaded -O2
+    ghc-options:       -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
     main:              main/feedforward.hs
 
   feedforward-weightinit:
-    ghc-options:       -Wall -threaded -O2
+    ghc-options:       -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
     main:              main/feedforward-weightinit.hs
     dependencies:
       - constraints
@@ -77,17 +77,18 @@ executables:
       - mwc-random
 
   mnist:
-    ghc-options:       -Wall -threaded -O2
+    ghc-options:       -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
     main:              main/mnist.hs
 
   gan-mnist:
-    ghc-options:       -Wall -threaded -O2
+    ghc-options:       -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
     main:              main/gan-mnist.hs
 
   recurrent:
-    ghc-options:       -Wall -threaded -O2
+    ghc-options:       -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
     main:              main/recurrent.hs
 
+
   shakespeare:
-    ghc-options:       -Wall -threaded -O2
+    ghc-options:       -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
     main:             main/shakespeare.hs

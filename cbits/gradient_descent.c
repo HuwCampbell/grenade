@@ -6,6 +6,7 @@ void descend_sgd_cpu(int len, RealNum rate, RealNum momentum, RealNum regularise
     const RealNum* last,
     RealNum* outputWeights, RealNum* outputMomentum) {
 
+  #pragma omp parallel for
   for (int i = 0; i < len; i++) {
       outputMomentum[i] = momentum * last[i] - rate * gradient[i];
       outputWeights[i] = weights[i] + outputMomentum[i] - (rate * regulariser) * weights[i];
@@ -20,6 +21,8 @@ void descend_adam_cpu(int len, int t, RealNum alpha, RealNum beta1, RealNum beta
   const RealNum* v,
   RealNum* outputWeights, RealNum* outputM, RealNum* outputV) {
   t = t + 1;
+
+  #pragma omp parallel for
   for (int i = 0; i < len; i++) {
     outputM[i] = beta1 * m[i] + (1 - beta1) * gradient[i];
     outputV[i] = beta2 * v[i] + (1 - beta2) * gradient[i] * gradient[i];

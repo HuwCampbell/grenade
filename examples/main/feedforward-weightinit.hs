@@ -22,9 +22,13 @@ import           Unsafe.Coerce                   (unsafeCoerce)
 import           Grenade
 
 
--- | The definition for a feed forward network using the dynamic module. Note the nested networks. This network clearly is over-engeneered for this example!
+-- -- | The definition for a feed forward network using the dynamic module. Note the nested networks. This network clearly is over-engeneered for this example!
 netSpec :: SpecNet
-netSpec = specFullyConnected 2 400 |=> specRelu1D 400 |=> specFullyConnected 400 1 |=> specLogit1D 1 |=> specNil1D 1
+netSpec = specFullyConnected 2 40 |=> specRelu1D 40 |=> specFullyConnected 40 1 |=> specLogit1D 1 |=> specNil1D 1
+
+-- netSpec :: SpecNet
+-- netSpec = specFullyConnected 2 150 |=> specTanh1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specRelu1D 20 |=> specFullyConnected 20 10 |=> specRelu1D 10 |=> specFullyConnected 10 1 |=> specLogit1D 1 |=> specNil1D 1
+
 
 -- netSpec :: SpecNet
 -- netSpec = specFullyConnected 2 40 |=> specTanh1D 40 |=> specDropout 40 0.95 Nothing |=> netSpecInner |=> specFullyConnected 20 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specRelu1D 20 |=> specFullyConnected 20 10 |=> specRelu1D 10 |=> specFullyConnected 10 1 |=> specLogit1D 1 |=> specNil1D 1
@@ -34,7 +38,7 @@ netSpec = specFullyConnected 2 400 |=> specRelu1D 400 |=> specFullyConnected 400
 -- | Specifications can be built using the following interface also. Here one does not have to carefully pay attention to match the dimension inputs and outputs as when using specification directly.
 buildNetViaInterface :: IO SpecConcreteNetwork
 buildNetViaInterface =
-  buildModelWith (NetworkInitSettings UniformInit HBLAS) (DynamicBuildSetup { printResultingSpecification = False })  $
+  buildModelWith (NetworkInitSettings UniformInit CBLAS) (DynamicBuildSetup { printResultingSpecification = False })  $
   inputLayer1D 2 >>                            -- 1. Every model has to start with an input dimension
   fullyConnected 10 >> dropout 0.89 >> relu >> -- 2. Layers are simply added as desired. The input of each layer is determined automatically,
   fullyConnected 20 >> relu >>                 --    whereas the output is specified as in `fullyConnected 20`. Thus, the layer empits 20 signals
@@ -56,12 +60,12 @@ netTrain net0 op n = do
     -- inps <- replicateM n $ do
     --   s  <- getRandom
     --   return $ S1D $ SA.randomVector s SA.Uniform * 2 - 1
-    gen <- createSystemRandom
-    inps <-  replicateM n $ S1DV <$> uniformVector gen 2
     -- let outs = flip map inps $ \(S1D v) ->
     --              if v `inCircle` (fromRational 0.50, 0.50)  || v `inCircle` (fromRational (-0.50), 0.50)
     --                then S1D $ fromRational 1
     --                else S1D $ fromRational 0
+    gen <- createSystemRandom
+    inps <-  replicateM n $ S1DV . V.map (\x->x*2-1) <$> (uniformVector gen 2)
     let outs = flip map inps $ \(S1DV v) ->
                  if v `inCircleV` (0.50, 0.50)  || v `inCircleV` (-0.50, 0.50)
                    then S1DV (V.singleton 1)
@@ -76,7 +80,8 @@ netScore :: (KnownNat len, Head shapes ~ 'D1 len, Last shapes ~ 'D1 1) => Networ
 netScore network = do
     let testIns = [ [ (x,y)  | x <- [0..50] ]
                              | y <- [0..20] ]
-        outMat  = fmap (fmap (\(x,y) -> (render (x/25-1) (y/10-1) . normx) $ runNet network (S1D $ SA.vector [x / 25 - 1,y / 10 - 1]))) testIns
+        -- outMat  = fmap (fmap (\(x,y) -> (render (x/25-1) (y/10-1) . normx) $ runNet network (S1D $ SA.vector [x / 25 - 1,y / 10 - 1]))) testIns
+        outMat  = fmap (fmap (\(x,y) -> (render (x/25-1) (y/10-1) . normx) $ runNet network (S1DV $ V.fromList [x / 25 - 1,y / 10 - 1]))) testIns
     putStrLn $ unlines outMat
 
   where
@@ -95,17 +100,21 @@ normx (S1DV v) = V.sum v / fromIntegral (V.length v)
 
 testValues :: (KnownNat len, Head shapes ~ 'D1 len, Last shapes ~ 'D1 1) => Network layers shapes -> IO ()
 testValues network = do
-  gen <- createSystemRandom
-  inps <-  replicateM 1000 $ S1DV <$> uniformVector gen 2
-
   -- inps <- replicateM 1000 $ do
   --     s  <- getRandom
   --     return $ S1D $ SA.randomVector s SA.Uniform * 2 - 1
-
+  -- let outs = flip map inps $ \(S1D v) ->
+  --                if v `inCircle` (fromRational 0.50, 0.50)  || v `inCircle` (fromRational (-0.50), 0.50)
+  --                  then 1 :: Integer
+  --                  else 0
+  gen <- createSystemRandom
+  inps <-  replicateM 1000 $ S1DV . V.map (\x->x*2-1) <$> uniformVector gen 2
   let outs = flip map inps $ \(S1DV v) ->
                  if v `inCircleV` (0.50, 0.50)  || v `inCircleV` (-0.50, 0.50)
                    then 1 :: Integer
                    else 0
+
+
   let ress = zip outs (map (round . normx . runNet network) inps)
       correct = length $ filter id $ map (uncurry (==)) ress
       incorrect = length $ filter id $ map (uncurry (/=)) ress
@@ -150,7 +159,7 @@ main = do
   mapM_
     (\n -> do
        putStr $ "| " ++ show n ++ " | "
-       SpecConcreteNetwork1D1D (net0 :: Network layers shapes) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl HBLAS) netSpec
+       SpecConcreteNetwork1D1D (net0 :: Network layers shapes) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl CBLAS) netSpec
       -- We need to specify the actual number of output nodes, as our functions requiere that!
        case (unsafeCoerce (Dict :: Dict ()) :: Dict (('D1 1) ~ Last shapes)) of
          Dict -> do

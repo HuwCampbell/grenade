@@ -32,16 +32,20 @@ import           Data.Serialize
 import           Data.Singletons
 import qualified Data.Vector.Storable           as V
 import qualified Data.Vector.Storable.Mutable   as VM
+import           GHC.Conc                       (numCapabilities)
 import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
 import qualified Numeric.LinearAlgebra.Static   as LAS
+import           System.IO.Unsafe               (unsafePerformIO)
 import           Unsafe.Coerce                  (unsafeCoerce)
 
 import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
 import           Grenade.Types
+import           Grenade.Utils.Vector
 
+import           Debug.Trace
 
 -- | A rectifying linear unit.
 --   A layer which can act between any shape of the same dimension, acting as a
@@ -60,26 +64,14 @@ instance Serialize Relu where
   put _ = return ()
   get = return Relu
 
+
 -- Run forward 1D
 runForward1D :: (KnownNat i) => Relu -> S ('D1 i) -> (Tape Relu ('D1 i) ('D1 i), S ('D1 i))
 runForward1D _ (S1D y) = (S1D y, S1D (relu y))
     where
       relu = LAS.dvmap (\a -> if a <= 0 then 0 else a)
-runForward1D _ (S1DV y) = force (S1DV y, S1DV (V.modify slicedRelu y))
+runForward1D _ (S1DV y) = force (S1DV y, S1DV (parMapVector relu y))
   where
-    splitSize = 10
-    slicedRelu :: forall s . V.MVector s RealNum -> ST s ()
-    slicedRelu vec
-      | len < splitSize = recRelu vec
-      | otherwise = do
-          slicedRelu v1 `using` rpar
-          slicedRelu v2 `using` rpar
-      where
-        (v1, v2) = VM.splitAt idx vec
-        idx = len `div` 2
-        len = VM.length vec
-    recRelu :: forall s . V.MVector s RealNum -> ST s ()
-    recRelu v = mapM_ (VM.modify v relu) [0 .. VM.length v - 1]
     relu a
       | a <= 0 = 0
       | otherwise = a
@@ -92,14 +84,13 @@ runBackward1D _ (S1D y) (S1D dEdy) = ((), S1D (relu' y * dEdy))
       relu' = LAS.dvmap (\a -> if a <= 0 then 0 else 1)
 runBackward1D _ (S1DV y) (S1DV dEdy) = ((), S1DV (relu' y * dEdy))
     where
-      relu' vec = V.map (\a -> if a <= 0 then 0 else 1) vec
+      relu' vec = parMapVector (\a -> if a <= 0 then 0 else 1) vec
 runBackward1D x y@S1DV{} (S1D dEdy) = runBackward1D x y (S1DV $ LAS.extract dEdy)
 runBackward1D x (S1D y) dEdy@S1DV{} = runBackward1D x (S1DV $ LAS.extract y) dEdy
 
 
 instance (KnownNat i) => Layer Relu ('D1 i) ('D1 i) where
   type Tape Relu ('D1 i) ('D1 i) = S ('D1 i)
-
   runForwards = runForward1D
   runBackwards = runBackward1D
 
@@ -109,9 +100,15 @@ instance (KnownNat i, KnownNat j) => Layer Relu ('D2 i j) ('D2 i j) where
   runForwards _ (S2D y) = (S2D y, S2D (relu y))
     where
       relu = LAS.dmmap (\a -> if a <= 0 then 0 else a)
+  runForwards _ (S2DV y) = (S2DV y, S2DV (relu y))
+    where
+      relu = parMapVector (\a -> if a <= 0 then 0 else a)
   runBackwards _ (S2D y) (S2D dEdy) = ((), S2D (relu' y * dEdy))
     where
       relu' = LAS.dmmap (\a -> if a <= 0 then 0 else 1)
+  runBackwards _ (S2DV y) (S2DV dEdy) = ((), S2DV (relu' y * dEdy))
+    where
+      relu' = parMapVector (\a -> if a <= 0 then 0 else 1)
 
 instance (KnownNat i, KnownNat j, KnownNat k) => Layer Relu ('D3 i j k) ('D3 i j k) where
 

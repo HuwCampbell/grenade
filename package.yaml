@@ -71,6 +71,7 @@ dependencies:
   - binary                          >= 0.8
   - mtl
   - parallel
+  - random
 when:
   condition: flag(use-float)
   then:
@@ -106,18 +107,22 @@ library:
 
     - condition: flag(fast)
       then:
-        ghc-options: -O0 -Werror # -fprof-auto
+        ghc-options: -O0 -Werror
+        # -fprof-auto
       else:
         ghc-options: -O2
     - condition: flag(debug)
       cpp-options: -DDEBUG
+
+  # OpenMP
+  ld-options: -fopenmp
+
   extra-libraries: cblas
   c-sources:
     - cbits/im2col.c
     - cbits/gradient_descent.c
     - cbits/pad.c
-  cc-options:
-    - -std=c99 -O3 -msse4.2 -Wall -Werror -DCABAL=1
+  cc-options: -std=c99 -O3 -msse4.2 -Wall -Werror -DCABAL=1 -fopenmp
 
 tests:
   test:
@@ -126,7 +131,7 @@ tests:
     ghc-options:         -Wall -threaded -O2
     when:
       - condition: impl(ghc < 8.0)
-        ghc-options:       -fno-warn-incomplete-patterns
+        ghc-options:       -fno-warn-incomplete-patterns -rtsopts -with-rtsopts=-N
         cpp-options:       -DType=*
       - condition: impl(ghc >= 8.6)
         default-extensions: NoStarIsType
@@ -141,7 +146,7 @@ tests:
 benchmarks:
   bench:
     main:                bench.hs
-    ghc-options:         -Wall -threaded -O2
+    ghc-options:         -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
     source-dirs:         bench
     dependencies:
       - grenade
@@ -149,7 +154,7 @@ benchmarks:
 
   bench-lstm:
     main:                bench-lstm.hs
-    ghc-options:         -Wall -threaded -O2
+    ghc-options:         -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
     source-dirs:         bench
     dependencies:
       - grenade

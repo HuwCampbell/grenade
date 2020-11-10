@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE DeriveAnyClass        #-}
 {-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
@@ -17,20 +18,26 @@ module Grenade.Layers.Dropout (
 
 import           Control.DeepSeq
 import           Control.Monad.Primitive        (PrimBase, PrimState)
+import           Control.Monad.Primitive        (PrimMonad)
+import           Data.Maybe                     (fromJust)
 import           Data.Proxy
 import           Data.Reflection                (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
+import qualified Data.Vector.Generic            as VG
 import qualified Data.Vector.Storable           as V
+import qualified Data.Word                      as W
 import           GHC.Generics                   hiding (R)
 import           GHC.TypeLits
 import           Numeric.LinearAlgebra.Static   hiding (Seed)
-import           System.Random.MWC
+import           System.Random
+import           System.Random.MWC              hiding (create)
 
 import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
 import           Grenade.Types
+import           Grenade.Utils.Vector
 
 -- Dropout layer help to reduce overfitting.
 -- Idea here is that the vector is a shape of 1s and 0s, which we multiply the input by.
@@ -62,10 +69,10 @@ randomDropout :: (PrimBase m) => Gen (PrimState m) -> m (Dropout pct)
 randomDropout gen = Dropout True <$> uniform gen
 
 instance (KnownNat pct, KnownNat i) => Layer (Dropout pct) ('D1 i) ('D1 i) where
-  type Tape (Dropout pct) ('D1 i) ('D1 i) = R i
+  type Tape (Dropout pct) ('D1 i) ('D1 i) = V.Vector RealNum
   runForwards (Dropout act seed) (S1D x)
-    | not act = (v, S1D $ dvmap (rate *) x) -- multily with rate to normalise throughput
-    | otherwise = (v, S1D $ v * x)
+    | not act = (extract v, S1D $ dvmap (rate *) x) -- multily with rate to normalise throughput
+    | otherwise = (extract v, S1D $ v * x)
     where
       rate = (/100) $ fromIntegral $ max 0 $ min 100 $ natVal (Proxy :: Proxy pct)
       v = dvmap mask $ randomVector seed Uniform
@@ -74,15 +81,17 @@ instance (KnownNat pct, KnownNat i) => Layer (Dropout pct) ('D1 i) ('D1 i) where
         | otherwise = 0
   runForwards (Dropout act seed) (S1DV x)
     | not act = (v, S1DV $ V.map (rate *) x) -- multily with rate to normalise throughput
-    | otherwise = (v, S1DV $ extract v * x)
+    | otherwise = (v, S1DV $ v * x)
     where
+      rate :: RealNum
       rate = (/100) $ fromIntegral $ max 0 $ min 100 $ natVal (Proxy :: Proxy pct)
-      v = dvmap mask $ randomVector seed Uniform
+      v :: V.Vector RealNum
+      v = parMapVector mask $ V.fromList $ take (V.length x) $ randomRs (0,1) (mkStdGen seed)
       mask r
         | not act || r < rate = 1
         | otherwise = 0
-  runBackwards _ v (S1D x)  = ((), S1D $ x * v)
-  runBackwards _ v (S1DV x) = ((), S1DV $ x * extract v)
+  runBackwards _ v (S1D x)  = ((), S1D $ x * fromJust (create v))
+  runBackwards _ v (S1DV x) = ((), S1DV $ x * v)
 
 -------------------- DynamicNetwork instance --------------------
 

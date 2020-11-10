@@ -8,6 +8,9 @@ Grenade
 This is a fork of the original Grenade library found at https://github.com/HuwCampbell/grenade,
 but includes additional features:
 
+ 0. **OpenMP Parallelisation**: You need to have OpenMP installed (e.g. `sudo pacman -S openmp`) to
+    compile the code, as the c-code uses OpenMP for-loop parallelisation.
+
  1. **Optimizer Support**. The code has been restructured to be able to easily implement more
     optimizers than just SGD with momentum and regularization. Currently we support *Adam* for
     feedforward neural networks also!
