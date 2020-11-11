@@ -8,6 +8,7 @@ import           Control.Monad
 import           Control.Monad.IO.Class
 import           Control.Monad.Random
 import           Data.List                    (foldl')
+import qualified Data.Vector.Storable         as V
 
 import qualified Data.ByteString              as B
 import           Data.Serialize
@@ -33,7 +34,7 @@ type FFNet = Network '[ FullyConnected 2 40, Tanh, FullyConnected 40 10, Relu, F
                      '[ 'D1 2, 'D1 40, 'D1 40, 'D1 10, 'D1 10, 'D1 1, 'D1 1]
 
 randomNet :: (MonadIO m) => m FFNet
-randomNet = randomNetwork
+randomNet = randomNetworkInitWith (NetworkInitSettings UniformInit CBLAS)
 
 netTrain :: FFNet -> Optimizer o -> Int -> IO FFNet
 netTrain net0 opt n = do
@@ -72,8 +73,11 @@ netScore network = do
                | n' <= 0.8  = '='
                | otherwise = '#'
 
-    normx :: S ('D1 1) -> RealNum
-    normx (S1D r) = SA.mean r
+
+normx :: S ('D1 1) -> RealNum
+normx (S1D r)  = SA.mean r
+normx (S1DV v) = V.sum v / fromIntegral (V.length v)
+
 
 data FeedForwardOpts = FeedForwardOpts Int (Optimizer 'SGD) (Maybe FilePath) (Maybe FilePath)
 

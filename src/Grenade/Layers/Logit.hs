@@ -31,11 +31,13 @@ import           Data.Serialize
 import           Data.Singletons
 import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
+import           Grenade.Layers.Internal.CBLAS  (toLayerShape)
 import           Unsafe.Coerce                  (unsafeCoerce)
 
 import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
+import           Grenade.Utils.Vector
 
 -- | A Logit layer.
 --
@@ -52,7 +54,7 @@ instance UpdateLayer Logit where
 instance RandomLayer Logit where
   createRandomWith _ _ = return Logit
 
-instance (a ~ b, SingI a) => Layer Logit a b where
+instance (a ~ b, SingI a) => Layer Logit a b
   -- Wengert tape optimisation:
   --
   -- Derivative of the sigmoid function is
@@ -60,13 +62,23 @@ instance (a ~ b, SingI a) => Layer Logit a b where
   -- but we have already calculated σ(x) in
   -- the forward pass, so just store that
   -- and use it in the backwards pass.
+                                       where
   type Tape Logit a b = S a
+  runForwards _ (S1DV vec) =
+    let l = parMapVectorC c_sigmoid vec
+     in (S1DV l, S1DV l)
+  runForwards _ (S2DV vec) =
+    let l = parMapVectorC c_sigmoid vec
+     in (S2DV l, S2DV l)
   runForwards _ a =
     let l = sigmoid a
-    in  (l, l)
+     in (l, l)
+  runBackwards _ (S1DV vec) (S1DV g) = ((), S1DV $ parZipWithVectorReplSndC c_sigmoid_dif_fast vec g)
+  runBackwards _ (S2DV vec) (S2DV g) = ((), S2DV $ parZipWithVectorReplSndC c_sigmoid_dif_fast vec g)
   runBackwards _ l g =
     let sigmoid' = l * (1 - l)
-    in  ((), sigmoid' * g)
+        g' = toLayerShape l g
+     in ((), sigmoid' * g')
 
 instance Serialize Logit where
   put _ = return ()

@@ -13,8 +13,7 @@ void descend_sgd_cpu(int len, RealNum rate, RealNum momentum, RealNum regularise
 
 
 void descend_adam_cpu(int len, int t, RealNum alpha, RealNum beta1, RealNum beta2, RealNum epsilon, RealNum lambda,
-  const RealNum* weights,
+  RealNum* weights,
   const RealNum* gradient,
-  const RealNum* m,
-  const RealNum* v,
-  RealNum* outputWeights, RealNum* outputM, RealNum* outputV);
+  RealNum* m,
+  RealNum* v);

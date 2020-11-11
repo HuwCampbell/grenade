@@ -22,23 +22,26 @@ import           Unsafe.Coerce                   (unsafeCoerce)
 import           Grenade
 
 
+-- netSpec :: SpecNet
+-- netSpec = specFullyConnected 2 400 |=> specRelu1D 400 |=> specFullyConnected 400 1 |=> specLogit1D 1 |=> specNil1D 1
+
 -- -- | The definition for a feed forward network using the dynamic module. Note the nested networks. This network clearly is over-engeneered for this example!
 netSpec :: SpecNet
-netSpec = specFullyConnected 2 40 |=> specRelu1D 40 |=> specFullyConnected 40 1 |=> specLogit1D 1 |=> specNil1D 1
-
--- netSpec :: SpecNet
--- netSpec = specFullyConnected 2 150 |=> specTanh1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 150 |=> specRelu1D 150 |=> specFullyConnected 150 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specRelu1D 20 |=> specFullyConnected 20 10 |=> specRelu1D 10 |=> specFullyConnected 10 1 |=> specLogit1D 1 |=> specNil1D 1
-
-
--- netSpec :: SpecNet
--- netSpec = specFullyConnected 2 40 |=> specTanh1D 40 |=> specDropout 40 0.95 Nothing |=> netSpecInner |=> specFullyConnected 20 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specRelu1D 20 |=> specFullyConnected 20 10 |=> specRelu1D 10 |=> specFullyConnected 10 1 |=> specLogit1D 1 |=> specNil1D 1
---   where netSpecInner = specFullyConnected 40 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specReshape1D2D 20 (2, 10) |=> specReshape2D1D (2, 10) 20 |=> specNil1D 20
+netSpec =
+  specFullyConnected 2 40 |=> specTanh1D 40 |=>
+  specDropout 40 0.95 Nothing |=>
+  netSpecInner |=>
+  specFullyConnected 20 30 |=> specRelu1D 30 |=>
+  specFullyConnected 30 20 |=> specRelu1D 20 |=>
+  specFullyConnected 20 10 |=> specRelu1D 10 |=>
+  specFullyConnected 10 1 |=> specLogit1D 1 |=> specNil1D 1
+  where netSpecInner = specFullyConnected 40 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specReshape1D2D 20 (2, 10) |=> specReshape2D1D (2, 10) 20 |=> specNil1D 20
 
 
 -- | Specifications can be built using the following interface also. Here one does not have to carefully pay attention to match the dimension inputs and outputs as when using specification directly.
 buildNetViaInterface :: IO SpecConcreteNetwork
 buildNetViaInterface =
-  buildModelWith (NetworkInitSettings UniformInit CBLAS) (DynamicBuildSetup { printResultingSpecification = False })  $
+  buildModelWith (NetworkInitSettings UniformInit HMatrix) (DynamicBuildSetup { printResultingSpecification = False })  $
   inputLayer1D 2 >>                            -- 1. Every model has to start with an input dimension
   fullyConnected 10 >> dropout 0.89 >> relu >> -- 2. Layers are simply added as desired. The input of each layer is determined automatically,
   fullyConnected 20 >> relu >>                 --    whereas the output is specified as in `fullyConnected 20`. Thus, the layer empits 20 signals
@@ -169,23 +172,23 @@ main = do
     [1 .. nr]
 
 
-  -- -- Features of dynamic networks:
-  -- SpecConcreteNetwork1D1D (net' :: Network layers shapes) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl HMatrix) netSpec
-  -- net2 <- netTrain net' rate examples
-  -- let spec' = networkToSpecification net2
-  -- putStrLn "String represenation of the network specification: "
-  -- print spec'
-  -- let serializedSpec = encode spec'   -- only the specification (not the weights) are serialized here! The weights can be serialized using the networks serialize instance!
-  -- let _ = encode net2                 -- E.g. like this.
-  -- case decode serializedSpec of
-  --   Left err -> print err
-  --   Right spec2 -> do
-  --     print spec2
-  --     SpecConcreteNetwork1D1D (net3 :: Network layers3 shapes3) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl HMatrix) spec2
-  --     net4 <- foldM (\n _ -> netTrain n rate examples) net3 [(1 :: Int)..30]
-  --     case (unsafeCoerce (Dict :: Dict ()) :: Dict (('D1 1) ~ Last shapes3)) of
-  --       Dict -> netScore net4
+  -- Features of dynamic networks:
+  SpecConcreteNetwork1D1D (net' :: Network layers shapes) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl CBLAS) netSpec
+  net2 <- netTrain net' rate examples
+  let spec' = networkToSpecification net2
+  putStrLn "String represenation of the network specification: "
+  print spec'
+  let serializedSpec = encode spec'   -- only the specification (not the weights) are serialized here! The weights can be serialized using the networks serialize instance!
+  let _ = encode net2                 -- E.g. like this.
+  case decode serializedSpec of
+    Left err -> print err
+    Right spec2 -> do
+      print spec2
+      SpecConcreteNetwork1D1D (net3 :: Network layers3 shapes3) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl CBLAS) spec2
+      net4 <- foldM (\n _ -> netTrain n rate examples) net3 [(1 :: Int)..30]
+      case (unsafeCoerce (Dict :: Dict ()) :: Dict (('D1 1) ~ Last shapes3)) of
+        Dict -> netScore net4
 
-  -- -- There is a also nice interface available also
-  -- SpecConcreteNetwork1D1D newNet <- buildNetViaInterface
-  -- print (networkToSpecification newNet)
+  -- There is a also nice interface available also
+  SpecConcreteNetwork1D1D newNet <- buildNetViaInterface
+  print (networkToSpecification newNet)

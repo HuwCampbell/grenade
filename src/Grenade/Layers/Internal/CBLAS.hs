@@ -1,21 +1,101 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators       #-}
 
 module Grenade.Layers.Internal.CBLAS
-    ( BlasTranspose (..)
+    ( -- easy interface
+      matXVec
+    , outerV
+    , checkVectors
+    , unsafeMemCopyVectorFromTo
+    , unsafeMemZero
+      -- conversions according to column major type
+    , toLayerShape
+    , toS1D
+    , fromS1D
+    , toS2D
+    , fromS2D
+    , toRowMajorVector
+    , fromRowMajorVector
+      -- more complicated, but direct, function calls
+    , BlasTranspose (..)
+    , swapTranspose
     , dgemmUnsafe
     , dgemvUnsafe
     , dgerUnsafe
-    , swapTranspose
     ) where
 
-import qualified Data.Vector.Storable as V
-import qualified Data.Vector.Storable as U (unsafeFromForeignPtr0, unsafeToForeignPtr0)
-import           Foreign              (mallocForeignPtrArray, withForeignPtr)
+
+import           Control.Monad
+import           Data.Maybe                   (fromMaybe)
+import qualified Data.Vector.Storable         as V
+import qualified Data.Vector.Storable         as U (unsafeFromForeignPtr0,
+                                                    unsafeToForeignPtr0)
+import qualified Data.Vector.Storable.Mutable as VM
+import           Foreign                      (withForeignPtr)
 import           Foreign.C.Types
 import           Foreign.Ptr
-import           System.IO.Unsafe     (unsafePerformIO)
+import           Foreign.Storable             (sizeOf)
+import           GHC.IO.Handle.Text           (memcpy)
+import           GHC.TypeLits
+import qualified Numeric.LinearAlgebra.Static as LAS
+import           System.IO.Unsafe             (unsafePerformIO)
+
+import           Grenade.Core.Shape
+import           Grenade.Types
 
 import           Debug.Trace
+
+
+-- | Memory copy a vector from one to the other.
+unsafeMemCopyVectorFromTo :: V.Vector RealNum -> V.Vector RealNum -> V.Vector RealNum
+unsafeMemCopyVectorFromTo from to =
+    unsafePerformIO $ do
+      let (fromPtr, _) = U.unsafeToForeignPtr0 from
+          (toPtr, _) = U.unsafeToForeignPtr0 to
+      withForeignPtr fromPtr $ \fromPtr' ->
+       withForeignPtr toPtr $ \toPtr' -> do
+        void $ memcpy toPtr' fromPtr' (fromIntegral $ sizeOf (V.head from) * V.length to)
+        return $ U.unsafeFromForeignPtr0 toPtr (V.length to)
+
+-- | Write zero to all elements in a vector.
+unsafeMemZero :: V.Vector RealNum -> V.Vector RealNum
+unsafeMemZero vec =
+  unsafePerformIO $ do
+    let (vecPtr, _) = U.unsafeToForeignPtr0 vec
+    withForeignPtr vecPtr $ \vecPtr' -> void $ memset vecPtr' 0 (fromIntegral $ sizeOf (0 :: RealNum) * V.length vec)
+    return $ U.unsafeFromForeignPtr0 vecPtr (V.length vec)
+
+foreign import ccall unsafe "string.h" memset  :: Ptr a -> CInt  -> CSize -> IO (Ptr a)
+
+
+-- | Computes vec2 <- mat * vec1 + beta * vec2.
+matXVec :: BlasTranspose -> V.Vector RealNum -> V.Vector RealNum -> RealNum -> V.Vector RealNum -> V.Vector RealNum
+matXVec trMat mat vec1 beta vec2 =
+  -- dgemmUnsafe trMat BlasNoTranspose (m, k) (ay, 1) 1.0 mat vec1 beta vec2
+  dgemvUnsafe trMat (m, k) 1.0 mat vec1 beta vec2
+  where
+    ay = V.length vec1
+    ax = V.length vec2
+    (m, k) = swapTranspose trMat (ax, ay)
+
+
+-- | Computes the outer product of two vectors: mat <- vec1 `outer` vec2
+outerV :: V.Vector RealNum -> V.Vector RealNum -> V.Vector RealNum -> V.Vector RealNum
+outerV vec1 vec2 mat =
+  -- dgemmUnsafe BlasNoTranspose BlasNoTranspose (o, 1) (1, i) 1.0 vec1 vec2 0 mat
+  dgerUnsafe (o, i) 1.0 vec1 vec2 (unsafeMemZero mat) -- (V.modify (`VM.set` 0) mat)
+  where o = V.length vec1
+        i = V.length vec2
+
+checkVectors :: V.Vector RealNum -> V.Vector RealNum -> Bool
+checkVectors v1 v2 = V.length v1 == V.length v2 && and (zipWith (==) (toStr v1) (toStr v2))
+  where
+    toStr :: V.Vector RealNum -> [String]
+    toStr v = map (show . round . (*10^5)) $ V.toList v
 
 
 -- | Newtype holding CINT for CblasRowMajor or CblasColMajor
@@ -29,15 +109,60 @@ data BlasOrder
   | BlasColMajor
   deriving (Eq, Show)
 
--- | Column major seems to be a little faster.
+-- | Column major seems to be a little faster (which makes sense as BLAS is in column major mode and CBLAS does not need change anything).
 order :: BlasOrder
 order = BlasColMajor -- BlasRowMajor
-
 
 -- | Used to generate the Order (Row/Colummajor) CINT value.
 encodeOrder :: BlasOrder -> CBLAS_ORDERT
 encodeOrder BlasRowMajor = CBOInt 101
 encodeOrder BlasColMajor = CBOInt 102
+
+-- | Converts the given vector to the correct layer shape.
+toLayerShape :: S i -> S x -> S x
+toLayerShape x y = case (x, y) of
+  (S1D{}, S1DV{}) -> toS1D y
+  (S1DV{}, S1D{}) -> fromS1D y
+  (S2D{}, S2DV{}) -> toS2D y
+  (S2DV{}, S2D{}) -> fromS2D y
+  (S3D{}, _)      -> error "Cannot convert to/from S3D yet"
+  _               -> y
+
+toS1D :: S ('D1 l) -> S ('D1 l)
+toS1D (S1DV vec) = S1D (fromMaybe (error $ "wrong length of vector with " ++ show (V.length vec) ++ " in toS1D ") $ LAS.create vec)
+toS1D x@S1D{} = x
+
+fromS1D :: S ('D1 l) -> S ('D1 l)
+fromS1D (S1D vec) = S1DV (LAS.extract vec)
+fromS1D x@S1DV{}  = x
+
+-- | Convert from vector representation.
+toS2D :: S ('D2 i j) -> S ('D2 i j)
+toS2D (S2DV vec) =
+  case order of
+    BlasColMajor -> S2D $ LAS.tr $ LAS.matrix (V.toList vec)
+    BlasRowMajor -> S2D $ LAS.matrix (V.toList vec)
+toS2D x@S2D{}    = x
+
+-- | Convert to vector representation.
+fromS2D :: S ('D2 i j) -> S ('D2 i j)
+fromS2D x@(S2D mat) =
+  case order of
+    BlasColMajor -> S2DV $ V.concat $ map LAS.extract $ LAS.toColumns mat
+    BlasRowMajor -> S2DV $ V.concat $ map LAS.extract $ LAS.toRows mat
+fromS2D x@S2DV{} = x
+
+toRowMajorVector :: S ('D2 i j) -> V.Vector RealNum
+toRowMajorVector x = case fromS2D x of
+  S2DV vec -> vec
+  _        -> error "unexpected return from fromS2D in toRowMajorVector"
+
+fromRowMajorVector :: forall i j . (KnownNat i, KnownNat j, KnownNat (i * j)) => V.Vector RealNum -> S ('D2 i j)
+fromRowMajorVector vec =
+  case order of
+    BlasColMajor -> S2D $ LAS.tr $ LAS.matrix (V.toList vec)
+    BlasRowMajor -> S2D $ LAS.matrix (V.toList vec)
+
 
 -- | Newtype holding CINT for Transpose values.
 newtype CBLAS_TRANSPOSET =

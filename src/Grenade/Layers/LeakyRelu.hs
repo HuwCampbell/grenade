@@ -35,6 +35,9 @@ import           Unsafe.Coerce                  (unsafeCoerce)
 import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
+import           Grenade.Layers.Internal.CBLAS  (toLayerShape)
+import           Grenade.Types
+import           Grenade.Utils.Vector
 
 
 -- | A rectifying linear unit.
@@ -59,20 +62,26 @@ instance (KnownNat i) => Layer LeakyRelu ('D1 i) ('D1 i) where
 
   runForwards _ (S1D y) = (S1D y, S1D (relu y))
     where
-      relu = LAS.dvmap (\a -> if a < 0 then 0 else a)
+      relu = LAS.dvmap (\a -> if a < 0 then alpha * a else a)
+  runForwards _ (S1DV y) = (S1DV y, S1DV (parMapVectorC c_leaky_relu y))
   runBackwards _ (S1D y) (S1D dEdy) = ((), S1D (relu' y * dEdy))
     where
-      relu' = LAS.dvmap (\a -> if a < 0 then 0.01 else 1)
+      relu' = LAS.dvmap (\a -> if a < 0 then alpha else 1)
+  runBackwards _ (S1DV y) (S1DV dEdy) = ((), S1DV $ parZipWithVectorReplSndC c_leaky_relu_dif_fast y dEdy)
+  runBackwards x y dEdy = runBackwards x y (toLayerShape y dEdy)
 
 instance (KnownNat i, KnownNat j) => Layer LeakyRelu ('D2 i j) ('D2 i j) where
   type Tape LeakyRelu ('D2 i j) ('D2 i j) = S ('D2 i j)
 
   runForwards _ (S2D y) = (S2D y, S2D (relu y))
     where
-      relu = LAS.dmmap (\a -> if a < 0 then 0 else a)
+      relu = LAS.dmmap (\a -> if a < 0 then alpha * a else a)
+  runForwards _ (S2DV y) = (S2DV y, S2DV (parMapVectorC c_leaky_relu y))
   runBackwards _ (S2D y) (S2D dEdy) = ((), S2D (relu' y * dEdy))
     where
-      relu' = LAS.dmmap (\a -> if a < 0 then 0.01 else 1)
+      relu' = LAS.dmmap (\a -> if a < 0 then alpha else 1)
+  runBackwards _ (S2DV y) (S2DV dEdy) = ((), S2DV $ parZipWithVectorReplSndC c_leaky_relu_dif_fast y dEdy)
+  runBackwards x y dEdy = runBackwards x y (toLayerShape y dEdy)
 
 instance (KnownNat i, KnownNat j, KnownNat k) => Layer LeakyRelu ('D3 i j k) ('D3 i j k) where
 
@@ -80,10 +89,13 @@ instance (KnownNat i, KnownNat j, KnownNat k) => Layer LeakyRelu ('D3 i j k) ('D
 
   runForwards _ (S3D y) = (S3D y, S3D (relu y))
     where
-      relu = LAS.dmmap (\a -> if a < 0 then 0 else a)
+      relu = LAS.dmmap (\a -> if a < 0 then alpha * a else a)
   runBackwards _ (S3D y) (S3D dEdy) = ((), S3D (relu' y * dEdy))
     where
-      relu' = LAS.dmmap (\a -> if a < 0 then 0.01 else 1)
+      relu' = LAS.dmmap (\a -> if a < 0 then alpha else 1)
+
+alpha :: RealNum
+alpha = 0.02
 
 
 -------------------- DynamicNetwork instance --------------------
@@ -127,4 +139,3 @@ instance GNum LeakyRelu where
   _ |* LeakyRelu = LeakyRelu
   _ |+ LeakyRelu = LeakyRelu
   gFromRational _ = LeakyRelu
-

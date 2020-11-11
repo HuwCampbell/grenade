@@ -15,6 +15,7 @@ module Grenade.Layers.Internal.Update (
   , VectorResultV (..)
   ) where
 
+import           Control.Parallel.Strategies
 import           Data.Maybe                   (fromJust)
 import qualified Data.Vector.Storable         as U (unsafeFromForeignPtr0,
                                                     unsafeToForeignPtr0)
@@ -36,15 +37,19 @@ data MatrixInputValues rows columns
       !(L rows columns) -- ^ gradients
       !(L rows columns) -- ^ last update (old momentum)
   | MatrixValuesAdam
-      !Int   -- ^ Step
+      !Int              -- ^ Step
       !(L rows columns) -- ^ current weights
       !(L rows columns) -- ^ gradients
       !(L rows columns) -- ^ current m
       !(L rows columns) -- ^ current v
 
 data MatrixInputValuesV
-  = MatrixValuesAdamV
-      !Int   -- ^ Step
+  = MatrixValuesSGDV
+      !(V.Vector RealNum) -- ^ current weights
+      !(V.Vector RealNum) -- ^ gradients
+      !(V.Vector RealNum) -- ^ old momentum
+  | MatrixValuesAdamV
+      !Int                -- ^ Step
       !(V.Vector RealNum) -- ^ current weights
       !(V.Vector RealNum) -- ^ gradients
       !(V.Vector RealNum) -- ^ current m
@@ -62,12 +67,16 @@ data MatrixResult rows columns
       , matrixV           :: !(L rows columns) -- ^ new v
       }
 
-data MatrixResultV =
-  MatrixResultAdamV
-    { matrixActivationsV :: !(V.Vector RealNum) -- ^ new activations (weights)
-    , matrixMV           :: !(V.Vector RealNum) -- ^ new m
-    , matrixVV           :: !(V.Vector RealNum) -- ^ new v
-    }
+data MatrixResultV
+  = MatrixResultSGDV
+      { matrixActivationsV :: !(V.Vector RealNum) -- ^ new activations (weights)
+      , matrixMV           :: !(V.Vector RealNum) -- ^ new m
+      }
+  | MatrixResultAdamV
+      { matrixActivationsV :: !(V.Vector RealNum) -- ^ new activations (weights)
+      , matrixMV           :: !(V.Vector RealNum) -- ^ new m
+      , matrixVV           :: !(V.Vector RealNum) -- ^ new v
+      }
 
 data VectorInputValues r
   = VectorValuesSGD
@@ -81,13 +90,17 @@ data VectorInputValues r
       !(R r) -- ^ current m
       !(R r) -- ^ current v
 
-data VectorInputValuesV =
-  VectorValuesAdamV
-    !Int -- ^ Step
-    !(V.Vector RealNum) -- ^ current weights
-    !(V.Vector RealNum) -- ^ current gradients
-    !(V.Vector RealNum) -- ^ current m
-    !(V.Vector RealNum) -- ^ current v
+data VectorInputValuesV
+  = VectorValuesSGDV
+      !(V.Vector RealNum) -- ^ current weights
+      !(V.Vector RealNum) -- ^ current gradients
+      !(V.Vector RealNum) -- ^ current m
+  | VectorValuesAdamV
+      !Int                -- ^ Step
+      !(V.Vector RealNum) -- ^ current weights
+      !(V.Vector RealNum) -- ^ current gradients
+      !(V.Vector RealNum) -- ^ current m
+      !(V.Vector RealNum) -- ^ current v
 
 data VectorResult r
   = VectorResultSGD
@@ -100,12 +113,16 @@ data VectorResult r
       , vectorV    :: !(R r) -- ^ new v
       }
 
-data VectorResultV =
-  VectorResultAdamV
-    { vectorBiasV :: !(V.Vector RealNum) -- ^ new activations (bias)
-    , vectorMV    :: !(V.Vector RealNum) -- ^ new m
-    , vectorVV    :: !(V.Vector RealNum) -- ^ new v
-    }
+data VectorResultV
+  = VectorResultSGDV
+      { vectorBiasV :: !(V.Vector RealNum) -- ^ new activations (bias)
+      , vectorMV    :: !(V.Vector RealNum) -- ^ new m
+      }
+  | VectorResultAdamV
+      { vectorBiasV :: !(V.Vector RealNum) -- ^ new activations (bias)
+      , vectorMV    :: !(V.Vector RealNum) -- ^ new m
+      , vectorVV    :: !(V.Vector RealNum) -- ^ new v
+      }
 
 descendMatrix :: (KnownNat rows, KnownNat columns) => Optimizer o -> MatrixInputValues rows columns -> MatrixResult rows columns
 descendMatrix (OptSGD rate momentum regulariser) (MatrixValuesSGD weights gradient lastUpdate) =
@@ -150,6 +167,10 @@ descendMatrix opt _ = error $ "optimzer does not match to MatrixInputValues in i
 
 
 descendMatrixV :: Optimizer o -> MatrixInputValuesV -> MatrixResultV
+descendMatrixV (OptSGD rate momentum regulariser) (MatrixValuesSGDV weights gradient lastUpdate) =
+  let len          = V.length weights
+      (vw, vm)     = descendUnsafeSGD len rate momentum regulariser weights gradient lastUpdate
+  in  MatrixResultSGDV vw vm
 descendMatrixV (OptAdam alpha beta1 beta2 epsilon lambda) (MatrixValuesAdamV step weights gradient m v) =
   let len          = V.length weights
       (vw, vm, vv) = descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v
@@ -175,6 +196,10 @@ descendVector (OptAdam alpha beta1 beta2 epsilon lambda) (VectorValuesAdam step 
 descendVector opt _ = error $ "optimzer does not match to VectorInputValues in implementation! Optimizer: " ++ show opt
 
 descendVectorV :: Optimizer o -> VectorInputValuesV -> VectorResultV
+descendVectorV (OptSGD rate momentum regulariser) (VectorValuesSGDV weights gradient lastUpdate) =
+  let len          = V.length weights
+      (vw, vm)     = descendUnsafeSGD len rate momentum regulariser weights gradient lastUpdate
+  in  VectorResultSGDV vw vm
 descendVectorV (OptAdam alpha beta1 beta2 epsilon lambda) (VectorValuesAdamV step weights gradient m v) =
   let len = V.length weights
       (vw, vm, vv) = descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v
@@ -210,7 +235,7 @@ descendVectorV opt _ = error $ "optimzer does not match to VectorInputValues in 
 --       return res
 --     Just res -> return res
 
-
+{-# NOINLINE descendUnsafeSGD #-}
 descendUnsafeSGD :: Int -> RealNum -> RealNum -> RealNum -> Vector RealNum -> Vector RealNum -> Vector RealNum -> (Vector RealNum, Vector RealNum)
 descendUnsafeSGD len rate momentum regulariser weights gradient lastUpdate =
   unsafePerformIO $ do
@@ -229,7 +254,7 @@ descendUnsafeSGD len rate momentum regulariser weights gradient lastUpdate =
 
     return (U.unsafeFromForeignPtr0 outWPtr len, U.unsafeFromForeignPtr0 outMPtr len)
 
-
+{-# NOINLINE descendUnsafeAdam #-}
 descendUnsafeAdam ::
      Int -- Len
   -> Int -- Step
@@ -245,9 +270,6 @@ descendUnsafeAdam ::
   -> (Vector RealNum, Vector RealNum, Vector RealNum)
 descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v =
   unsafePerformIO $ do
-    outWPtr <- mallocForeignPtrArray len
-    outMPtr <- mallocForeignPtrArray len
-    outVPtr <- mallocForeignPtrArray len
     let (wPtr, _) = U.unsafeToForeignPtr0 weights
     let (gPtr, _) = U.unsafeToForeignPtr0 gradient
     let (mPtr, _) = U.unsafeToForeignPtr0 m
@@ -256,10 +278,8 @@ descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v
       withForeignPtr gPtr $ \gPtr' ->
         withForeignPtr mPtr $ \mPtr' ->
           withForeignPtr vPtr $ \vPtr' ->
-            withForeignPtr outWPtr $ \outWPtr' ->
-              withForeignPtr outMPtr $ \outMPtr' ->
-                withForeignPtr outVPtr $ \outVPtr' -> descend_adam_cpu len step alpha beta1 beta2 epsilon lambda wPtr' gPtr' mPtr' vPtr' outWPtr' outMPtr' outVPtr'
-    return (U.unsafeFromForeignPtr0 outWPtr len, U.unsafeFromForeignPtr0 outMPtr len, U.unsafeFromForeignPtr0 outVPtr len)
+            descend_adam_cpu len step alpha beta1 beta2 epsilon lambda wPtr' gPtr' mPtr' vPtr'
+    return (U.unsafeFromForeignPtr0 wPtr len, U.unsafeFromForeignPtr0 mPtr len, U.unsafeFromForeignPtr0 vPtr len)
 
 
 foreign import ccall unsafe
@@ -268,4 +288,4 @@ foreign import ccall unsafe
 
 foreign import ccall unsafe
     descend_adam_cpu
-      :: Int -> Int -> RealNum -> RealNum -> RealNum -> RealNum -> RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> IO ()
+      :: Int -> Int -> RealNum -> RealNum -> RealNum -> RealNum -> RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> Ptr RealNum -> IO ()

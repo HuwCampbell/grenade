@@ -32,7 +32,6 @@ import qualified Data.Vector.Storable           as U (unsafeFromForeignPtr0,
                                                       unsafeToForeignPtr0)
 import           Foreign.ForeignPtr             (withForeignPtr)
 import           GHC.Generics                   (Generic)
-import           GHC.IO.Handle.Text             (memcpy)
 import           GHC.TypeLits
 import           System.Random.MWC              hiding (create)
 #if MIN_VERSION_singletons(2,6,0)
@@ -53,14 +52,14 @@ import           System.IO.Unsafe               (unsafePerformIO)
 import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
-import           Grenade.Layers.Internal.CBLAS  as B
+import           Grenade.Layers.Internal.CBLAS
 import           Grenade.Layers.Internal.Update
 import           Grenade.Types
 import           Grenade.Utils.LinearAlgebra
 import           Grenade.Utils.ListStore
 
-import           Debug.Trace
 
+import           Debug.Trace
 
 -- | A basic fully connected (or inner product) neural network layer.
 data FullyConnected i o = FullyConnected
@@ -118,6 +117,17 @@ instance (KnownNat i, KnownNat o, KnownNat (i * o)) => UpdateLayer (FullyConnect
           descendMatrix opt (MatrixValuesAdam (getStep store) oldActivations activationGradient oldMActivations oldVActivations)
         newStore = setData opt x store [FullyConnectedHMatrix newMBias newMActivations, FullyConnectedHMatrix newVBias newVActivations]
      in FullyConnected (FullyConnectedHMatrix newBias newActivations) newStore tmpVecs
+  runUpdate opt@OptSGD {} x@(FullyConnected (FullyConnectedCBLAS oldBiasH oldActivationsH) store tmpVecs) (FullyConnectedCBLAS biasGradient activationGradient) =
+      let oldBias = oldBiasH
+          oldActivations = oldActivationsH
+          (oldMBias, oldMActivations) = case getData opt x store of -- In the first periods until the store is filled newData is called, which will generate FullyConnectedHMatrix instances!
+            FullyConnectedCBLAS oldMBias' oldMActivations' -> (oldMBias', oldMActivations')
+            FullyConnectedHMatrix oldMBias' oldMActivations' -> (extract oldMBias', extractM oldMActivations')
+          VectorResultSGDV newBias newMBias               = descendVectorV opt (VectorValuesSGDV oldBias biasGradient oldMBias)
+          MatrixResultSGDV newActivations newMActivations = descendMatrixV opt (MatrixValuesSGDV oldActivations activationGradient oldMActivations)
+          newStore = setData opt x store (FullyConnectedCBLAS newMBias newMActivations)
+      in FullyConnected (FullyConnectedCBLAS newBias newActivations) newStore tmpVecs
+    where extractM = V.concat . map extract . toColumns
   runUpdate opt@OptAdam {} x@(FullyConnected (FullyConnectedCBLAS oldBiasH oldActivationsH) store tmpVecs) (FullyConnectedCBLAS biasGradient activationGradient) =
       let oldBias = oldBiasH
           oldActivations = oldActivationsH
@@ -126,13 +136,12 @@ instance (KnownNat i, KnownNat o, KnownNat (i * o)) => UpdateLayer (FullyConnect
             [FullyConnectedHMatrix oldMBias' oldMActivations', FullyConnectedHMatrix oldVBias' oldVActivations'] -> (extract oldMBias', extractM oldMActivations', extract oldVBias', extractM oldVActivations')
             [FullyConnectedCBLAS oldMBias' oldMActivations', FullyConnectedHMatrix oldVBias' oldVActivations'] -> (oldMBias', oldMActivations', extract oldVBias', extractM oldVActivations')
             xs -> error $ "unexpected data in ListStore in FullyConnected CBLAS implementation: " ++ show xs
-          VectorResultAdamV newBias newMBias newVBias = descendVectorV opt (VectorValuesAdamV (getStep store) oldBias biasGradient oldMBias oldVBias)
-          MatrixResultAdamV newActivations newMActivations newVActivations =
-            descendMatrixV opt (MatrixValuesAdamV (getStep store) oldActivations activationGradient oldMActivations oldVActivations)
+          VectorResultAdamV newBias newMBias newVBias                      = descendVectorV opt (VectorValuesAdamV (getStep store) oldBias biasGradient oldMBias oldVBias)
+          MatrixResultAdamV newActivations newMActivations newVActivations = descendMatrixV opt (MatrixValuesAdamV (getStep store) oldActivations activationGradient oldMActivations oldVActivations)
           newStore = setData opt x store [FullyConnectedCBLAS newMBias newMActivations, FullyConnectedCBLAS newVBias newVActivations]
       in FullyConnected (FullyConnectedCBLAS newBias newActivations) newStore tmpVecs
     where extractM = V.concat . map extract . toColumns
-  runUpdate OptSGD{} (FullyConnected FullyConnectedHMatrix{} _ _) _ = error "CBLAS is only implemented for OptAdam in runUpdate for FullyConnected layer"
+  runUpdate opt (FullyConnected layer _ _) _ = error $ "Unexpected input in runUpdate in FullyConnected layer. Optimizer" ++ show opt ++ ". Layer: " ++ show layer
 
 instance (KnownNat i, KnownNat o, KnownNat (i * o)) => LayerOptimizerData (FullyConnected i o) (Optimizer 'SGD) where
   type MomentumDataType (FullyConnected i o) (Optimizer 'SGD) = FullyConnected' i o
@@ -155,92 +164,37 @@ instance (KnownNat i, KnownNat o) => FoldableGradient (FullyConnected' i o) wher
   squaredSums (FullyConnectedCBLAS bias activations) = [V.sum . V.map (^(2::Int)) $ bias, V.sum . V.map (^(2::Int)) $ activations]
 
 
--- | Memory copy a vector from one to the other.
-unsafeMemCopyVectorFromTo :: V.Vector RealNum -> V.Vector RealNum -> V.Vector RealNum
-unsafeMemCopyVectorFromTo from to =
-    unsafePerformIO $ do
-      let (fromPtr, _) = U.unsafeToForeignPtr0 from
-          (toPtr, _) = U.unsafeToForeignPtr0 to
-      withForeignPtr fromPtr $ \fromPtr' ->
-       withForeignPtr toPtr $ \toPtr' -> do
-        void $ memcpy toPtr' fromPtr' (fromIntegral $ sizeOf (V.head from) * V.length to)
-        return $ U.unsafeFromForeignPtr0 toPtr (V.length to)
-
-
--- | Computes vec2 = mat * vec1 + beta * vec2.
-matXVec :: BlasTranspose -> V.Vector RealNum -> V.Vector RealNum -> RealNum -> V.Vector RealNum -> V.Vector RealNum
-matXVec trMat mat vec1 beta vec2 =
-  -- dgemmUnsafe trMat BlasNoTranspose (m, k) (ay, 1) 1.0 mat vec1 beta vec2
-  dgemvUnsafe trMat (m, k) 1.0 mat vec1 beta vec2
-  where
-    ay = V.length vec1
-    ax = V.length vec2
-      -- | V.length mat `mod` ay /= 0 = error $ "matXVec input dimensions do not match: " ++ show (V.length mat) ++ " `mod` " ++ show ay ++ " /= 0"
-      -- | otherwise = V.length mat `div` ay
-    (m, k) = swapTranspose trMat (ax, ay)
-
-
--- | Outer product of two vectors.
-outerV :: V.Vector RealNum -> V.Vector RealNum -> V.Vector RealNum -> V.Vector RealNum
-outerV vec1 vec2 mat =
-  -- dgemmUnsafe BlasRowMajor B.BlasNoTranspose B.BlasNoTranspose (o, 1) (1, i) (o, i) 1.0 vec1 LDNormal vec2 LDNormal 0 mat LDNormal `seq` mat
-  dgerUnsafe (o, i) 1.0 vec1 vec2 mat
-  where o = V.length vec1
-        i = V.length vec2
-
--- checkVecs :: V.Vector RealNum -> V.Vector RealNum -> Bool
--- checkVecs v1 v2 = V.length v1 == V.length v2 && and (zipWith (==) (toStr v1) (toStr v2))
---   where
---     toStr :: V.Vector RealNum -> [String]
---     toStr v = map show $ map (round . (*10^5)) $ V.toList v
-
-
-runForward :: forall i o . (KnownNat i, KnownNat o) => FullyConnected i o -> S (D1 i) -> (Tape (FullyConnected i o) ('D1 i) ('D1 o), S ('D1 o))
-runForward (FullyConnected (FullyConnectedHMatrix wB wN) _ _) (S1D v) = (extract v, S1D (wB + wN #> v))
-runForward (FullyConnected (FullyConnectedHMatrix wB wN) _ _) (S1DV v) = error "unexpected mixing of CBLAS and HMatrix in FullyConnected"
-runForward lay@(FullyConnected FullyConnectedCBLAS{} _ _) (S1D v) = runForward lay (S1DV $ extract v)
+runForward :: forall i o. (KnownNat i, KnownNat o) => FullyConnected i o -> S ('D1 i) -> (Tape (FullyConnected i o) ('D1 i) ('D1 o), S ('D1 o))
+runForward (FullyConnected (FullyConnectedHMatrix wB wN) _ _) (S1D v) = (S1D v, S1D (wB + wN #> v))
 runForward (FullyConnected (FullyConnectedCBLAS wB wN) _ (TempVectors _ wBTmp _)) (S1DV v) =
-
-    let !out' = matXVec BlasNoTranspose wN v 1.0 (unsafeMemCopyVectorFromTo wB wBTmp)
-        o = V.length wB
-        i = V.length wN `div` o
-        -- check = extract ((vector (V.toList wB) :: R o) + (matrix (V.toList wN) :: L o i) #> (vector (V.toList v) :: R i))
-    in -- (if checkVecs check out' then trace ("chk: " ++ show check) trace ("wN:  " ++ show wN) trace ("v:   " ++ show v) trace ("wB:  " ++ show wB) id else trace (show check) trace (show out) undefined )
-      force (v, S1DV out')
+  let !out' = matXVec BlasNoTranspose wN v 1.0 (unsafeMemCopyVectorFromTo wB wBTmp)
+   in (S1DV v, S1DV out')
+runForward lay@(FullyConnected (FullyConnectedHMatrix _ _) _ _) v@S1DV{} = runForward lay (toS1D v)
+runForward lay@(FullyConnected FullyConnectedCBLAS{} _ _) v@S1D{} = runForward lay (fromS1D v)
 
 
 runBackward :: forall i o . (KnownNat i, KnownNat o) => FullyConnected i o -> Tape (FullyConnected i o) ('D1 i) ('D1 o) -> S ('D1 o) -> (Gradient (FullyConnected i o), S ('D1 i))
-runBackward (FullyConnected (FullyConnectedHMatrix _ wN) _ _) x (S1D dEdy) =
+runBackward (FullyConnected (FullyConnectedHMatrix _ wN) _ _) (S1D x) (S1D dEdy) =
   let wB' = dEdy
-      mm' = dEdy `outer` vector (V.toList x)
-              -- calcluate derivatives for next step
+      mm' = dEdy `outer` x
+            -- calcluate derivatives for next step
       dWs = tr wN #> dEdy
    in (FullyConnectedHMatrix wB' mm', S1D dWs)
-runBackward (FullyConnected (FullyConnectedHMatrix _ wN) _ _) x (S1DV dEdy) = error "unexpected mixing of CBLAS and HMatrix types in FullyConnected"
-runBackward lay@(FullyConnected FullyConnectedCBLAS{} _ _) x (S1D dEdy) = runBackward lay x (S1DV $ extract dEdy)
-runBackward (FullyConnected (FullyConnectedCBLAS _ wN) _ (TempVectors wIn _ wNTmp)) x (S1DV dEdy) =
-
-  let
-      mm' = outerV dEdy x wNTmp -- dgemmUnsafe BlasRowMajor B.BlasNoTranspose B.BlasNoTranspose (o, 1) (1, i) (o, i) 1.0 dEdy (LDCustom 1) x (LDCustom i) 0.0 mm (LDCustom i)
-      -- mmCheck  = V.concat $ map (V.map realToFrac . extract) $ toRows $ ((vector (V.toList dEdy) :: R o) `outer` (vector (V.toList x) :: R i) :: L o i)
-      -- mm = V.replicate (i*o) 0 :: V.Vector RealNum
-
-    -- moments
-      -- dWs' = matXVec' BlasTranspose wN BlasNoTranspose dEdy Nothing -- dgemmUnsafe BlasRowMajor B.BlasTranspose B.BlasNoTranspose (o, i) (o, 1) (i, 1) 1.0 wN LDNormal dEdy LDNormal 0.0 dWs LDNormal
-      dWs' = matXVec BlasTranspose wN dEdy 0 wIn -- dgemmUnsafe BlasRowMajor B.BlasTranspose B.BlasNoTranspose (o, i) (o, 1) (i, 1) 1.0 wN LDNormal dEdy LDNormal 0.0 dWs LDNormal
-      i = V.length wIn
-      o = V.length wN `div` i
-
-
-      -- dWs =  V.replicate i 0 :: V.Vector RealNum
-      -- mmCheck2  = extract ((tr (matrix $ V.toList wN) :: L i o) #> (vector (V.toList dEdy) :: R o) :: R i) :: V.Vector RealNum
-      --  check = extract $ ((matrix (V.toList wN) :: L o i) #> (vector (V.toList v) :: R i))
-  in -- (if checkVecs mm' mmCheck then id else trace ("dEdy: " ++ show dEdy) trace ("x: " ++ show x) trace ("mm : " ++ show mm) trace ("dEdy R o: " ++ show (vector (V.toList dEdy) :: R o)) trace ("x R i: " ++ show (vector (V.toList x) :: R i) ) undefined)
+runBackward (FullyConnected (FullyConnectedCBLAS _ wN) _ (TempVectors wIn _ wNTmp)) (S1DV x) (S1DV dEdy) =
+  let mm' = outerV dEdy x wNTmp
+      dWs' = matXVec BlasTranspose wN dEdy 0 wIn
+      -- i = V.length wIn
+      -- o = V.length dEdy
+      -- S2DV mmCheck  = fromS2D $ S2D ((vector (V.toList dEdy) :: R o) `outer` (vector (V.toList x) :: R i) :: L o i)
+   in
+    -- (if checkVectors mm' mmCheck then id else trace ("dEdy: " ++ show dEdy) trace ("x: " ++ show x) trace ("mmCheck : " ++ show mmCheck) trace ("mm' : " ++ show mm') undefined)
      -- (if checkVecs dWs' mmCheck2 then id else trace ("wN': " ++ show wN) trace ("dEdy : " ++ show dEdy) trace ("dWs:   " ++ show dWs) trace ("\nL i o: " ++ show (tr (matrix $ V.toList wN) :: L i o)) trace ("R o: " ++ show (vector (V.toList dEdy) :: R o)) undefined)
-     force (FullyConnectedCBLAS dEdy mm', S1DV dWs')
+    (FullyConnectedCBLAS dEdy mm', S1DV dWs')
+runBackward l x dEdy = runBackward l x (toLayerShape x dEdy)
+
 
 instance (KnownNat i, KnownNat o, KnownNat (i * o)) => Layer (FullyConnected i o) ('D1 i) ('D1 o) where
-  type Tape (FullyConnected i o) ('D1 i) ('D1 o) = V.Vector RealNum
+  type Tape (FullyConnected i o) ('D1 i) ('D1 o) = S ('D1 i) -- V.Vector RealNum
   runForwards = runForward   -- Do a matrix vector multiplication and return the result.
   runBackwards = runBackward -- Run a backpropogation step for a full connected layer.
 

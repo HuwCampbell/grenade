@@ -23,10 +23,12 @@ module Grenade.Layers.Relu (
   , relu
   ) where
 
+import           Control.Concurrent.MVar
 import           Control.DeepSeq                (NFData (..), force)
 import           Control.Monad.ST.Safe          (ST)
 import           Control.Parallel.Strategies
 import           Data.Constraint                (Dict (..))
+import qualified Data.Map.Strict                as M
 import           Data.Reflection                (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
@@ -42,6 +44,7 @@ import           Unsafe.Coerce                  (unsafeCoerce)
 import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
+import           Grenade.Layers.Internal.CBLAS
 import           Grenade.Types
 import           Grenade.Utils.Vector
 
@@ -64,29 +67,20 @@ instance Serialize Relu where
   put _ = return ()
   get = return Relu
 
-
 -- Run forward 1D
 runForward1D :: (KnownNat i) => Relu -> S ('D1 i) -> (Tape Relu ('D1 i) ('D1 i), S ('D1 i))
 runForward1D _ (S1D y) = (S1D y, S1D (relu y))
     where
       relu = LAS.dvmap (\a -> if a <= 0 then 0 else a)
-runForward1D _ (S1DV y) = force (S1DV y, S1DV (parMapVector relu y))
-  where
-    relu a
-      | a <= 0 = 0
-      | otherwise = a
-
+runForward1D _ (S1DV y) = (S1DV y, S1DV $ parMapVectorC c_relu y) -- y will be replaced, which however still leads to a correct implementation!
 
 -- Run backward 1D
 runBackward1D :: (KnownNat i) => Relu -> S ('D1 i) -> S ('D1 i) -> (Gradient Relu, S ('D1 i))
 runBackward1D _ (S1D y) (S1D dEdy) = ((), S1D (relu' y * dEdy))
     where
       relu' = LAS.dvmap (\a -> if a <= 0 then 0 else 1)
-runBackward1D _ (S1DV y) (S1DV dEdy) = ((), S1DV (relu' y * dEdy))
-    where
-      relu' vec = parMapVector (\a -> if a <= 0 then 0 else 1) vec
-runBackward1D x y@S1DV{} (S1D dEdy) = runBackward1D x y (S1DV $ LAS.extract dEdy)
-runBackward1D x (S1D y) dEdy@S1DV{} = runBackward1D x (S1DV $ LAS.extract y) dEdy
+runBackward1D _ (S1DV y) (S1DV dEdy) = ((), S1DV $ parZipWithVectorReplSndC c_relu_dif_fast y dEdy)
+runBackward1D l y dEdy = runBackward1D l y (toLayerShape y dEdy)
 
 
 instance (KnownNat i) => Layer Relu ('D1 i) ('D1 i) where
@@ -94,21 +88,22 @@ instance (KnownNat i) => Layer Relu ('D1 i) ('D1 i) where
   runForwards = runForward1D
   runBackwards = runBackward1D
 
+
+runBackward2D :: (KnownNat i, KnownNat j) => Relu -> S ('D2 i j) -> S ('D2 i j) -> (Gradient Relu, S ('D2 i j))
+runBackward2D _ (S2D y) (S2D dEdy) = ((), S2D (relu' y * dEdy))
+    where
+      relu' = LAS.dmmap (\a -> if a <= 0 then 0 else 1)
+runBackward2D _ (S2DV y) (S2DV dEdy) = ((), S2DV $ parZipWithVectorReplSndC c_relu_dif_fast y dEdy)
+runBackward2D l y dEdy = runBackward2D l y (toLayerShape y dEdy)
+
 instance (KnownNat i, KnownNat j) => Layer Relu ('D2 i j) ('D2 i j) where
   type Tape Relu ('D2 i j) ('D2 i j) = S ('D2 i j)
 
   runForwards _ (S2D y) = (S2D y, S2D (relu y))
     where
       relu = LAS.dmmap (\a -> if a <= 0 then 0 else a)
-  runForwards _ (S2DV y) = (S2DV y, S2DV (relu y))
-    where
-      relu = parMapVector (\a -> if a <= 0 then 0 else a)
-  runBackwards _ (S2D y) (S2D dEdy) = ((), S2D (relu' y * dEdy))
-    where
-      relu' = LAS.dmmap (\a -> if a <= 0 then 0 else 1)
-  runBackwards _ (S2DV y) (S2DV dEdy) = ((), S2DV (relu' y * dEdy))
-    where
-      relu' = parMapVector (\a -> if a <= 0 then 0 else 1)
+  runForwards _ (S2DV y) = (S2DV y, S2DV $ parMapVectorC c_relu y) -- This replaces the y vector, but that doesn't harm the updatesx
+  runBackwards = runBackward2D
 
 instance (KnownNat i, KnownNat j, KnownNat k) => Layer Relu ('D3 i j k) ('D3 i j k) where
 

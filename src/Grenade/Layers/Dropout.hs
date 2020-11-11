@@ -30,7 +30,6 @@ import qualified Data.Word                      as W
 import           GHC.Generics                   hiding (R)
 import           GHC.TypeLits
 import           Numeric.LinearAlgebra.Static   hiding (Seed)
-import           System.Random
 import           System.Random.MWC              hiding (create)
 
 import           Grenade.Core
@@ -86,7 +85,8 @@ instance (KnownNat pct, KnownNat i) => Layer (Dropout pct) ('D1 i) ('D1 i) where
       rate :: RealNum
       rate = (/100) $ fromIntegral $ max 0 $ min 100 $ natVal (Proxy :: Proxy pct)
       v :: V.Vector RealNum
-      v = parMapVector mask $ V.fromList $ take (V.length x) $ randomRs (0,1) (mkStdGen seed)
+      v = parMapVector mask $ extract (randomVector seed Uniform :: R i)
+      -- v = parMapVector mask $ V.fromList $ take (V.length x) $ randomRs (0,1) (mkStdGen seed)
       mask r
         | not act || r < rate = 1
         | otherwise = 0

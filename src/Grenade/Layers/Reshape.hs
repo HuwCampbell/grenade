@@ -51,6 +51,7 @@ import           Unsafe.Coerce                  (unsafeCoerce)
 import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
+import           Grenade.Layers.Internal.CBLAS
 import           Grenade.Layers.Trivial
 
 -- | Reshape Layer
@@ -74,9 +75,9 @@ instance RandomLayer Reshape where
 instance (KnownNat a, KnownNat x, KnownNat y, a ~ (x * y)) => Layer Reshape ('D2 x y) ('D1 a) where
   type Tape Reshape ('D2 x y) ('D1 a) = ()
   runForwards _ (S2D y)  =  ((), fromJust' . fromStorable . flatten . extract $ y)
-  runForwards _ (S2DV y) = ((), S1DV y)
+  runForwards _ x@S2DV{} = ((), S1DV $ toRowMajorVector x)
   runBackwards _ _ (S1D y)  = ((), fromJust' . fromStorable . extract $ y)
-  runBackwards _ _ (S1DV y) = ((), S2DV y)
+  runBackwards _ _ (S1DV y) = ((), fromRowMajorVector y)
 
 instance (KnownNat a, KnownNat x, KnownNat y, KnownNat (x * z), KnownNat z, a ~ (x * y * z)) => Layer Reshape ('D3 x y z) ('D1 a) where
   type Tape Reshape ('D3 x y z) ('D1 a) = ()
@@ -99,9 +100,9 @@ instance (KnownNat y, KnownNat x, KnownNat z, z ~ 1) => Layer Reshape ('D2 x y) 
 instance (KnownNat a, KnownNat x, KnownNat y, a ~ (x * y)) => Layer Reshape ('D1 a) ('D2 x y) where
   type Tape Reshape ('D1 a) ('D2 x y) = ()
   runForwards _ (S1D y)  =  ((), fromJust' . fromStorable . extract $ y)
-  runForwards _ (S1DV y) =  ((), S2DV y)
+  runForwards _ (S1DV y) =  ((), fromRowMajorVector y)
   runBackwards _ _ (S2D y)  = ((), fromJust' . fromStorable . flatten . extract $ y)
-  runBackwards _ _ (S2DV y) = ((), S1DV y)
+  runBackwards _ _ y@S2DV{} = ((), S1DV $ toRowMajorVector y)
 
 instance (KnownNat a, KnownNat x, KnownNat y, KnownNat (x * z), KnownNat z, a ~ (x * y * z)) => Layer Reshape ('D1 a) ('D3 x y z) where
   type Tape Reshape ('D1 a) ('D3 x y z) = ()

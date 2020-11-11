@@ -15,6 +15,7 @@ extra-source-files:
 - cbits/pad.h
 - cbits/pad.c
 - cbits/type.h
+- cbits/util.c
 
 # Metadata used when publishing your package
 synopsis:            Practical Deep Learning in Haskell
@@ -71,7 +72,6 @@ dependencies:
   - binary                          >= 0.8
   - mtl
   - parallel
-  - random
 when:
   condition: flag(use-float)
   then:
@@ -122,6 +122,7 @@ library:
     - cbits/im2col.c
     - cbits/gradient_descent.c
     - cbits/pad.c
+    - cbits/util.c
   cc-options: -std=c99 -O3 -msse4.2 -Wall -Werror -DCABAL=1 -fopenmp
 
 tests:
