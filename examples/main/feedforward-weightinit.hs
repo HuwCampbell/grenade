@@ -22,7 +22,7 @@ import           Unsafe.Coerce                   (unsafeCoerce)
 
 import           Grenade
 
-#define HMATRIX 0
+#define HMATRIX 1
 
 
 -- netSpec :: SpecNet
