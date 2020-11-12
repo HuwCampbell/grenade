@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
@@ -28,7 +29,6 @@ module Grenade.Layers.Internal.CBLAS
     , dgerUnsafe
     ) where
 
-
 import           Control.Monad
 import           Data.Maybe                   (fromMaybe)
 import qualified Data.Vector.Storable         as V
@@ -49,6 +49,10 @@ import           Grenade.Types
 
 import           Debug.Trace
 
+-- DGEMM seems to be a little faster, and CBLAS has some overhead. So we aim for implementing all operations with DGEMM and use the direct calls to BLAS
+#define USE_DGEMM_ONLY 1
+#define USE_CBLAS 0
+
 
 -- | Memory copy a vector from one to the other.
 unsafeMemCopyVectorFromTo :: V.Vector RealNum -> V.Vector RealNum -> V.Vector RealNum
@@ -60,6 +64,7 @@ unsafeMemCopyVectorFromTo from to =
        withForeignPtr toPtr $ \toPtr' -> do
         void $ memcpy toPtr' fromPtr' (fromIntegral $ sizeOf (V.head from) * V.length to)
         return $ U.unsafeFromForeignPtr0 toPtr (V.length to)
+
 
 -- | Write zero to all elements in a vector.
 unsafeMemZero :: V.Vector RealNum -> V.Vector RealNum
@@ -75,22 +80,32 @@ foreign import ccall unsafe "string.h" memset  :: Ptr a -> CInt  -> CSize -> IO 
 -- | Computes vec2 <- mat * vec1 + beta * vec2.
 matXVec :: BlasTranspose -> V.Vector RealNum -> V.Vector RealNum -> RealNum -> V.Vector RealNum -> V.Vector RealNum
 matXVec trMat mat vec1 beta vec2 =
-  -- dgemmUnsafe trMat BlasNoTranspose (m, k) (ay, 1) 1.0 mat vec1 beta vec2
+#if USE_DGEMM_ONLY
+  dgemmUnsafe trMat BlasNoTranspose (m, k) (ay, 1) 1.0 mat vec1 beta vec2
+# else
   dgemvUnsafe trMat (m, k) 1.0 mat vec1 beta vec2
+#endif
   where
     ay = V.length vec1
     ax = V.length vec2
     (m, k) = swapTranspose trMat (ax, ay)
+{-# INLINE matXVec #-}
 
 
 -- | Computes the outer product of two vectors: mat <- vec1 `outer` vec2
 outerV :: V.Vector RealNum -> V.Vector RealNum -> V.Vector RealNum -> V.Vector RealNum
 outerV vec1 vec2 mat =
-  -- dgemmUnsafe BlasNoTranspose BlasNoTranspose (o, 1) (1, i) 1.0 vec1 vec2 0 mat
-  dgerUnsafe (o, i) 1.0 vec1 vec2 (unsafeMemZero mat) -- (V.modify (`VM.set` 0) mat)
+#if USE_DGEMM_ONLY
+  dgemmUnsafe BlasNoTranspose BlasNoTranspose (o, 1) (1, i) 1.0 vec1 vec2 0 mat -- beta = 0 initialises the matrix
+#else
+  dgerUnsafe (o, i) 1.0 vec1 vec2 (unsafeMemZero mat)
+#endif
   where o = V.length vec1
         i = V.length vec2
+{-# INLINE outerV #-}
 
+
+-- | Check two vectors if they are equal. For testing purposes.
 checkVectors :: V.Vector RealNum -> V.Vector RealNum -> Bool
 checkVectors v1 v2 = V.length v1 == V.length v2 && and (zipWith (==) (toStr v1) (toStr v2))
   where
@@ -103,15 +118,22 @@ newtype CBLAS_ORDERT =
   CBOInt CInt
   deriving (Eq, Show)
 
+
 -- | Row or Colum major. CblasRowMajor CblasColMajor
 data BlasOrder
   = BlasRowMajor
   | BlasColMajor
   deriving (Eq, Show)
 
+
 -- | Column major seems to be a little faster (which makes sense as BLAS is in column major mode and CBLAS does not need change anything).
 order :: BlasOrder
+#if USE_CBLAS
 order = BlasColMajor -- BlasRowMajor
+#else
+order = BlasColMajor -- no choice, must use ColMajor!
+#endif
+
 
 -- | Used to generate the Order (Row/Colummajor) CINT value.
 encodeOrder :: BlasOrder -> CBLAS_ORDERT
@@ -184,6 +206,19 @@ encodeTranspose BlasTranspose       = CBLAS_TransposeT 112
 encodeTranspose BlasConjTranspose   = CBLAS_TransposeT 113
 encodeTranspose BlasConjNoTranspose = CBLAS_TransposeT 114
 
+-- | Used to make the tranpose CINT value
+encodeTransposeChar :: BlasTranspose -> CChar
+encodeTransposeChar BlasNoTranspose     = CChar 78 -- 'N'
+encodeTransposeChar BlasTranspose       = CChar 84 -- 'T'
+encodeTransposeChar BlasConjTranspose   = CChar 84 -- 'T'
+encodeTransposeChar BlasConjNoTranspose = CChar 78 -- 'N'
+
+encodeTransposeIntBool :: BlasTranspose -> Int
+encodeTransposeIntBool BlasNoTranspose     = 0
+encodeTransposeIntBool BlasTranspose       = 1
+encodeTransposeIntBool BlasConjTranspose   = 1
+encodeTransposeIntBool BlasConjNoTranspose = 0
+
 
 swapTranspose :: BlasTranspose -> (Int, Int) -> (Int, Int)
 swapTranspose BlasNoTranspose x        = x
@@ -240,6 +275,7 @@ dgemmUnsafe trA trB (axIn, ayIn) (bxIn, byIn) alpha matrixA matrixB beta matrixC
       withForeignPtr aPtr $ \aPtr' ->
         withForeignPtr bPtr $ \bPtr' ->
           withForeignPtr cPtr $ \cPtr' -> do
+#if USE_CBLAS
             cblas_dgemm
               (encodeOrder order)   -- order
               (encodeTranspose trA) -- transpose A
@@ -255,6 +291,22 @@ dgemmUnsafe trA trB (axIn, ayIn) (bxIn, byIn) alpha matrixA matrixB beta matrixC
               beta
               cPtr'
               (ldOrder order (ax, by))   -- LDC
+#else
+            dgemm_direct
+              (encodeTransposeIntBool trA) -- transpose A
+              (encodeTransposeIntBool trB) -- transpose B
+              (fromIntegral ax)     -- rows of C = rows of A transposed
+              (fromIntegral by)     -- cols of C = cols of B transposed
+              (fromIntegral ay)     -- k = cols of A transposed = rows of B transposed
+              alpha
+              aPtr'
+              (ldOrder order (axIn, ayIn)) -- LDA
+              bPtr'
+              (ldOrder order (bxIn, byIn)) -- LDB
+              beta
+              cPtr'
+              (ldOrder order (ax, by))   -- LDC
+#endif
             return $ U.unsafeFromForeignPtr0 cPtr (ax * by)
   where
     (ax, ay) = swapTranspose trA (axIn, ayIn)
@@ -302,6 +354,7 @@ dgemvUnsafe trA (m, k) alpha matrixA vecX beta vecY
       withForeignPtr aPtr $ \aPtr' ->
         withForeignPtr xPtr $ \xPtr' ->
           withForeignPtr yPtr $ \yPtr' -> do
+#if USE_CBLAS
             cblas_dgemv
               (encodeOrder order) -- order is always column major!
               (encodeTranspose trA)      -- transpose A
@@ -315,7 +368,21 @@ dgemvUnsafe trA (m, k) alpha matrixA vecX beta vecY
               beta
               yPtr'
               1
+#else
+            dgemv_direct
+              (encodeTransposeIntBool trA)      -- transpose A
+              (fromIntegral m)
+              (fromIntegral k)
+              alpha
+              aPtr'
+              (ldOrder order (m, k))
+              xPtr'
+              1
+              beta
+              yPtr'
+              1
             return $ U.unsafeFromForeignPtr0 yPtr ax
+#endif
   where
     (ax, ay) = swapTranspose trA (m, k)
 
@@ -358,6 +425,7 @@ dgerUnsafe (ax, ay) alpha vecX vecY matrixA
       withForeignPtr aPtr $ \aPtr' ->
         withForeignPtr xPtr $ \xPtr' ->
           withForeignPtr yPtr $ \yPtr' -> do
+#if USE_CBLAS
             cblas_dger
               (encodeOrder order)
               (fromIntegral ax)
@@ -369,6 +437,18 @@ dgerUnsafe (ax, ay) alpha vecX vecY matrixA
               1
               aPtr'
               (ldOrder order (ax, ay))
+#else
+            dger_direct
+              (fromIntegral ax)
+              (fromIntegral ay)
+              alpha
+              xPtr'
+              1
+              yPtr'
+              1
+              aPtr'
+              (ldOrder order (ax, ay))
+#endif
             return $ U.unsafeFromForeignPtr0 aPtr (V.length matrixA)
   where
     len = V.length vecX
@@ -396,22 +476,38 @@ foreign import ccall unsafe "cblas_dgemm"
 
 -- |  Matrix mult for general dense matrices
 type BLASGemmFunFFI scale el
-  =  CBLAS_TRANSPOSET
-  -> CBLAS_TRANSPOSET
+  =  Int -- transpose A: 1, not transpose A: 0
+  -> Int -- transpose B: 1, not transpose B: 0
+  -> CInt -- m
+  -> CInt -- n
+  -> CInt -- k
+  -> {- scal A * B -} scale  -- alpha
+  -> {- Matrix A-} Ptr el    -- A
+  -> CInt                    -- LDA
+  -> {- B -} Ptr el
   -> CInt
-  -> CInt
-  -> CInt
-  -> {- scal A * B -} scale
-  -> {- Matrix A-} Ptr el
-  -> CInt -> {- B -} Ptr el
-  -> CInt
-  -> scale
+  -> scale                   -- beta
   -> {- C -}  Ptr el
   -> CInt
   -> IO ()
 
-foreign import ccall unsafe "dgemm"
-    dgemm :: BLASGemmFunFFI Double Double
+foreign import ccall unsafe "dgemm_direct"
+    dgemm_direct :: BLASGemmFunFFI Double Double
+
+
+              -- (encodeTransposeChar trA) -- transpose A
+              -- (encodeTransposeChar trB) -- transpose B
+              -- (fromIntegral ax)     -- rows of C = rows of A transposed
+              -- (fromIntegral by)     -- cols of C = cols of B transposed
+              -- (fromIntegral ay)     -- k = cols of A transposed = rows of B transposed
+              -- alpha
+              -- aPtr'
+              -- (ldOrder order (axIn, ayIn)) -- LDA
+              -- bPtr'
+              -- (ldOrder order (bxIn, byIn)) -- LDB
+              -- beta
+              -- cPtr'
+              -- (ldOrder order (ax, by))   -- LDC
 
 
 type GemvFunFFI sc el
@@ -433,6 +529,25 @@ foreign import ccall unsafe "cblas_dgemv"
     cblas_dgemv :: GemvFunFFI Double Double
 
 
+-- |  Matrix mult for general dense matrices
+type BLASGemvFunFFI scale el
+  =  Int -- transpose A: 1, not transpose A: 0
+  -> CInt -- m
+  -> CInt -- n
+  -> {- scal A * B -} scale  -- alpha
+  -> {- Matrix A-} Ptr el    -- A
+  -> CInt                    -- LDA
+  -> {- B -} Ptr el
+  -> CInt
+  -> scale                   -- beta
+  -> {- C -}  Ptr el
+  -> CInt
+  -> IO ()
+
+foreign import ccall unsafe "dgemv_direct"
+    dgemv_direct :: BLASGemvFunFFI Double Double
+
+
 type GerxFunFFI scale el
   =  CBLAS_ORDERT
   -> CInt
@@ -448,3 +563,19 @@ type GerxFunFFI scale el
 
 foreign import ccall unsafe "cblas_dger" cblas_dger ::
         GerxFunFFI Double Double
+
+
+type BlasGerxFunFFI scale el
+  =  CInt
+  -> CInt
+  -> scale
+  -> Ptr el
+  -> CInt
+  -> Ptr el
+  -> CInt
+  -> Ptr el
+  -> CInt
+  -> IO ()
+
+foreign import ccall unsafe "dger_direct" dger_direct ::
+        BlasGerxFunFFI Double Double

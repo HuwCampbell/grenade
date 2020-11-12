@@ -16,6 +16,7 @@ extra-source-files:
 - cbits/pad.c
 - cbits/type.h
 - cbits/util.c
+- cbits/blas.c
 
 # Metadata used when publishing your package
 synopsis:            Practical Deep Learning in Haskell
@@ -123,6 +124,7 @@ library:
     - cbits/gradient_descent.c
     - cbits/pad.c
     - cbits/util.c
+    - cbits/blas.c
   cc-options: -std=c99 -O3 -msse4.2 -Wall -Werror -DCABAL=1 -fopenmp
 
 tests:
