@@ -31,7 +31,7 @@ import           Data.Serialize
 import           Data.Singletons
 import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
-import           Grenade.Layers.Internal.CBLAS  (toLayerShape)
+import           Grenade.Layers.Internal.BLAS   (toLayerShape)
 import           Unsafe.Coerce                  (unsafeCoerce)
 
 import           Grenade.Core

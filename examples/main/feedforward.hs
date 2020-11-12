@@ -34,7 +34,7 @@ type FFNet = Network '[ FullyConnected 2 40, Tanh, FullyConnected 40 10, Relu, F
                      '[ 'D1 2, 'D1 40, 'D1 40, 'D1 10, 'D1 10, 'D1 1, 'D1 1]
 
 randomNet :: (MonadIO m) => m FFNet
-randomNet = randomNetworkInitWith (NetworkInitSettings UniformInit CBLAS)
+randomNet = randomNetworkInitWith (NetworkInitSettings UniformInit BLAS)
 
 netTrain :: FFNet -> Optimizer o -> Int -> IO FFNet
 netTrain net0 opt n = do

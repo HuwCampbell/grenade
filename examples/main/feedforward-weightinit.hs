@@ -162,7 +162,7 @@ main = do
   mapM_
     (\n -> do
        putStr $ "| " ++ show n ++ " | "
-       SpecConcreteNetwork1D1D (net0 :: Network layers shapes) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl CBLAS) netSpec
+       SpecConcreteNetwork1D1D (net0 :: Network layers shapes) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl BLAS) netSpec
       -- We need to specify the actual number of output nodes, as our functions requiere that!
        case (unsafeCoerce (Dict :: Dict ()) :: Dict (('D1 1) ~ Last shapes)) of
          Dict -> do

@@ -23,7 +23,7 @@ import           Grenade.Core.WeightInitialization
 -- | Defines the backend that is used for CPU vector/matrix computations.
 data CPUBackend
   = HMatrix -- ^ Using HMatrix package, which is the default implementation and uses BLAS/LAPACK, but is slow for larger matrices.
-  | CBLAS   -- ^ Directly using CBLAS/LAPACK.
+  | BLAS   -- ^ Directly using BLAS/LAPACK.
   deriving (Show, Eq, Ord, Enum, Bounded, NFData, Serialize, Generic)
 
 

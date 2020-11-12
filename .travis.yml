@@ -17,6 +17,10 @@ matrix:
     compiler: ": #stack default"
     addons: {apt: {packages: [ libblas3,liblapack3,liblapack-dev,libblas-dev,pkg-config,libatlas-base-dev ]}}
 
+  - env: BUILD=stack ARGS="--resolver lts-16.20 --ghc-options=-Werror"
+    compiler: ": #stack 8.8.4"
+    addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config,libatlas-base-dev ]}}
+
   - env: BUILD=stack ARGS="--resolver lts-16.20"
     compiler: ": #stack 8.8.4"
     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config,libatlas-base-dev ]}}
@@ -40,6 +44,7 @@ matrix:
   allow_failures:
   - env: BUILD=stack ARGS="--resolver nightly"
   - env: BUILD=stack ARGS="--resolver lts-14.27"
+  - env: BUILD=stack ARGS="--resolver lts-16.20 --ghc-options=-Werror"
 
 before_install:
  # Using compiler above sets CC to an invalid value, so unset it
@@ -89,7 +94,7 @@ script:
    set -ex
    # Run tests --ghc-options=-Werror
    # Werror on grenade only!
-   stack build grenade --no-terminal $ARGS --ghc-options=-Werror
+   stack build grenade --no-terminal $ARGS
    stack test --no-terminal $ARGS --ghc-options=-Wno-unused-imports
    stack test --no-terminal $ARGS --ghc-options=-Wno-unused-imports
    set +ex

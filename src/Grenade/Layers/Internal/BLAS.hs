@@ -6,7 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators       #-}
 
-module Grenade.Layers.Internal.CBLAS
+module Grenade.Layers.Internal.BLAS
     ( -- easy interface
       matXVec
     , outerV

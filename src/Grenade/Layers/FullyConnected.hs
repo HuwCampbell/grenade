@@ -51,7 +51,7 @@ import           System.IO.Unsafe               (unsafePerformIO)
 import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
-import           Grenade.Layers.Internal.CBLAS
+import           Grenade.Layers.Internal.BLAS
 import           Grenade.Layers.Internal.Update
 import           Grenade.Types
 import           Grenade.Utils.LinearAlgebra
@@ -86,18 +86,18 @@ data FullyConnected' i o
   = FullyConnectedHMatrix
       !(R o)   -- ^ Bias
       !(L o i) -- ^ Activations
-  | FullyConnectedCBLAS
+  | FullyConnectedBLAS
     !(V.Vector RealNum) -- ^ Bias, Temporary vector of same size
     !(V.Vector RealNum) -- ^ Activations
   deriving (Generic)
 
 instance Show (FullyConnected' i o) where
-  show FullyConnectedCBLAS{}   = "FullyConnectedCBLAS"
+  show FullyConnectedBLAS{}    = "FullyConnectedBLAS"
   show FullyConnectedHMatrix{} = "FullyConnectedHMatrix"
 
 instance NFData (FullyConnected' i o) where
   rnf (FullyConnectedHMatrix b w) = rnf b `seq` rnf w
-  rnf (FullyConnectedCBLAS !b !w) = rnf b `seq` rnf w
+  rnf (FullyConnectedBLAS !b !w)  = rnf b `seq` rnf w
 
 
 instance (KnownNat i, KnownNat o, KnownNat (i * o)) => UpdateLayer (FullyConnected i o) where
@@ -116,29 +116,29 @@ instance (KnownNat i, KnownNat o, KnownNat (i * o)) => UpdateLayer (FullyConnect
           descendMatrix opt (MatrixValuesAdam (getStep store) oldActivations activationGradient oldMActivations oldVActivations)
         newStore = setData opt x store [FullyConnectedHMatrix newMBias newMActivations, FullyConnectedHMatrix newVBias newVActivations]
      in FullyConnected (FullyConnectedHMatrix newBias newActivations) newStore tmpVecs
-  runUpdate opt@OptSGD {} x@(FullyConnected (FullyConnectedCBLAS oldBiasH oldActivationsH) store tmpVecs) (FullyConnectedCBLAS biasGradient activationGradient) =
+  runUpdate opt@OptSGD {} x@(FullyConnected (FullyConnectedBLAS oldBiasH oldActivationsH) store tmpVecs) (FullyConnectedBLAS biasGradient activationGradient) =
       let oldBias = oldBiasH
           oldActivations = oldActivationsH
           (oldMBias, oldMActivations) = case getData opt x store of -- In the first periods until the store is filled newData is called, which will generate FullyConnectedHMatrix instances!
-            FullyConnectedCBLAS oldMBias' oldMActivations' -> (oldMBias', oldMActivations')
+            FullyConnectedBLAS oldMBias' oldMActivations' -> (oldMBias', oldMActivations')
             FullyConnectedHMatrix oldMBias' oldMActivations' -> (extract oldMBias', extractM oldMActivations')
           VectorResultSGDV newBias newMBias               = descendVectorV opt (VectorValuesSGDV oldBias biasGradient oldMBias)
           MatrixResultSGDV newActivations newMActivations = descendMatrixV opt (MatrixValuesSGDV oldActivations activationGradient oldMActivations)
-          newStore = setData opt x store (FullyConnectedCBLAS newMBias newMActivations)
-      in FullyConnected (FullyConnectedCBLAS newBias newActivations) newStore tmpVecs
+          newStore = setData opt x store (FullyConnectedBLAS newMBias newMActivations)
+      in FullyConnected (FullyConnectedBLAS newBias newActivations) newStore tmpVecs
     where extractM = V.concat . map extract . toColumns
-  runUpdate opt@OptAdam {} x@(FullyConnected (FullyConnectedCBLAS oldBiasH oldActivationsH) store tmpVecs) (FullyConnectedCBLAS biasGradient activationGradient) =
+  runUpdate opt@OptAdam {} x@(FullyConnected (FullyConnectedBLAS oldBiasH oldActivationsH) store tmpVecs) (FullyConnectedBLAS biasGradient activationGradient) =
       let oldBias = oldBiasH
           oldActivations = oldActivationsH
           (oldMBias, oldMActivations, oldVBias, oldVActivations) = case getData opt x store of -- In the first periods until the store is filled newData is called, which will generate FullyConnectedHMatrix instances!
-            [FullyConnectedCBLAS oldMBias' oldMActivations', FullyConnectedCBLAS oldVBias' oldVActivations'] -> (oldMBias', oldMActivations', oldVBias', oldVActivations')
+            [FullyConnectedBLAS oldMBias' oldMActivations', FullyConnectedBLAS oldVBias' oldVActivations'] -> (oldMBias', oldMActivations', oldVBias', oldVActivations')
             [FullyConnectedHMatrix oldMBias' oldMActivations', FullyConnectedHMatrix oldVBias' oldVActivations'] -> (extract oldMBias', extractM oldMActivations', extract oldVBias', extractM oldVActivations')
-            [FullyConnectedCBLAS oldMBias' oldMActivations', FullyConnectedHMatrix oldVBias' oldVActivations'] -> (oldMBias', oldMActivations', extract oldVBias', extractM oldVActivations')
-            xs -> error $ "unexpected data in ListStore in FullyConnected CBLAS implementation: " ++ show xs
+            [FullyConnectedBLAS oldMBias' oldMActivations', FullyConnectedHMatrix oldVBias' oldVActivations'] -> (oldMBias', oldMActivations', extract oldVBias', extractM oldVActivations')
+            xs -> error $ "unexpected data in ListStore in FullyConnected BLAS implementation: " ++ show xs
           VectorResultAdamV newBias newMBias newVBias                      = descendVectorV opt (VectorValuesAdamV (getStep store) oldBias biasGradient oldMBias oldVBias)
           MatrixResultAdamV newActivations newMActivations newVActivations = descendMatrixV opt (MatrixValuesAdamV (getStep store) oldActivations activationGradient oldMActivations oldVActivations)
-          newStore = setData opt x store [FullyConnectedCBLAS newMBias newMActivations, FullyConnectedCBLAS newVBias newVActivations]
-      in FullyConnected (FullyConnectedCBLAS newBias newActivations) newStore tmpVecs
+          newStore = setData opt x store [FullyConnectedBLAS newMBias newMActivations, FullyConnectedBLAS newVBias newVActivations]
+      in FullyConnected (FullyConnectedBLAS newBias newActivations) newStore tmpVecs
     where extractM = V.concat . map extract . toColumns
   runUpdate opt (FullyConnected layer _ _) _ = error $ "Unexpected input in runUpdate in FullyConnected layer. Optimizer" ++ show opt ++ ". Layer: " ++ show layer
 
@@ -158,18 +158,18 @@ instance (KnownNat i, KnownNat o, KnownNat (i * o)) => LayerOptimizerData (Fully
 
 instance (KnownNat i, KnownNat o) => FoldableGradient (FullyConnected' i o) where
   mapGradient f (FullyConnectedHMatrix bias activations) = FullyConnectedHMatrix (dvmap f bias) (dmmap f activations)
-  mapGradient f (FullyConnectedCBLAS bias activations) = FullyConnectedCBLAS (V.map f bias) (V.map f activations)
+  mapGradient f (FullyConnectedBLAS bias activations) = FullyConnectedBLAS (V.map f bias) (V.map f activations)
   squaredSums (FullyConnectedHMatrix bias activations) = [sumV . squareV $ bias, sumM . squareM $ activations]
-  squaredSums (FullyConnectedCBLAS bias activations) = [V.sum . V.map (^(2::Int)) $ bias, V.sum . V.map (^(2::Int)) $ activations]
+  squaredSums (FullyConnectedBLAS bias activations) = [V.sum . V.map (^(2::Int)) $ bias, V.sum . V.map (^(2::Int)) $ activations]
 
 
 runForward :: forall i o. (KnownNat i, KnownNat o) => FullyConnected i o -> S ('D1 i) -> (Tape (FullyConnected i o) ('D1 i) ('D1 o), S ('D1 o))
 runForward (FullyConnected (FullyConnectedHMatrix wB wN) _ _) (S1D v) = (S1D v, S1D (wB + wN #> v))
-runForward (FullyConnected (FullyConnectedCBLAS wB wN) _ (TempVectors _ wBTmp _)) (S1DV v) =
+runForward (FullyConnected (FullyConnectedBLAS wB wN) _ (TempVectors _ wBTmp _)) (S1DV v) =
   let !out' = matXVec BlasNoTranspose wN v 1.0 (unsafeMemCopyVectorFromTo wB wBTmp)
    in (S1DV v, S1DV out')
 runForward lay@(FullyConnected (FullyConnectedHMatrix _ _) _ _) v@S1DV{} = runForward lay (toS1D v)
-runForward lay@(FullyConnected FullyConnectedCBLAS{} _ _) v@S1D{} = runForward lay (fromS1D v)
+runForward lay@(FullyConnected FullyConnectedBLAS{} _ _) v@S1D{} = runForward lay (fromS1D v)
 
 
 runBackward :: forall i o . (KnownNat i, KnownNat o) => FullyConnected i o -> Tape (FullyConnected i o) ('D1 i) ('D1 o) -> S ('D1 o) -> (Gradient (FullyConnected i o), S ('D1 i))
@@ -179,7 +179,7 @@ runBackward (FullyConnected (FullyConnectedHMatrix _ wN) _ _) (S1D x) (S1D dEdy)
             -- calcluate derivatives for next step
       dWs = tr wN #> dEdy
    in (FullyConnectedHMatrix wB' mm', S1D dWs)
-runBackward (FullyConnected (FullyConnectedCBLAS _ wN) _ (TempVectors wIn _ wNTmp)) (S1DV x) (S1DV dEdy) =
+runBackward (FullyConnected (FullyConnectedBLAS _ wN) _ (TempVectors wIn _ wNTmp)) (S1DV x) (S1DV dEdy) =
   let mm' = outerV dEdy x wNTmp
       dWs' = matXVec BlasTranspose wN dEdy 0 wIn
       -- i = V.length wIn
@@ -188,7 +188,7 @@ runBackward (FullyConnected (FullyConnectedCBLAS _ wN) _ (TempVectors wIn _ wNTm
    in
     -- (if checkVectors mm' mmCheck then id else trace ("dEdy: " ++ show dEdy) trace ("x: " ++ show x) trace ("mmCheck : " ++ show mmCheck) trace ("mm' : " ++ show mm') undefined)
      -- (if checkVecs dWs' mmCheck2 then id else trace ("wN': " ++ show wN) trace ("dEdy : " ++ show dEdy) trace ("dWs:   " ++ show dWs) trace ("\nL i o: " ++ show (tr (matrix $ V.toList wN) :: L i o)) trace ("R o: " ++ show (vector (V.toList dEdy) :: R o)) undefined)
-    (FullyConnectedCBLAS dEdy mm', S1DV dWs')
+    (FullyConnectedBLAS dEdy mm', S1DV dWs')
 runBackward l x dEdy = runBackward l x (toLayerShape x dEdy)
 
 
@@ -216,7 +216,7 @@ instance (KnownNat i, KnownNat o) => Serialize (FullyConnected' i o) where
     put (0 :: Int)
     putListOf put . LA.toList . extract $ b
     putListOf put . LA.toList . LA.flatten . extract $ w
-  put (FullyConnectedCBLAS b w) = do
+  put (FullyConnectedBLAS b w) = do
     put (1 :: Int)
     putListOf put . V.toList $ b
     putListOf put . V.toList $ w
@@ -231,7 +231,7 @@ instance (KnownNat i, KnownNat o) => Serialize (FullyConnected' i o) where
       1 -> do
         b <- V.fromList <$> get
         w <- V.fromList <$> get
-        return $ FullyConnectedCBLAS b w
+        return $ FullyConnectedBLAS b w
       _ -> error $ "Unexpected nr in get in Serialize of FullyConnected' " ++ show nr
 
 
@@ -250,13 +250,13 @@ randomFullyConnected (NetworkInitSettings m HMatrix) gen = do
   return $!! FullyConnected (FullyConnectedHMatrix wB wN) mkListStore (TempVectors wInTmp wBTmp wNTmp)
   where i = natVal (Proxy :: Proxy i)
         o = natVal (Proxy :: Proxy o)
-randomFullyConnected (NetworkInitSettings m CBLAS) gen = do
+randomFullyConnected (NetworkInitSettings m BLAS) gen = do
   wB <- V.fromList <$> getRandomList i o o' m gen
   wN <- V.fromList <$> getRandomList i o (i' * o') m gen
   let wInTmp = V.replicate i' 0
       wBTmp = V.replicate o' 0
       wNTmp = V.replicate (i' * o') 0
-  return $ FullyConnected (FullyConnectedCBLAS wB wN) mkListStore (TempVectors wInTmp wBTmp wNTmp)
+  return $ FullyConnected (FullyConnectedBLAS wB wN) mkListStore (TempVectors wInTmp wBTmp wNTmp)
   where
     i = natVal (Proxy :: Proxy i)
     i' = fromIntegral i

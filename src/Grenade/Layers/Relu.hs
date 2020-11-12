@@ -43,7 +43,7 @@ import           Unsafe.Coerce                  (unsafeCoerce)
 import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
-import           Grenade.Layers.Internal.CBLAS
+import           Grenade.Layers.Internal.BLAS
 import           Grenade.Types
 import           Grenade.Utils.Vector
 
