@@ -21,6 +21,7 @@ module Grenade.Layers.FullyConnected (
   , SpecFullyConnected (..)
   , specFullyConnected
   , fullyConnected
+  , TempVectors (..)
   ) where
 
 import           Control.DeepSeq

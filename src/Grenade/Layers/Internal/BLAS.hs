@@ -149,7 +149,8 @@ toLayerShape x y = case (x, y) of
   (S1DV{}, S1D{}) -> fromS1D y
   (S2D{}, S2DV{}) -> toS2D y
   (S2DV{}, S2D{}) -> fromS2D y
-  (S3D{}, _)      -> error "Cannot convert to/from S3D yet"
+  -- (S3D{}, S2DV{}) -> y
+  -- (S3D{}, S1DV{}) -> y
   _               -> y
 
 toS1D :: S ('D1 l) -> S ('D1 l)
@@ -170,7 +171,7 @@ toS2D x@S2D{}    = x
 
 -- | Convert to vector representation.
 fromS2D :: S ('D2 i j) -> S ('D2 i j)
-fromS2D x@(S2D mat) =
+fromS2D (S2D mat) =
   case order of
     BlasColMajor -> S2DV $ V.concat $ map LAS.extract $ LAS.toColumns mat
     BlasRowMajor -> S2DV $ V.concat $ map LAS.extract $ LAS.toRows mat
@@ -181,7 +182,7 @@ toRowMajorVector x = case fromS2D x of
   S2DV vec -> vec
   _        -> error "unexpected return from fromS2D in toRowMajorVector"
 
-fromRowMajorVector :: forall i j . (KnownNat i, KnownNat j, KnownNat (i * j)) => V.Vector RealNum -> S ('D2 i j)
+fromRowMajorVector :: forall i j . (KnownNat i, KnownNat j) => V.Vector RealNum -> S ('D2 i j)
 fromRowMajorVector vec =
   case order of
     BlasColMajor -> S2D $ LAS.tr $ LAS.matrix (V.toList vec)
