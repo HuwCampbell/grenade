@@ -57,6 +57,7 @@ import           Grenade.Layers.Internal.Update
 import           Grenade.Types
 import           Grenade.Utils.LinearAlgebra
 import           Grenade.Utils.ListStore
+import           Grenade.Utils.Vector
 
 
 import           Debug.Trace
@@ -127,7 +128,7 @@ instance (KnownNat i, KnownNat o, KnownNat (i * o)) => UpdateLayer (FullyConnect
           MatrixResultSGDV newActivations newMActivations = descendMatrixV opt (MatrixValuesSGDV oldActivations activationGradient oldMActivations)
           newStore = setData opt x store (FullyConnectedBLAS newMBias newMActivations)
       in FullyConnected (FullyConnectedBLAS newBias newActivations) newStore tmpVecs
-    where extractM = V.concat . map extract . toColumns
+    where extractM mat = (\(S2DV vec) -> vec) . fromS2D $ S2D mat
   runUpdate opt@OptAdam {} x@(FullyConnected (FullyConnectedBLAS oldBiasH oldActivationsH) store tmpVecs) (FullyConnectedBLAS biasGradient activationGradient) =
       let oldBias = oldBiasH
           oldActivations = oldActivationsH
@@ -140,7 +141,7 @@ instance (KnownNat i, KnownNat o, KnownNat (i * o)) => UpdateLayer (FullyConnect
           MatrixResultAdamV newActivations newMActivations newVActivations = descendMatrixV opt (MatrixValuesAdamV (getStep store) oldActivations activationGradient oldMActivations oldVActivations)
           newStore = setData opt x store [FullyConnectedBLAS newMBias newMActivations, FullyConnectedBLAS newVBias newVActivations]
       in FullyConnected (FullyConnectedBLAS newBias newActivations) newStore tmpVecs
-    where extractM = V.concat . map extract . toColumns
+    where extractM mat = (\(S2DV vec) -> vec) . fromS2D $ S2D mat
   runUpdate opt (FullyConnected layer _ _) _ = error $ "Unexpected input in runUpdate in FullyConnected layer. Optimizer" ++ show opt ++ ". Layer: " ++ show layer
 
 instance (KnownNat i, KnownNat o, KnownNat (i * o)) => LayerOptimizerData (FullyConnected i o) (Optimizer 'SGD) where
@@ -159,9 +160,9 @@ instance (KnownNat i, KnownNat o, KnownNat (i * o)) => LayerOptimizerData (Fully
 
 instance (KnownNat i, KnownNat o) => FoldableGradient (FullyConnected' i o) where
   mapGradient f (FullyConnectedHMatrix bias activations) = FullyConnectedHMatrix (dvmap f bias) (dmmap f activations)
-  mapGradient f (FullyConnectedBLAS bias activations) = FullyConnectedBLAS (V.map f bias) (V.map f activations)
+  mapGradient f (FullyConnectedBLAS bias activations) = FullyConnectedBLAS (mapVector f bias) (mapVector f activations)
   squaredSums (FullyConnectedHMatrix bias activations) = [sumV . squareV $ bias, sumM . squareM $ activations]
-  squaredSums (FullyConnectedBLAS bias activations) = [V.sum . V.map (^(2::Int)) $ bias, V.sum . V.map (^(2::Int)) $ activations]
+  squaredSums (FullyConnectedBLAS bias activations) = [V.sum . mapVector (^(2::Int)) $ bias, V.sum . mapVector (^(2::Int)) $ activations]
 
 
 runForward :: forall i o. (KnownNat i, KnownNat o) => FullyConnected i o -> S ('D1 i) -> (Tape (FullyConnected i o) ('D1 i) ('D1 o), S ('D1 o))
@@ -252,11 +253,16 @@ randomFullyConnected (NetworkInitSettings m HMatrix) gen = do
   where i = natVal (Proxy :: Proxy i)
         o = natVal (Proxy :: Proxy o)
 randomFullyConnected (NetworkInitSettings m BLAS) gen = do
+  -- wB <- getRandomVectorV i o o' m gen
+  -- wN <- getRandomVectorV i o (i' * o') m gen
+  -- let wInTmp = createVectorUnsafe i'
+  --     wBTmp  = createVectorUnsafe o'
+  --     wNTmp  = createVectorUnsafe (i' * o')
   wB <- V.fromList <$> getRandomList i o o' m gen
   wN <- V.fromList <$> getRandomList i o (i' * o') m gen
   let wInTmp = V.replicate i' 0
-      wBTmp = V.replicate o' 0
-      wNTmp = V.replicate (i' * o') 0
+      wBTmp  = V.replicate o' 0
+      wNTmp  = V.replicate (i' * o') 0
   return $ FullyConnected (FullyConnectedBLAS wB wN) mkListStore (TempVectors wInTmp wBTmp wNTmp)
   where
     i = natVal (Proxy :: Proxy i)
@@ -300,5 +306,8 @@ instance (KnownNat i, KnownNat o) => GNum (FullyConnected i o) where
 
 instance (KnownNat i, KnownNat o) => GNum (FullyConnected' i o) where
   s |* FullyConnectedHMatrix b w = FullyConnectedHMatrix (dvmap (fromRational s *) b) (dmmap (fromRational s *) w)
+  s |* FullyConnectedBLAS b w = FullyConnectedBLAS (mapVector (fromRational s *) b) (mapVector (fromRational s *) w)
   FullyConnectedHMatrix b1 w1 |+ FullyConnectedHMatrix b2 w2 = FullyConnectedHMatrix (b1 + b2) (w1 + w2)
+  FullyConnectedBLAS b1 w1 |+ FullyConnectedBLAS b2 w2 = FullyConnectedBLAS (V.zipWith (+) b1 b2) (V.zipWith (+) w1 w2)
+  x |+ y = error $ "Cannot add different network types in |+ in FullyConnected: " ++ show (x,y)
   gFromRational r = FullyConnectedHMatrix (fromRational r) (fromRational r)

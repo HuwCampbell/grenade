@@ -71,14 +71,21 @@ runForward1D :: (KnownNat i) => Relu -> S ('D1 i) -> (Tape Relu ('D1 i) ('D1 i),
 runForward1D _ (S1D y) = (S1D y, S1D (relu y))
     where
       relu = LAS.dvmap (\a -> if a <= 0 then 0 else a)
-runForward1D _ (S1DV y) = (S1DV y, S1DV $ parMapVectorC c_relu y) -- y will be replaced, which however still leads to a correct implementation!
+runForward1D _ (S1DV y) = (S1DV y, S1DV $ mapVectorInPlace relu y) -- y will be replaced, which however still leads to a correct implementation!
+    where
+      relu a = if a <= 0 then 0 else a
+
+
+reluDifZip :: (Ord a, Floating a) => a -> a -> a
+reluDifZip a g = if a <= 0 then 0 else g
+
 
 -- Run backward 1D
 runBackward1D :: (KnownNat i) => Relu -> S ('D1 i) -> S ('D1 i) -> (Gradient Relu, S ('D1 i))
 runBackward1D _ (S1D y) (S1D dEdy) = ((), S1D (relu' y * dEdy))
     where
       relu' = LAS.dvmap (\a -> if a <= 0 then 0 else 1)
-runBackward1D _ (S1DV y) (S1DV dEdy) = ((), S1DV $ parZipWithVectorReplSndC c_relu_dif_fast y dEdy)
+runBackward1D _ (S1DV y) (S1DV dEdy) = ((), S1DV $ zipWithVectorInPlaceSnd reluDifZip y dEdy)
 runBackward1D l y dEdy = runBackward1D l y (toLayerShape y dEdy)
 
 
@@ -92,7 +99,7 @@ runBackward2D :: (KnownNat i, KnownNat j) => Relu -> S ('D2 i j) -> S ('D2 i j) 
 runBackward2D _ (S2D y) (S2D dEdy) = ((), S2D (relu' y * dEdy))
     where
       relu' = LAS.dmmap (\a -> if a <= 0 then 0 else 1)
-runBackward2D _ (S2DV y) (S2DV dEdy) = ((), S2DV $ parZipWithVectorReplSndC c_relu_dif_fast y dEdy)
+runBackward2D _ (S2DV y) (S2DV dEdy) = ((), S2DV $ zipWithVectorInPlaceSnd reluDifZip y dEdy)
 runBackward2D l y dEdy = runBackward2D l y (toLayerShape y dEdy)
 
 instance (KnownNat i, KnownNat j) => Layer Relu ('D2 i j) ('D2 i j) where
@@ -101,7 +108,9 @@ instance (KnownNat i, KnownNat j) => Layer Relu ('D2 i j) ('D2 i j) where
   runForwards _ (S2D y) = (S2D y, S2D (relu y))
     where
       relu = LAS.dmmap (\a -> if a <= 0 then 0 else a)
-  runForwards _ (S2DV y) = (S2DV y, S2DV $ parMapVectorC c_relu y) -- This replaces the y vector, but that doesn't harm the updatesx
+  runForwards _ (S2DV y) = (S2DV y, S2DV $ mapVectorInPlace relu y ) -- This replaces the y vector, but that doesn't harm the updatesx
+    where
+      relu a = if a <= 0 then 0 else a
   runBackwards = runBackward2D
 
 instance (KnownNat i, KnownNat j, KnownNat k) => Layer Relu ('D3 i j k) ('D3 i j k) where

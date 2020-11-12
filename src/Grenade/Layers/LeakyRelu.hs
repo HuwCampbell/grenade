@@ -63,12 +63,22 @@ instance (KnownNat i) => Layer LeakyRelu ('D1 i) ('D1 i) where
   runForwards _ (S1D y) = (S1D y, S1D (relu y))
     where
       relu = LAS.dvmap (\a -> if a < 0 then alpha * a else a)
-  runForwards _ (S1DV y) = (S1DV y, S1DV (parMapVectorC c_leaky_relu y))
+  runForwards _ (S1DV y) = (S1DV y, S1DV (relu y))
+    where
+      relu = mapVector (\a -> if a < 0 then alpha * a else a)
+      -- relu = parMapVectorC c_leaky_relu
+      -- relu =  c_leaky_relu
   runBackwards _ (S1D y) (S1D dEdy) = ((), S1D (relu' y * dEdy))
     where
       relu' = LAS.dvmap (\a -> if a < 0 then alpha else 1)
-  runBackwards _ (S1DV y) (S1DV dEdy) = ((), S1DV $ parZipWithVectorReplSndC c_leaky_relu_dif_fast y dEdy)
+  runBackwards _ (S1DV y) (S1DV dEdy) = ((), S1DV $ zipWithVectorInPlaceSnd reluDif y dEdy)
+                                          -- parZipWithVectorReplSndC c_leaky_relu_dif_fast y dEdy)
   runBackwards x y dEdy = runBackwards x y (toLayerShape y dEdy)
+
+reluDif :: RealNum -> RealNum -> RealNum
+reluDif a g
+  | a < 0 = alpha * g
+  | otherwise = g
 
 instance (KnownNat i, KnownNat j) => Layer LeakyRelu ('D2 i j) ('D2 i j) where
   type Tape LeakyRelu ('D2 i j) ('D2 i j) = S ('D2 i j)
@@ -76,11 +86,13 @@ instance (KnownNat i, KnownNat j) => Layer LeakyRelu ('D2 i j) ('D2 i j) where
   runForwards _ (S2D y) = (S2D y, S2D (relu y))
     where
       relu = LAS.dmmap (\a -> if a < 0 then alpha * a else a)
-  runForwards _ (S2DV y) = (S2DV y, S2DV (parMapVectorC c_leaky_relu y))
+  runForwards _ (S2DV y) = (S2DV y, S2DV (relu y))
+    where
+      relu = mapVector (\a -> if a < 0 then alpha * a else a)
   runBackwards _ (S2D y) (S2D dEdy) = ((), S2D (relu' y * dEdy))
     where
       relu' = LAS.dmmap (\a -> if a < 0 then alpha else 1)
-  runBackwards _ (S2DV y) (S2DV dEdy) = ((), S2DV $ parZipWithVectorReplSndC c_leaky_relu_dif_fast y dEdy)
+  runBackwards _ (S2DV y) (S2DV dEdy) = ((), S2DV $ zipWithVectorInPlaceSnd reluDif y dEdy)
   runBackwards x y dEdy = runBackwards x y (toLayerShape y dEdy)
 
 instance (KnownNat i, KnownNat j, KnownNat k) => Layer LeakyRelu ('D3 i j k) ('D3 i j k) where

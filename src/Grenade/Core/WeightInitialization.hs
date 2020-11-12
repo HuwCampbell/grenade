@@ -22,6 +22,7 @@ This module defines the weight initialization methods.
 
 module Grenade.Core.WeightInitialization
     ( getRandomVector
+    , getRandomVectorV
     , getRandomMatrix
     , getRandomList
     , WeightInitMethod (..)
@@ -33,11 +34,16 @@ import           Control.Monad.Primitive         (PrimBase, PrimState)
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons.TypeLits
+import qualified Data.Vector.Storable            as V
 import           GHC.Generics                    (Generic)
 import           GHC.TypeLits                    hiding (natVal)
 import           Numeric.LinearAlgebra.Static
+import           System.IO.Unsafe                (unsafePerformIO)
 import           System.Random.MWC
 import           System.Random.MWC.Distributions
+
+import           Grenade.Types
+import           Grenade.Utils.Vector
 
 -- ^ Weight initialization method.
 data WeightInitMethod
@@ -56,7 +62,7 @@ getRandomList ::
   -> Int -- ^ Length of list
   -> WeightInitMethod
   -> Gen (PrimState m)
-  -> m [Double]
+  -> m [RealNum]
 getRandomList i o n method gen = do
   let unifRands = replicateM n (uniformR (-1, 1) gen)
       gaussRands = replicateM n (realToFrac <$> standard gen)
@@ -64,6 +70,25 @@ getRandomList i o n method gen = do
     UniformInit -> map (1 / sqrt (fromIntegral i) *) <$> unifRands
     Xavier      -> map ((sqrt 6 / sqrt (fromIntegral i + fromIntegral o)) *) <$> unifRands
     HeEtAl      -> map (sqrt (2 / fromIntegral i) *) <$> gaussRands
+
+
+getRandomVectorV ::
+     (PrimBase m)
+  => LayerInput
+  -> LayerOutput
+  -> Int -- ^ Length of list
+  -> WeightInitMethod
+  -> Gen (PrimState m)
+  -> m (V.Vector RealNum)
+getRandomVectorV i o n method gen = do
+  let mkVec :: [RealNum] -> V.Vector RealNum
+      mkVec xs = V.imap (\idx (_ :: RealNum) -> xs !! idx) (createVectorUnsafe n)
+  let unifRands = replicateM n (uniformR (-1, 1) gen)
+      gaussRands = replicateM n (realToFrac <$> standard gen)
+  case method of
+    UniformInit -> mkVec . map (1 / sqrt (fromIntegral i) *) <$> unifRands
+    Xavier      -> mkVec . map ((sqrt 6 / sqrt (fromIntegral i + fromIntegral o)) *) <$> unifRands
+    HeEtAl      -> mkVec . map (sqrt (2 / fromIntegral i) *) <$> gaussRands
 
 
 -- | Get a random vector initialized according to the specified method.

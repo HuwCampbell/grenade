@@ -165,7 +165,6 @@ descendMatrix (OptAdam alpha beta1 beta2 epsilon lambda) (MatrixValuesAdam step 
   in  MatrixResultAdam (fromJust . create $ mw) (fromJust . create $ mm) (fromJust . create $ mv)
 descendMatrix opt _ = error $ "optimzer does not match to MatrixInputValues in implementation! Optimizer: " ++ show opt
 
-
 descendMatrixV :: Optimizer o -> MatrixInputValuesV -> MatrixResultV
 descendMatrixV (OptSGD rate momentum regulariser) (MatrixValuesSGDV weights gradient lastUpdate) =
   let len          = V.length weights
@@ -235,7 +234,6 @@ descendVectorV opt _ = error $ "optimzer does not match to VectorInputValues in 
 --       return res
 --     Just res -> return res
 
-{-# NOINLINE descendUnsafeSGD #-}
 descendUnsafeSGD :: Int -> RealNum -> RealNum -> RealNum -> Vector RealNum -> Vector RealNum -> Vector RealNum -> (Vector RealNum, Vector RealNum)
 descendUnsafeSGD len rate momentum regulariser weights gradient lastUpdate =
   unsafePerformIO $ do
@@ -253,8 +251,8 @@ descendUnsafeSGD len rate momentum regulariser weights gradient lastUpdate =
               descend_sgd_cpu len rate momentum regulariser wPtr' gPtr' lPtr' outWPtr' outMPtr'
 
     return (U.unsafeFromForeignPtr0 outWPtr len, U.unsafeFromForeignPtr0 outMPtr len)
+{-# NOINLINE descendUnsafeSGD #-}
 
-{-# NOINLINE descendUnsafeAdam #-}
 descendUnsafeAdam ::
      Int -- Len
   -> Int -- Step
@@ -280,6 +278,7 @@ descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v
           withForeignPtr vPtr $ \vPtr' ->
             descend_adam_cpu len step alpha beta1 beta2 epsilon lambda wPtr' gPtr' mPtr' vPtr'
     return (U.unsafeFromForeignPtr0 wPtr len, U.unsafeFromForeignPtr0 mPtr len, U.unsafeFromForeignPtr0 vPtr len)
+{-# NOINLINE descendUnsafeAdam #-}
 
 
 foreign import ccall unsafe

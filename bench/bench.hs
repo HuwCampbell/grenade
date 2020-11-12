@@ -58,8 +58,8 @@ main = do
   SpecConcreteNetwork1D1D netFF <- networkFromSpecificationWith def ff
   SpecConcreteNetwork1D1D netHuge <- networkFromSpecificationWith def hugeFf
   SpecConcreteNetwork1D1D netHugeBig <- networkFromSpecificationWith def hugeBigFf
-  SpecConcreteNetwork1D1D netHugeHBlas <- networkFromSpecificationWith (NetworkInitSettings UniformInit CBLAS) hugeFf
-  SpecConcreteNetwork1D1D netHugeBigHBlas <- networkFromSpecificationWith (NetworkInitSettings UniformInit CBLAS) hugeBigFf
+  SpecConcreteNetwork1D1D netHugeBlas <- networkFromSpecificationWith (NetworkInitSettings UniformInit BLAS) hugeFf
+  SpecConcreteNetwork1D1D netHugeBigBlas <- networkFromSpecificationWith (NetworkInitSettings UniformInit BLAS) hugeBigFf
   defaultMain
     [ -- bgroup
     --     "im2col"
@@ -102,16 +102,16 @@ main = do
     -- ,
       bgroup
         "feedforward Adam"
-        [ bench "ANN 100 Huge train steps" $ nfIO $ netTrain netHuge defAdam 100
-        , bench "ANN 100 Huge CBLAS train steps" $ nfIO $ netTrain netHugeHBlas defAdam 100
-        , bench "ANN 100 Huge Big train steps" $ nfIO $ netTrain netHugeBig defAdam 100
-        , bench "ANN 100 Huge CBLAS Big train steps" $ nfIO $ netTrain netHugeBigHBlas defAdam 100
-        , bench "ANN 1000 Huge train steps" $ nfIO $ netTrain netHuge defAdam 1000
-        , bench "ANN 1000 Huge CBLAS train steps" $ nfIO $ netTrain netHugeHBlas defAdam 1000
-        , bench "ANN 1000 Huge Big train steps" $ nfIO $ netTrain netHugeBig defAdam 1000
-        , bench "ANN 1000 Huge CBLAS Big train steps" $ nfIO $ netTrain netHugeBigHBlas defAdam 1000
-        , bench "ANN 1000 training steps" $ nfIO $ netTrain netFF defAdam 1000
-        , bench "ANN 10000 training steps" $ nfIO $ netTrain netFF defAdam 10000
+        [ bench "ANN 100   train steps    Network: Huge          Backend: HMatrix" $ nfIO $ netTrain netHuge        defAdam 100
+        , bench "ANN 100   train steps    Network: Huge          Backend: BLAS   " $ nfIO $ netTrain netHugeBlas    defAdam 100
+        , bench "ANN 100   train steps    Network: Huge-Big      Backend: HMatrix" $ nfIO $ netTrain netHugeBig     defAdam 100
+        , bench "ANN 100   train steps    Network: Huge-Big      Backend: BLAS   " $ nfIO $ netTrain netHugeBigBlas defAdam 100
+        , bench "ANN 1000  train steps    Network: Huge          Backend: HMatrix" $ nfIO $ netTrain netHuge        defAdam 1000
+        , bench "ANN 1000  train steps    Network: Huge          Backend: BLAS   " $ nfIO $ netTrain netHugeBlas    defAdam 1000
+        , bench "ANN 1000  train steps    Network: Huge-Big      Backend: HMatrix" $ nfIO $ netTrain netHugeBig     defAdam 1000
+        , bench "ANN 1000  train steps    Network: Huge-Big      Backend: BLAS   " $ nfIO $ netTrain netHugeBigBlas defAdam 1000
+        , bench "ANN 1000  train steps    Network: Feedforward   Backend: HMatrix" $ nfIO $ netTrain netFF       defAdam 1000
+        , bench "ANN 10000 train steps    Network: Feedforward   Backend: HMatrix" $ nfIO $ netTrain netFF       defAdam 10000
         ]
     ]
   putStrLn $ "Benchmarked with type: " ++ nameF

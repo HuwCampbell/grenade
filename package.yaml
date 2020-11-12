@@ -125,7 +125,7 @@ library:
     - cbits/pad.c
     - cbits/util.c
     - cbits/blas.c
-  cc-options: -std=c99 -O3 -msse4.2 -Wall -Werror -DCABAL=1 -fopenmp
+  cc-options: -std=c99 -O4 -msse4.2 -Wall -Werror -DCABAL=1 -fopenmp
 
 tests:
   test:

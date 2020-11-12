@@ -79,13 +79,13 @@ instance (KnownNat pct, KnownNat i) => Layer (Dropout pct) ('D1 i) ('D1 i) where
         | not act || r < rate = 1
         | otherwise = 0
   runForwards (Dropout act seed) (S1DV x)
-    | not act = (v, S1DV $ V.map (rate *) x) -- multily with rate to normalise throughput
+    | not act = (v, S1DV $ mapVector (rate *) x) -- multily with rate to normalise throughput
     | otherwise = (v, S1DV $ v * x)
     where
       rate :: RealNum
       rate = (/100) $ fromIntegral $ max 0 $ min 100 $ natVal (Proxy :: Proxy pct)
       v :: V.Vector RealNum
-      v = parMapVector mask $ extract (randomVector seed Uniform :: R i)
+      v = mapVectorInPlace mask $ extract (randomVector seed Uniform :: R i)
       -- v = parMapVector mask $ V.fromList $ take (V.length x) $ randomRs (0,1) (mkStdGen seed)
       mask r
         | not act || r < rate = 1

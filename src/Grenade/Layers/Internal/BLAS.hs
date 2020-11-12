@@ -21,6 +21,7 @@ module Grenade.Layers.Internal.BLAS
     , fromS2D
     , toRowMajorVector
     , fromRowMajorVector
+    , fromRowMajorVectorToSD2V
       -- more complicated, but direct, function calls
     , BlasTranspose (..)
     , swapTranspose
@@ -31,6 +32,8 @@ module Grenade.Layers.Internal.BLAS
 
 import           Control.Monad
 import           Data.Maybe                   (fromMaybe)
+import           Data.Proxy
+import           Data.Singletons
 import qualified Data.Vector.Storable         as V
 import qualified Data.Vector.Storable         as U (unsafeFromForeignPtr0,
                                                     unsafeToForeignPtr0)
@@ -66,6 +69,7 @@ unsafeMemCopyVectorFromTo from to =
        withForeignPtr toPtr $ \toPtr' -> do
         void $ memcpy toPtr' fromPtr' (fromIntegral $ sizeOf (V.head from) * V.length to)
         return $ U.unsafeFromForeignPtr0 toPtr (V.length to)
+{-# NOINLINE unsafeMemCopyVectorFromTo #-}
 
 
 -- | Write zero to all elements in a vector.
@@ -75,6 +79,7 @@ unsafeMemZero vec =
     let (vecPtr, _) = U.unsafeToForeignPtr0 vec
     withForeignPtr vecPtr $ \vecPtr' -> void $ memset vecPtr' 0 (fromIntegral $ sizeOf (0 :: RealNum) * V.length vec)
     return $ U.unsafeFromForeignPtr0 vecPtr (V.length vec)
+{-# NOINLINE unsafeMemZero #-}
 
 foreign import ccall unsafe "string.h" memset  :: Ptr a -> CInt  -> CSize -> IO (Ptr a)
 
@@ -91,7 +96,6 @@ matXVec trMat mat vec1 beta vec2 =
     ay = V.length vec1
     ax = V.length vec2
     (m, k) = swapTranspose trMat (ax, ay)
-{-# INLINE matXVec #-}
 
 
 -- | Computes the outer product of two vectors: mat <- vec1 `outer` vec2
@@ -104,7 +108,6 @@ outerV vec1 vec2 mat =
 #endif
   where o = V.length vec1
         i = V.length vec2
-{-# INLINE outerV #-}
 
 
 -- | Check two vectors if they are equal. For testing purposes.
@@ -113,7 +116,7 @@ checkVectors v1 v2 = V.length v1 == V.length v2 && and (zipWith (==) (toStr v1) 
   where
     toStr :: V.Vector RealNum -> [String]
     toStr v = map (show . round . (*10^5)) $ V.toList v
-
+{-# INLINE checkVectors #-}
 
 -- | Newtype holding CINT for CblasRowMajor or CblasColMajor
 newtype CBLAS_ORDERT =
@@ -135,12 +138,14 @@ order = BlasColMajor -- BlasRowMajor
 #else
 order = BlasColMajor -- no choice, must use ColMajor!
 #endif
-
+{-# INLINE order #-}
 
 -- | Used to generate the Order (Row/Colummajor) CINT value.
 encodeOrder :: BlasOrder -> CBLAS_ORDERT
 encodeOrder BlasRowMajor = CBOInt 101
 encodeOrder BlasColMajor = CBOInt 102
+{-# INLINE encodeOrder #-}
+
 
 -- | Converts the given vector to the correct layer shape.
 toLayerShape :: S i -> S x -> S x
@@ -152,14 +157,17 @@ toLayerShape x y = case (x, y) of
   -- (S3D{}, S2DV{}) -> y
   -- (S3D{}, S1DV{}) -> y
   _               -> y
+{-# INLINE toLayerShape #-}
 
 toS1D :: S ('D1 l) -> S ('D1 l)
 toS1D (S1DV vec) = S1D (fromMaybe (error $ "wrong length of vector with " ++ show (V.length vec) ++ " in toS1D ") $ LAS.create vec)
 toS1D x@S1D{} = x
+{-# INLINE toS1D #-}
 
 fromS1D :: S ('D1 l) -> S ('D1 l)
 fromS1D (S1D vec) = S1DV (LAS.extract vec)
 fromS1D x@S1DV{}  = x
+{-# INLINE fromS1D #-}
 
 -- | Convert from vector representation.
 toS2D :: S ('D2 i j) -> S ('D2 i j)
@@ -168,6 +176,7 @@ toS2D (S2DV vec) =
     BlasColMajor -> S2D $ LAS.tr $ LAS.matrix (V.toList vec)
     BlasRowMajor -> S2D $ LAS.matrix (V.toList vec)
 toS2D x@S2D{}    = x
+{-# INLINE toS2D #-}
 
 -- | Convert to vector representation.
 fromS2D :: S ('D2 i j) -> S ('D2 i j)
@@ -176,18 +185,33 @@ fromS2D (S2D mat) =
     BlasColMajor -> S2DV $ V.concat $ map LAS.extract $ LAS.toColumns mat
     BlasRowMajor -> S2DV $ V.concat $ map LAS.extract $ LAS.toRows mat
 fromS2D x@S2DV{} = x
+{-# INLINE fromS2D #-}
 
-toRowMajorVector :: S ('D2 i j) -> V.Vector RealNum
-toRowMajorVector x = case fromS2D x of
+toRowMajorVector :: forall i j . S ('D2 i j) -> V.Vector RealNum
+toRowMajorVector x@S2D{} = case fromS2D x of
   S2DV vec -> vec
   _        -> error "unexpected return from fromS2D in toRowMajorVector"
+toRowMajorVector (S2DV vec) = case order of
+  BlasRowMajor -> vec
+  BlasColMajor -> V.concat $ map (\idx -> V.slice idx i vec) [0,i..(V.length vec - i)]
+    where i = fromIntegral $ natVal (Proxy :: Proxy i)
+{-# INLINE toRowMajorVector #-}
 
 fromRowMajorVector :: forall i j . (KnownNat i, KnownNat j) => V.Vector RealNum -> S ('D2 i j)
 fromRowMajorVector vec =
   case order of
     BlasColMajor -> S2D $ LAS.tr $ LAS.matrix (V.toList vec)
     BlasRowMajor -> S2D $ LAS.matrix (V.toList vec)
+{-# INLINE fromRowMajorVector #-}
 
+
+fromRowMajorVectorToSD2V :: forall i j . (KnownNat i, KnownNat j) => V.Vector RealNum -> S ('D2 i j)
+fromRowMajorVectorToSD2V vec =
+  case order of
+    BlasColMajor -> S2DV $ V.concat $ map (\idx -> V.slice idx i vec) [0,i .. (V.length vec - i)]
+    BlasRowMajor -> S2DV vec
+  where i = fromIntegral $ natVal (Proxy :: Proxy i)
+{-# INLINE fromRowMajorVectorToSD2V #-}
 
 -- | Newtype holding CINT for Transpose values.
 newtype CBLAS_TRANSPOSET =
@@ -208,6 +232,8 @@ encodeTranspose BlasNoTranspose     = CBLAS_TransposeT 111
 encodeTranspose BlasTranspose       = CBLAS_TransposeT 112
 encodeTranspose BlasConjTranspose   = CBLAS_TransposeT 113
 encodeTranspose BlasConjNoTranspose = CBLAS_TransposeT 114
+{-# INLINE encodeTranspose #-}
+
 
 -- | Used to make the tranpose CINT value
 encodeTransposeChar :: BlasTranspose -> CChar
@@ -215,19 +241,21 @@ encodeTransposeChar BlasNoTranspose     = CChar 78 -- 'N'
 encodeTransposeChar BlasTranspose       = CChar 84 -- 'T'
 encodeTransposeChar BlasConjTranspose   = CChar 84 -- 'T'
 encodeTransposeChar BlasConjNoTranspose = CChar 78 -- 'N'
+{-# INLINE encodeTransposeChar #-}
 
 encodeTransposeIntBool :: BlasTranspose -> Int
 encodeTransposeIntBool BlasNoTranspose     = 0
 encodeTransposeIntBool BlasTranspose       = 1
 encodeTransposeIntBool BlasConjTranspose   = 1
 encodeTransposeIntBool BlasConjNoTranspose = 0
-
+{-# INLINE encodeTransposeIntBool #-}
 
 swapTranspose :: BlasTranspose -> (Int, Int) -> (Int, Int)
 swapTranspose BlasNoTranspose x        = x
 swapTranspose BlasTranspose (a, b)     = (b, a)
 swapTranspose BlasConjNoTranspose x    = x
 swapTranspose BlasConjTranspose (a, b) = (b, a)
+{-# INLINE swapTranspose #-}
 
 -- | Error text
 mkDimText :: (Show a1, Show a2, Show a3, Show a4, Show a5, Show a6) => (a1, a2) -> (a3, a4) -> (a5, a6) -> String

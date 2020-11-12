@@ -65,20 +65,19 @@ instance (a ~ b, SingI a) => Layer Logit a b
                                        where
   type Tape Logit a b = S a
   runForwards _ (S1DV vec) =
-    let l = parMapVectorC c_sigmoid vec
+    let l = mapVectorInPlace sigmoid vec
      in (S1DV l, S1DV l)
   runForwards _ (S2DV vec) =
-    let l = parMapVectorC c_sigmoid vec
+    let l = mapVectorInPlace sigmoid vec
      in (S2DV l, S2DV l)
   runForwards _ a =
     let l = sigmoid a
      in (l, l)
-  runBackwards _ (S1DV vec) (S1DV g) = ((), S1DV $ parZipWithVectorReplSndC c_sigmoid_dif_fast vec g)
-  runBackwards _ (S2DV vec) (S2DV g) = ((), S2DV $ parZipWithVectorReplSndC c_sigmoid_dif_fast vec g)
+  runBackwards _ (S1DV vec) (S1DV g) = ((), S1DV $ zipWithVectorInPlaceSnd sigmoidDifZip vec g)
+  runBackwards _ (S2DV vec) (S2DV g) = ((), S2DV $ zipWithVectorInPlaceSnd sigmoidDifZip vec g)
   runBackwards _ l g =
-    let sigmoid' = l * (1 - l)
-        g' = toLayerShape l g
-     in ((), sigmoid' * g')
+    let g' = toLayerShape l g
+     in ((), sigmoid' l * g')
 
 instance Serialize Logit where
   put _ = return ()
@@ -86,6 +85,14 @@ instance Serialize Logit where
 
 sigmoid :: Floating a => a -> a
 sigmoid x = 1 / (1 + exp (-x))
+
+
+sigmoid' :: Floating a => a -> a
+sigmoid' l = l * (1 - l)
+
+
+sigmoidDifZip :: Floating a => a -> a -> a
+sigmoidDifZip l g = sigmoid' l * g
 
 
 -------------------- DynamicNetwork instance --------------------

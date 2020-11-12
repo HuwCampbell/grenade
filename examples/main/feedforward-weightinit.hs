@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
@@ -21,21 +22,44 @@ import           Unsafe.Coerce                   (unsafeCoerce)
 
 import           Grenade
 
+#define HMATRIX 0
 
-netSpec :: SpecNet
-netSpec = specFullyConnected 2 4000 |=> specRelu1D 4000 |=> specFullyConnected 4000 1 |=> specLogit1D 1 |=> specNil1D 1
+
+-- netSpec :: SpecNet
+-- netSpec = specFullyConnected 2 4000 |=> specRelu1D 4000 |=> specFullyConnected 4000 1 |=> specLogit1D 1 |=> specNil1D 1
+
+-- netSpec :: SpecNet
+-- netSpec =
+--       specFullyConnected 2 4500
+--   |=> specTanh1D 4500
+--   |=> specFullyConnected 4500 750
+--   |=> specRelu1D 750
+--   |=> specFullyConnected 750 150
+--   |=> specRelu1D 150
+--   |=> specFullyConnected 150 150
+--   |=> specRelu1D 150
+--   |=> specFullyConnected 150 30
+--   |=> specRelu1D 30
+--   |=> specFullyConnected 30 20
+--   |=> specRelu1D 20
+--   |=> specFullyConnected 20 10
+--   |=> specRelu1D 10
+--   |=> specFullyConnected 10 1
+--   |=> specLogit1D 1
+--   |=> specNil1D 1
+
 
 -- -- | The definition for a feed forward network using the dynamic module. Note the nested networks. This network clearly is over-engeneered for this example!
---netSpec :: SpecNet
---netSpec =
---  specFullyConnected 2 40 |=> specTanh1D 40 |=>
---  specDropout 40 0.95 Nothing |=>
---  netSpecInner |=>
---  specFullyConnected 20 30 |=> specRelu1D 30 |=>
---  specFullyConnected 30 20 |=> specRelu1D 20 |=>
---  specFullyConnected 20 10 |=> specRelu1D 10 |=>
---  specFullyConnected 10 1 |=> specLogit1D 1 |=> specNil1D 1
---  where netSpecInner = specFullyConnected 40 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specReshape1D2D 20 (2, 10) |=> specReshape2D1D (2, 10) 20 |=> specNil1D 20
+netSpec :: SpecNet
+netSpec =
+ specFullyConnected 2 40 |=> specTanh1D 40 |=>
+ specDropout 40 0.95 Nothing |=>
+ netSpecInner |=>
+ specFullyConnected 20 30 |=> specRelu1D 30 |=>
+ specFullyConnected 30 20 |=> specRelu1D 20 |=>
+ specFullyConnected 20 10 |=> specRelu1D 10 |=>
+ specFullyConnected 10 1 |=> specLogit1D 1 |=> specNil1D 1
+ where netSpecInner = specFullyConnected 40 30 |=> specRelu1D 30 |=> specFullyConnected 30 20 |=> specReshape1D2D 20 (2, 10) |=> specReshape2D1D (2, 10) 20 |=> specNil1D 20
 
 
 -- | Specifications can be built using the following interface also. Here one does not have to carefully pay attention to match the dimension inputs and outputs as when using specification directly.
@@ -53,27 +77,33 @@ buildNetViaInterface =
   fullyConnected 1                             -- 4. The output is simply the number of signals the alst layer emits.
 
 
-netTrain ::
+netTrain :: forall shapes len1 len2 layers o .
      (SingI (Last shapes), KnownNat len1, KnownNat len2, Head shapes ~ 'D1 len1, Last shapes ~ 'D1 len2)
   => Network layers shapes
   -> Optimizer o
   -> Int
   -> IO (Network layers shapes)
 netTrain net0 op n = do
-    -- inps <- replicateM n $ do
-    --   s  <- getRandom
-    --   return $ S1D $ SA.randomVector s SA.Uniform * 2 - 1
-    -- let outs = flip map inps $ \(S1D v) ->
-    --              if v `inCircle` (fromRational 0.50, 0.50)  || v `inCircle` (fromRational (-0.50), 0.50)
-    --                then S1D $ fromRational 1
-    --                else S1D $ fromRational 0
-    gen <- createSystemRandom
-    inps <-  replicateM n $ S1DV . V.map (\x->x*2-1) <$> (uniformVector gen 2)
-    let outs = flip map inps $ \(S1DV v) ->
-                 if v `inCircleV` (0.50, 0.50)  || v `inCircleV` (-0.50, 0.50)
-                   then S1DV (V.singleton 1)
-                   else S1DV (V.singleton 0)
-
+#if HMATRIX
+    inps <- replicateM n $ do
+      s  <- getRandom
+      return $ S1D (SA.randomVector s SA.Uniform * 2 - 1 :: SA.R len1)
+#else
+    inps <- replicateM n $ do
+        s  <- getRandom
+        return $ S1DV $ SA.extract (SA.randomVector s SA.Uniform * 2 - 1 :: SA.R len1)
+#endif
+    let mkVal :: S ('D1 len1) -> Rational
+        mkVal (S1D v) = mkVal (S1DV $ SA.extract v)
+        mkVal (S1DV v) = if v `inCircleV` (fromRational 0.50, 0.50)  || v `inCircleV` (fromRational (-0.50), 0.50)
+                         then 1
+                         else 0
+#if HMATRIX
+        constr = S1D . fromRational
+#else
+        constr = S1DV . fromRational
+#endif
+    let outs = map (constr . mkVal) inps
     let trained = foldl' trainEach net0 (zip inps outs)
     return trained
 
@@ -83,8 +113,11 @@ netScore :: (KnownNat len, Head shapes ~ 'D1 len, Last shapes ~ 'D1 1) => Networ
 netScore network = do
     let testIns = [ [ (x,y)  | x <- [0..50] ]
                              | y <- [0..20] ]
-        -- outMat  = fmap (fmap (\(x,y) -> (render (x/25-1) (y/10-1) . normx) $ runNet network (S1D $ SA.vector [x / 25 - 1,y / 10 - 1]))) testIns
+#if HMATRIX
+        outMat  = fmap (fmap (\(x,y) -> (render (x/25-1) (y/10-1) . normx) $ runNet network (S1D $ SA.vector [x / 25 - 1,y / 10 - 1]))) testIns
+#else
         outMat  = fmap (fmap (\(x,y) -> (render (x/25-1) (y/10-1) . normx) $ runNet network (S1DV $ V.fromList [x / 25 - 1,y / 10 - 1]))) testIns
+#endif
     putStrLn $ unlines outMat
 
   where
@@ -101,22 +134,44 @@ normx :: S ('D1 1) -> RealNum
 normx (S1D r)  = SA.mean r
 normx (S1DV v) = V.sum v / fromIntegral (V.length v)
 
-testValues :: (KnownNat len, Head shapes ~ 'D1 len, Last shapes ~ 'D1 1) => Network layers shapes -> IO ()
+testValues :: forall len shapes layers . (KnownNat len, Head shapes ~ 'D1 len, Last shapes ~ 'D1 1) => Network layers shapes -> IO ()
 testValues network = do
-  -- inps <- replicateM 1000 $ do
-  --     s  <- getRandom
-  --     return $ S1D $ SA.randomVector s SA.Uniform * 2 - 1
+  let n = 1000
+#if HMATRIX
+  inps <- replicateM n $ do
+      s  <- getRandom
+      return $ S1D (SA.randomVector s SA.Uniform * 2 - 1 :: SA.R len)
+#else
+  inps <- replicateM n $ do
+       s  <- getRandom
+       return $ S1DV $ SA.extract (SA.randomVector s SA.Uniform * 2 - 1 :: SA.R len)
+#endif
+
+  let mkVal :: S ('D1 len1) -> Integer
+      mkVal (S1D v) = mkVal (S1DV $ SA.extract v :: S ('D1 len))
+      mkVal (S1DV v) = if v `inCircleV` (fromRational 0.50, 0.50)  || v `inCircleV` (fromRational (-0.50), 0.50)
+                         then 1
+                         else 0
+  let outs :: [Integer]
+      outs = map mkVal inps
+
+-- #if HMATRIX
+--   inps <- replicateM 1000 $ do
+--       s  <- getRandom
+--       return $ S1D $ SA.randomVector s SA.Uniform * 2 - 1
   -- let outs = flip map inps $ \(S1D v) ->
   --                if v `inCircle` (fromRational 0.50, 0.50)  || v `inCircle` (fromRational (-0.50), 0.50)
   --                  then 1 :: Integer
   --                  else 0
-  gen <- createSystemRandom
-  inps <-  replicateM 1000 $ S1DV . V.map (\x->x*2-1) <$> uniformVector gen 2
-  let outs = flip map inps $ \(S1DV v) ->
-                 if v `inCircleV` (0.50, 0.50)  || v `inCircleV` (-0.50, 0.50)
-                   then 1 :: Integer
-                   else 0
-
+-- #else
+--   inps <- replicateM 1000 $ do
+--       s  <- getRandom
+--       return $ S1DV $ SA.extract (SA.randomVector s SA.Uniform * 2 - 1 :: SA.R len)
+--   let outs = flip map inps $ \(S1DV v) ->
+--                  if v `inCircleV` (0.50, 0.50)  || v `inCircleV` (-0.50, 0.50)
+--                    then 1 :: Integer
+--                    else 0
+-- #endif
 
   let ress = zip outs (map (round . normx . runNet network) inps)
       correct = length $ filter id $ map (uncurry (==)) ress
@@ -162,7 +217,11 @@ main = do
   mapM_
     (\n -> do
        putStr $ "| " ++ show n ++ " | "
+#if HMATRIX
+       SpecConcreteNetwork1D1D (net0 :: Network layers shapes) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl HMatrix) netSpec
+#else
        SpecConcreteNetwork1D1D (net0 :: Network layers shapes) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl BLAS) netSpec
+#endif
       -- We need to specify the actual number of output nodes, as our functions requiere that!
        case (unsafeCoerce (Dict :: Dict ()) :: Dict (('D1 1) ~ Last shapes)) of
          Dict -> do
@@ -173,7 +232,7 @@ main = do
 
 
   -- -- Features of dynamic networks:
-  -- SpecConcreteNetwork1D1D (net' :: Network layers shapes) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl CBLAS) netSpec
+  -- SpecConcreteNetwork1D1D (net' :: Network layers shapes) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl BLAS) netSpec
   -- net2 <- netTrain net' rate examples
   -- let spec' = networkToSpecification net2
   -- putStrLn "String represenation of the network specification: "
@@ -184,7 +243,7 @@ main = do
   --   Left err -> print err
   --   Right spec2 -> do
   --     print spec2
-  --     SpecConcreteNetwork1D1D (net3 :: Network layers3 shapes3) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl CBLAS) spec2
+  --     SpecConcreteNetwork1D1D (net3 :: Network layers3 shapes3) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl BLAS) spec2
   --     net4 <- foldM (\n _ -> netTrain n rate examples) net3 [(1 :: Int)..30]
   --     case (unsafeCoerce (Dict :: Dict ()) :: Dict (('D1 1) ~ Last shapes3)) of
   --       Dict -> netScore net4
