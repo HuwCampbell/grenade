@@ -49,7 +49,9 @@ import           Grenade.Types
 
 import           Debug.Trace
 
+
 -- DGEMM seems to be a little faster, and CBLAS has some overhead. So we aim for implementing all operations with DGEMM and use the direct calls to BLAS
+
 #define USE_DGEMM_ONLY 1
 #define USE_CBLAS 0
 
