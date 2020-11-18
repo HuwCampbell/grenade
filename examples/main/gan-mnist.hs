@@ -54,7 +54,7 @@ import qualified Data.Text                    as T
 import qualified Data.Text.IO                 as T
 import qualified Data.Vector.Storable         as V
 
-import           Numeric.LinearAlgebra.Data   (toLists)
+import           Numeric.LinearAlgebra.Data   (Matrix, toLists)
 import qualified Numeric.LinearAlgebra.Static as SA
 
 import           Options.Applicative
@@ -119,8 +119,8 @@ ganTest (discriminator0, generator0) iterations trainFile opt = do
 
   showShape' :: S ('D2 a b) -> IO ()
   showShape' (S2D mm) = putStrLn $
-    let m  = SA.extract mm
-        ms = toLists m
+    let m  = SA.extract mm :: Matrix RealNum
+        ms = toLists m :: [[RealNum]]
         render n'  | n' <= 0.2  = ' '
                    | n' <= 0.4  = '.'
                    | n' <= 0.6  = '-'

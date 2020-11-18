@@ -1,7 +1,9 @@
 {-# LANGUAGE BangPatterns     #-}
+{-# LANGUAGE CPP              #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs            #-}
 {-# LANGUAGE RankNTypes       #-}
+{-# LANGUAGE Strict           #-}
 module Grenade.Utils.Vector
     ( mapVector
     , mapVectorInPlace
@@ -15,8 +17,8 @@ module Grenade.Utils.Vector
 import           Control.Monad        (when)
 import qualified Data.Vector.Storable as V
 import           Foreign
-import           GHC.ForeignPtr       (mallocPlainForeignPtrBytes)
-import           GHC.Storable         (readDoubleOffPtr, writeDoubleOffPtr)
+import           GHC.ForeignPtr       (mallocPlainForeignPtrAlignedBytes,
+                                       mallocPlainForeignPtrBytes)
 import           System.IO.Unsafe     (unsafePerformIO)
 
 
@@ -41,7 +43,16 @@ createVector n = do
     --
   where
     doMalloc :: V.Storable b => b -> IO (ForeignPtr b)
-    doMalloc dummy = mallocPlainForeignPtrBytes (n * sizeOf dummy)
+    doMalloc ~dummy =
+      -- memory aligned operations are faster (we use double, so align to 64)
+      -- ref: Vanhoucke, Vincent, Andrew Senior, and Mark Z. Mao. "Improving the speed of neural networks on CPUs." (2011).
+      -- non-aligned:
+      -- mallocPlainForeignPtrBytes (n * sizeOf dummy)
+-- #ifdef USE_DOUBLE
+--       mallocPlainForeignPtrAlignedBytes (n * sizeOf dummy) 64
+-- #else
+      mallocPlainForeignPtrAlignedBytes (n * sizeOf dummy) 16
+-- #endif
 
 -- | map on Vectors (code from HMatrix)
 mapVector :: (V.Storable a, V.Storable b) => (a -> b) -> V.Vector a -> V.Vector b
@@ -55,14 +66,13 @@ mapVector f v =
               x <- peekElemOff p k
               pokeElemOff q k (f x)
               go (k - 1)
-
         go (V.length v - 1)
     return w
 {-# INLINE mapVector #-}
 
 -- | map on Vectors (code from HMatrix)
 mapVectorInPlace :: (RealNum -> RealNum) -> V.Vector RealNum -> V.Vector RealNum
-mapVectorInPlace f v =
+mapVectorInPlace f v = -- mapVector f v
   unsafePerformIO $ do
     V.unsafeWith v $ \p -> do
         let go (-1) = return ()
@@ -97,7 +107,7 @@ zipWithVector f u v =
 
 -- | zipWith two vectors and replace the second with the result
 zipWithVectorInPlaceSnd :: (RealNum -> RealNum -> RealNum) -> V.Vector RealNum -> V.Vector RealNum -> V.Vector RealNum
-zipWithVectorInPlaceSnd f u v =
+zipWithVectorInPlaceSnd f u v = -- zipWithVector f u v
   unsafePerformIO $ do
     let n = min (V.length u) (V.length v)
     V.unsafeWith u $ \pu ->

@@ -5,6 +5,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE Strict                #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-|
@@ -33,10 +34,10 @@ import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
 import           Unsafe.Coerce                  (unsafeCoerce)
 
-
 import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
+import           Grenade.Utils.Vector
 
 -- | A Tanh layer.
 --   A layer which can act between any shape of the same dimension, performing a tanh function.
@@ -56,7 +57,11 @@ instance Serialize Tanh where
 
 instance (a ~ b, SingI a) => Layer Tanh a b where
   type Tape Tanh a b = S a
-  runForwards _ a = (a, tanh a)
+  -- runForwards _ (S1DV v) = (S1DV v, S1DV $ mapVectorInPlace tanh v) -- This is inplace replacement!
+  -- runForwards _ (S2DV v) = (S2DV v, S2DV $ mapVectorInPlace tanh v) -- This is inplace replacement!
+  runForwards _ a        = (a, tanh a)
+  -- runBackwards _ (S1DV v) (S1DV gs) = ((), S1DV $ zipWithVectorInPlaceSnd (\t g -> 1 - t ^ (2 :: Int) * g) v gs)
+  -- runBackwards _ (S2DV v) (S2DV gs) = ((), S2DV $ zipWithVectorInPlaceSnd (\t g -> 1 - t ^ (2 :: Int) * g) v gs)
   runBackwards _ a g = ((), tanh' a * g)
 
 tanh' :: (Floating a) => a -> a

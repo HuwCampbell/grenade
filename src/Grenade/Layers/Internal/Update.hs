@@ -1,5 +1,6 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE GADTs                    #-}
+{-# LANGUAGE Strict                   #-}
 module Grenade.Layers.Internal.Update (
     descendMatrix
   , descendVector
@@ -16,7 +17,7 @@ module Grenade.Layers.Internal.Update (
   ) where
 
 import           Control.Parallel.Strategies
-import           Data.Maybe                   (fromJust)
+import           Data.Maybe                   (fromJust, fromMaybe)
 import qualified Data.Vector.Storable         as U (unsafeFromForeignPtr0,
                                                     unsafeToForeignPtr0)
 import qualified Data.Vector.Storable         as V
@@ -29,6 +30,7 @@ import           Numeric.LinearAlgebra.Static
 import           System.IO.Unsafe             (unsafePerformIO)
 
 import           Grenade.Core.Optimizer
+import           Grenade.Layers.Internal.CUDA
 import           Grenade.Types
 
 data MatrixInputValues rows columns
@@ -155,7 +157,7 @@ descendMatrix (OptAdam alpha beta1 beta2 epsilon lambda) (MatrixValuesAdam step 
       gradient' = flatten . tr . extract $ gradient
       m'        = flatten . tr . extract $ m
       v'        = flatten . tr . extract $ v
-      (vw, vm, vv)     = descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights' gradient' m' v'
+      (vw, vm, vv)     = descendUnsafeAdamGPU len step alpha beta1 beta2 epsilon lambda weights' gradient' m' v'
 
       -- Note that it's ColumnMajor, as we did a transpose before
       -- using the internal vectors.
@@ -172,7 +174,7 @@ descendMatrixV (OptSGD rate momentum regulariser) (MatrixValuesSGDV weights grad
   in  MatrixResultSGDV vw vm
 descendMatrixV (OptAdam alpha beta1 beta2 epsilon lambda) (MatrixValuesAdamV step weights gradient m v) =
   let len          = V.length weights
-      (vw, vm, vv) = descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v
+      (vw, vm, vv) = descendUnsafeAdamGPU len step alpha beta1 beta2 epsilon lambda weights gradient m v
   in  MatrixResultAdamV vw vm vv
 descendMatrixV opt _ = error $ "optimzer does not match to MatrixInputValues in implementation! Optimizer: " ++ show opt
 
@@ -190,7 +192,7 @@ descendVector (OptAdam alpha beta1 beta2 epsilon lambda) (VectorValuesAdam step 
       gradient' = extract gradient
       m'        = extract m
       v'        = extract v
-      (vw, vm, vv)     = descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights' gradient' m' v'
+      (vw, vm, vv)     = descendUnsafeAdamGPU len step alpha beta1 beta2 epsilon lambda weights' gradient' m' v'
   in  VectorResultAdam (fromJust $ create vw) (fromJust $ create vm) (fromJust $ create vv)
 descendVector opt _ = error $ "optimzer does not match to VectorInputValues in implementation! Optimizer: " ++ show opt
 
@@ -201,7 +203,7 @@ descendVectorV (OptSGD rate momentum regulariser) (VectorValuesSGDV weights grad
   in  VectorResultSGDV vw vm
 descendVectorV (OptAdam alpha beta1 beta2 epsilon lambda) (VectorValuesAdamV step weights gradient m v) =
   let len = V.length weights
-      (vw, vm, vv) = descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v
+      (vw, vm, vv) = descendUnsafeAdamGPU len step alpha beta1 beta2 epsilon lambda weights gradient m v
    in VectorResultAdamV vw vm vv
 descendVectorV opt _ = error $ "optimzer does not match to VectorInputValues in implementation! Optimizer: " ++ show opt
 
@@ -279,6 +281,27 @@ descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v
             descend_adam_cpu len step alpha beta1 beta2 epsilon lambda wPtr' gPtr' mPtr' vPtr'
     return (U.unsafeFromForeignPtr0 wPtr len, U.unsafeFromForeignPtr0 mPtr len, U.unsafeFromForeignPtr0 vPtr len)
 {-# NOINLINE descendUnsafeAdam #-}
+
+descendUnsafeAdamGPU ::
+     Int -- Len
+  -> Int -- Step
+  -> RealNum -- Alpha
+  -> RealNum -- Beta1
+  -> RealNum -- Beta2
+  -> RealNum -- Epsilon
+  -> RealNum -- Lambda
+  -> Vector RealNum -- Weights
+  -> Vector RealNum -- Gradient
+  -> Vector RealNum -- M
+  -> Vector RealNum -- V
+  -> (Vector RealNum, Vector RealNum, Vector RealNum)
+descendUnsafeAdamGPU len step alpha beta1 beta2 epsilon lambda weights gradient m v
+  | len >= 25000 =
+    fromMaybe
+      (error "GPU did not work")
+      -- (descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v)
+      (cudaDescendUnsafeAdamGPU len step alpha beta1 beta2 epsilon lambda weights gradient m v)
+  | otherwise = descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v
 
 
 foreign import ccall unsafe

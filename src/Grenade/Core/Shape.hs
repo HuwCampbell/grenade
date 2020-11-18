@@ -29,6 +29,7 @@ module Grenade.Core.Shape (
   , randomOfShape
   , fromStorable
   , fromStorableV
+  , isVectorShape
   ) where
 
 #if MIN_VERSION_singletons(2,6,0)
@@ -37,6 +38,7 @@ import           Data.Singletons.TypeLits     (SNat (..))
 #endif
 
 import           Control.DeepSeq              (NFData (..))
+import           Data.Maybe                   (fromMaybe)
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons
@@ -86,19 +88,25 @@ data S (n :: Shape) where
       -> S ('D3 rows columns depth)
 
   -- HMatrix instances
-  S1DV :: (KnownNat len)
+  S1DV :: (KnownNat len) -- ^ Always a row-vector
        => V.Vector RealNum
        -> S ('D1 len)
 
   -- HMatrix instances
   S2DV :: (KnownNat rows, KnownNat columns)
-       => V.Vector RealNum -- ^ Vector in row major. Use Data.Matrix here?
+       => V.Vector RealNum -- ^ Vector in row or column major accoring to @order@ in @Grenade.Utils.Conversion@. Use Data.Matrix here?
        -> S ('D2 rows columns)
 
   -- HMatrix instances
   -- S3DH :: (KnownNat rows, KnownNat columns, KnownNat depth, KnownNat (rows * depth))
   --      => HBLAS.MDenseMatrix RealWorld 'HBLAS.Row Double
   --      -> S ('D3 rows columns depth)
+
+
+isVectorShape :: S x -> Bool
+isVectorShape S1DV{} = True
+isVectorShape S2DV{} = True
+isVectorShape _      = False
 
 
 instance Show (S n) where
@@ -246,10 +254,10 @@ n1 :: ( forall a. Floating a => a -> a ) -> S x -> S x
 n1 f (S1D x)  = S1D (f x)
 n1 f (S2D x)  = S2D (f x)
 n1 f (S3D x)  = S3D (f x)
-n1 f (S1DV x) = S1DV (mapVectorInPlace f x) -- This is inplace mapping the vector!
-n1 f (S2DV x) = S2DV (mapVectorInPlace f x) -- This is inplace mapping the vector!
--- n1 f (S1DV x) = S1DV (mapVector f x)
--- n1 f (S2DV x) = S2DV (mapVector f x)
+-- n1 f (S1DV x) = S1DV (mapVectorInPlace f x) -- This is inplace mapping the vector!
+-- n1 f (S2DV x) = S2DV (mapVectorInPlace f x) -- This is inplace mapping the vector!
+n1 f (S1DV x) = S1DV (mapVector f x)
+n1 f (S2DV x) = S2DV (mapVector f x)
 
 
 -- helper function for creating the number instances
@@ -257,12 +265,14 @@ n2 :: ( forall a. Floating a => a -> a -> a ) -> S x -> S x -> S x
 n2 f (S1D x) (S1D y)    = S1D (f x y)
 n2 f (S2D x) (S2D y)    = S2D (f x y)
 n2 f (S3D x) (S3D y)    = S3D (f x y)
-n2 f (S1DV x) (S1DV y)  = S1DV (zipWithVectorInPlaceSnd f x y) -- This is inplace mapping the vector!
-n2 f (S2DV x) (S2DV y)  = S2DV (zipWithVectorInPlaceSnd f x y) -- This is inplace mapping the vector!
--- n2 f (S1DV x) (S1DV y)  = S1DV (zipWithVector f x y)
--- n2 f (S2DV x) (S2DV y)  = S2DV (zipWithVector f x y)
-n2 f x@S1DV{} (S1D y)   = n2 f x (S1DV $ extract y)
+-- n2 f (S1DV x) (S1DV y)  = S1DV (zipWithVectorInPlaceSnd f x y) -- This is inplace mapping the vector!
+-- n2 f (S2DV x) (S2DV y)  = S2DV (zipWithVectorInPlaceSnd f x y) -- This is inplace mapping the vector!
+n2 f (S1DV x) (S1DV y)  = S1DV (zipWithVector f x y)
+n2 f (S2DV x) (S2DV y)  = S2DV (zipWithVector f x y)
 n2 f (S1D x) y@S1DV{}   = n2 f (S1DV $ extract x) y
+n2 f (S1DV x) y@S1D{}   = n2 f (S1D $ fromMaybe err $ H.create x) y
+  where err = error "wrong length of vector in n2 in Grenade.Core.Shape"
+n2 _ x y                = error $ "unexpected mixed values in n2: " ++ show (x,y)
 n2 f x@(S2DV _) (S2D y) = n2 f x (S2DV (NLA.flatten . H.extract $ y))
 n2 f (S2D x) y@(S2DV _) = n2 f (S2DV (NLA.flatten . H.extract $ x)) y
 

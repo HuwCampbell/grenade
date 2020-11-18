@@ -58,8 +58,8 @@ extra-deps:
  - some-1.0.1@sha256:26e5bab7276f48b25ea8660d3fd1166c0f20fd497dac879a40f408e23211f93e,2055
  - git: https://github.com/schnecki/hmatrix-float
    commit: 20ad30db8edb97ce735d8218937f9ded878e3217
- - git: https://github.com/schnecki/hblas
-   commit: b551e74ec278503d45bcd341c8c71a1f06558d92
+ - cublas-0.6.0.0@sha256:f25a633f067f31b6df0aff751710b1a4d79d39c5ed717462879e0ece46cf294b,2363
+ - cuda-0.10.2.0@sha256:29912a2273840bbad934b404c7bd27633a1b9b5449c57ae8118bc35e7dcfeb74,5656
 
 drop-packages:
  - constraints-extras
@@ -84,8 +84,8 @@ flags: {}
 # arch: x86_64
 #
 # Extra directories used by stack for building
-# extra-include-dirs: [/path/to/dir]
-# extra-lib-dirs: [/path/to/dir]
+# extra-include-dirs: [/opt/cuda/nvvm/lib64]
+# extra-lib-dirs: [/opt/cuda/nvvm/lib64,/opt/cuda/lib64]
 #
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor

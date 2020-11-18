@@ -265,7 +265,7 @@ l2Norm :: (FoldableGradient x) => x -> RealNum
 l2Norm grad = sqrt (sum $ squaredSums grad)
 
 -- | Clip the gradients by the global norm.
-clipByGlobalNorm :: (FoldableGradient (Gradients xs)) => Double -> Gradients xs -> Gradients xs
+clipByGlobalNorm :: (FoldableGradient (Gradients xs)) => RealNum -> Gradients xs -> Gradients xs
 clipByGlobalNorm c grads =
   let divisor = sqrt $ sum $ squaredSums grads
    in if divisor > c

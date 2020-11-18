@@ -24,6 +24,9 @@ module Grenade (
 
   , module Grenade.Dynamic
 
+    -- * Handy tools
+  , module Grenade.Utils.Conversion
+
 
   ) where
 
@@ -31,6 +34,7 @@ import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Layers
 import           Grenade.Types
+import           Grenade.Utils.Conversion
 
 {- $library
 Grenade is a purely functional deep learning library.
@@ -59,5 +63,3 @@ The function `randomMyNet` witnesses the `CreatableNetwork`
 constraint of the neural network, and in doing so, ensures the network
 can be built, and hence, that the architecture is sound.
 -}
-
-

@@ -41,18 +41,21 @@ import           Data.Reflection                (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.Prelude.Num    ((%*))
+import qualified Data.Vector.Storable           as V
 import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
 import           Numeric.LinearAlgebra.Data     as LA (flatten)
-import           Numeric.LinearAlgebra.Static
+import           Numeric.LinearAlgebra.Static   hiding (toRows)
 import           Unsafe.Coerce                  (unsafeCoerce)
 
 
 import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
-import           Grenade.Layers.Internal.BLAS
 import           Grenade.Layers.Trivial
+import           Grenade.Utils.Conversion
+
+import           Debug.Trace
 
 -- | Reshape Layer
 --
@@ -75,9 +78,9 @@ instance RandomLayer Reshape where
 instance (KnownNat a, KnownNat x, KnownNat y, a ~ (x * y)) => Layer Reshape ('D2 x y) ('D1 a) where
   type Tape Reshape ('D2 x y) ('D1 a) = ()
   runForwards _ (S2D y)  =  ((), fromJust' . fromStorable . flatten . extract $ y)
-  runForwards _ x@S2DV{} = ((), S1DV $ toRowMajorVector x)
+  runForwards _ (S2DV y) = ((), fromStorableV y)
   runBackwards _ _ (S1D y)  = ((), fromJust' . fromStorable . extract $ y)
-  runBackwards _ _ (S1DV y) = ((), fromRowMajorVector y)
+  runBackwards _ _ (S1DV y) = ((), fromStorableV y)
 
 instance (KnownNat a, KnownNat x, KnownNat y, KnownNat (x * z), KnownNat z, a ~ (x * y * z)) => Layer Reshape ('D3 x y z) ('D1 a) where
   type Tape Reshape ('D3 x y z) ('D1 a) = ()
@@ -89,20 +92,28 @@ instance (KnownNat y, KnownNat x, KnownNat z, z ~ 1) => Layer Reshape ('D3 x y z
   type Tape Reshape ('D3 x y z) ('D2 x y) = ()
   runForwards _ (S3D y)    = ((), S2D y)
   runBackwards _ _ (S2D y) = ((), S3D y)
-  runBackwards _ _ _       = error "not yet implemented"
+  runBackwards _ _ _       = error "S3DV not yet implemented"
 
 instance (KnownNat y, KnownNat x, KnownNat z, z ~ 1) => Layer Reshape ('D2 x y) ('D3 x y z) where
   type Tape Reshape ('D2 x y) ('D3 x y z) = ()
   runForwards _ (S2D y)  = ((), S3D y)
-  runForwards _ (S2DV _) = error "not yet implemented"
+  runForwards _ (S2DV _) = error "S3DV not yet implemented"
   runBackwards _ _ (S3D y) = ((), S2D y)
 
 instance (KnownNat a, KnownNat x, KnownNat y, a ~ (x * y)) => Layer Reshape ('D1 a) ('D2 x y) where
   type Tape Reshape ('D1 a) ('D2 x y) = ()
   runForwards _ (S1D y)  =  ((), fromJust' . fromStorable . extract $ y)
-  runForwards _ (S1DV y) =  ((), fromRowMajorVector y)
-  runBackwards _ _ (S2D y)  = ((), fromJust' . fromStorable . flatten . extract $ y)
-  runBackwards _ _ y@S2DV{} = ((), S1DV $ toRowMajorVector y)
+  runForwards _ (S1DV y) =  ((), fromRowMajorVectorToSD2V y)
+  runBackwards _ _ (S2D y)  = ((),
+                               -- trace ("S2D y: " ++ show y) $
+                               --  trace ("S1D out: " ++ show res )
+                                   res
+                                )
+    where res = fromJust' . fromStorable . flatten . extract $ y
+  runBackwards _ _ x@(S2DV y) = ((),
+                               -- trace ("S2DV y: " ++ show y) $
+                               -- trace ("out: " ++ show (V.concat $ toRowsS2D x))
+                               S1DV $ V.concat $ toRowsS2D x)
 
 instance (KnownNat a, KnownNat x, KnownNat y, KnownNat (x * z), KnownNat z, a ~ (x * y * z)) => Layer Reshape ('D1 a) ('D3 x y z) where
   type Tape Reshape ('D1 a) ('D3 x y z) = ()

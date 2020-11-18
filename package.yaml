@@ -15,7 +15,6 @@ extra-source-files:
 - cbits/pad.h
 - cbits/pad.c
 - cbits/type.h
-- cbits/util.c
 - cbits/blas.c
 
 # Metadata used when publishing your package
@@ -73,6 +72,7 @@ dependencies:
   - binary                          >= 0.8
   - mtl
   - parallel
+  - cuda
 when:
   condition: flag(use-float)
   then:
@@ -118,12 +118,11 @@ library:
   # OpenMP
   ld-options: -fopenmp
 
-  extra-libraries: cblas
+  extra-libraries: cblas cuda
   c-sources:
     - cbits/im2col.c
     - cbits/gradient_descent.c
     - cbits/pad.c
-    - cbits/util.c
     - cbits/blas.c
   cc-options: -std=c99 -O4 -msse4.2 -Wall -Werror -DCABAL=1 -fopenmp
 

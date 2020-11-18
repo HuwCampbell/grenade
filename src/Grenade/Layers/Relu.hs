@@ -4,6 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE Strict                #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-|
@@ -43,11 +44,9 @@ import           Unsafe.Coerce                  (unsafeCoerce)
 import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
-import           Grenade.Layers.Internal.BLAS
-import           Grenade.Types
+import           Grenade.Utils.Conversion
 import           Grenade.Utils.Vector
 
-import           Debug.Trace
 
 -- | A rectifying linear unit.
 --   A layer which can act between any shape of the same dimension, acting as a
@@ -71,7 +70,7 @@ runForward1D :: (KnownNat i) => Relu -> S ('D1 i) -> (Tape Relu ('D1 i) ('D1 i),
 runForward1D _ (S1D y) = (S1D y, S1D (relu y))
     where
       relu = LAS.dvmap (\a -> if a <= 0 then 0 else a)
-runForward1D _ (S1DV y) = (S1DV y, S1DV $ mapVectorInPlace relu y) -- y will be replaced, which however still leads to a correct implementation!
+runForward1D _ (S1DV y) = force (mapVectorInPlace relu y) `seq` (S1DV y, S1DV y) -- y will be replaced, which however still leads to a correct implementation!
     where
       relu a = if a <= 0 then 0 else a
 
@@ -79,13 +78,12 @@ runForward1D _ (S1DV y) = (S1DV y, S1DV $ mapVectorInPlace relu y) -- y will be 
 reluDifZip :: (Ord a, Floating a) => a -> a -> a
 reluDifZip a g = if a <= 0 then 0 else g
 
-
 -- Run backward 1D
 runBackward1D :: (KnownNat i) => Relu -> S ('D1 i) -> S ('D1 i) -> (Gradient Relu, S ('D1 i))
 runBackward1D _ (S1D y) (S1D dEdy) = ((), S1D (relu' y * dEdy))
     where
       relu' = LAS.dvmap (\a -> if a <= 0 then 0 else 1)
-runBackward1D _ (S1DV y) (S1DV dEdy) = ((), S1DV $ zipWithVectorInPlaceSnd reluDifZip y dEdy)
+runBackward1D _ (S1DV y) (S1DV dEdy) = zipWithVectorInPlaceSnd reluDifZip y dEdy `seq` ((), S1DV dEdy)
 runBackward1D l y dEdy = runBackward1D l y (toLayerShape y dEdy)
 
 

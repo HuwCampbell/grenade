@@ -31,12 +31,12 @@ import           Data.Serialize
 import           Data.Singletons
 import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
-import           Grenade.Layers.Internal.BLAS   (toLayerShape)
 import           Unsafe.Coerce                  (unsafeCoerce)
 
 import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
+import           Grenade.Utils.Conversion       (toLayerShape)
 import           Grenade.Utils.Vector
 
 -- | A Logit layer.
@@ -65,16 +65,16 @@ instance (a ~ b, SingI a) => Layer Logit a b
                                        where
   type Tape Logit a b = S a
   runForwards _ (S1DV vec) =
-    let l = mapVectorInPlace sigmoid vec
+    let l = mapVector sigmoid vec
      in (S1DV l, S1DV l)
   runForwards _ (S2DV vec) =
-    let l = mapVectorInPlace sigmoid vec
+    let l = mapVector sigmoid vec
      in (S2DV l, S2DV l)
   runForwards _ a =
     let l = sigmoid a
      in (l, l)
-  runBackwards _ (S1DV vec) (S1DV g) = ((), S1DV $ zipWithVectorInPlaceSnd sigmoidDifZip vec g)
-  runBackwards _ (S2DV vec) (S2DV g) = ((), S2DV $ zipWithVectorInPlaceSnd sigmoidDifZip vec g)
+  runBackwards _ (S1DV vec) (S1DV g) = ((), S1DV $ zipWithVector sigmoidDifZip vec g)
+  runBackwards _ (S2DV vec) (S2DV g) = ((), S2DV $ zipWithVector sigmoidDifZip vec g)
   runBackwards _ l g =
     let g' = toLayerShape l g
      in ((), sigmoid' l * g')

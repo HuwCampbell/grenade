@@ -12,10 +12,10 @@ import           Numeric.LinearAlgebra.Static
 
 
 sumV :: (KnownNat n) => R n -> RealNum
-sumV v = fromDoubleToRealNum $ v <.> 1
+sumV v = v <.> 1
 
 sumM :: (KnownNat m, KnownNat n) => L m n -> RealNum
-sumM m = fromDoubleToRealNum $ (m #> 1) <.> 1
+sumM m = (m #> 1) <.> 1
 
 
 squareV :: (KnownNat n) => R n -> R n

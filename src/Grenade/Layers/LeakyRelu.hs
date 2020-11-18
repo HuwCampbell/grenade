@@ -35,8 +35,8 @@ import           Unsafe.Coerce                  (unsafeCoerce)
 import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
-import           Grenade.Layers.Internal.BLAS   (toLayerShape)
 import           Grenade.Types
+import           Grenade.Utils.Conversion       (toLayerShape)
 import           Grenade.Utils.Vector
 
 
@@ -65,14 +65,11 @@ instance (KnownNat i) => Layer LeakyRelu ('D1 i) ('D1 i) where
       relu = LAS.dvmap (\a -> if a < 0 then alpha * a else a)
   runForwards _ (S1DV y) = (S1DV y, S1DV (relu y))
     where
-      relu = mapVector (\a -> if a < 0 then alpha * a else a)
-      -- relu = parMapVectorC c_leaky_relu
-      -- relu =  c_leaky_relu
+      relu = mapVectorInPlace (\a -> if a < 0 then alpha * a else a) -- we do not change the sign, so we can use inPlace here
   runBackwards _ (S1D y) (S1D dEdy) = ((), S1D (relu' y * dEdy))
     where
       relu' = LAS.dvmap (\a -> if a < 0 then alpha else 1)
   runBackwards _ (S1DV y) (S1DV dEdy) = ((), S1DV $ zipWithVectorInPlaceSnd reluDif y dEdy)
-                                          -- parZipWithVectorReplSndC c_leaky_relu_dif_fast y dEdy)
   runBackwards x y dEdy = runBackwards x y (toLayerShape y dEdy)
 
 reluDif :: RealNum -> RealNum -> RealNum
