@@ -239,6 +239,7 @@ descendVectorV opt _ = error $ "optimzer does not match to VectorInputValues in 
 descendUnsafeSGD :: Int -> RealNum -> RealNum -> RealNum -> Vector RealNum -> Vector RealNum -> Vector RealNum -> (Vector RealNum, Vector RealNum)
 descendUnsafeSGD len rate momentum regulariser weights gradient lastUpdate =
   unsafePerformIO $ do
+
     outWPtr <- mallocForeignPtrArray len
     outMPtr <- mallocForeignPtrArray len
     let (wPtr, _) = U.unsafeToForeignPtr0 weights
@@ -270,16 +271,12 @@ descendUnsafeAdam ::
   -> (Vector RealNum, Vector RealNum, Vector RealNum)
 descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v =
   unsafePerformIO $ do
-    let (wPtr, _) = U.unsafeToForeignPtr0 weights
-    let (gPtr, _) = U.unsafeToForeignPtr0 gradient
-    let (mPtr, _) = U.unsafeToForeignPtr0 m
-    let (vPtr, _) = U.unsafeToForeignPtr0 v
-    withForeignPtr wPtr $ \wPtr' ->
-      withForeignPtr gPtr $ \gPtr' ->
-        withForeignPtr mPtr $ \mPtr' ->
-          withForeignPtr vPtr $ \vPtr' ->
-            descend_adam_cpu len step alpha beta1 beta2 epsilon lambda wPtr' gPtr' mPtr' vPtr'
-    return (U.unsafeFromForeignPtr0 wPtr len, U.unsafeFromForeignPtr0 mPtr len, U.unsafeFromForeignPtr0 vPtr len)
+  V.unsafeWith weights $ \wPtr' ->
+    V.unsafeWith gradient $ \gPtr' ->
+      V.unsafeWith m $ \mPtr' ->
+        V.unsafeWith v $ \vPtr' ->
+           descend_adam_cpu len step alpha beta1 beta2 epsilon lambda wPtr' gPtr' mPtr' vPtr'
+  return (weights, m, v)
 {-# NOINLINE descendUnsafeAdam #-}
 
 descendUnsafeAdamGPU ::
@@ -296,10 +293,9 @@ descendUnsafeAdamGPU ::
   -> Vector RealNum -- V
   -> (Vector RealNum, Vector RealNum, Vector RealNum)
 descendUnsafeAdamGPU len step alpha beta1 beta2 epsilon lambda weights gradient m v
-  | len >= 25000 =
+  | len >= 10000 = -- We need some size, otherwise the overhead is too big and processing using BLAS is faster
     fromMaybe
-      (error "GPU did not work")
-      -- (descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v)
+      (descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v)
       (cudaDescendUnsafeAdamGPU len step alpha beta1 beta2 epsilon lambda weights gradient m v)
   | otherwise = descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v
 

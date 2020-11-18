@@ -70,7 +70,10 @@ runForward1D :: (KnownNat i) => Relu -> S ('D1 i) -> (Tape Relu ('D1 i) ('D1 i),
 runForward1D _ (S1D y) = (S1D y, S1D (relu y))
     where
       relu = LAS.dvmap (\a -> if a <= 0 then 0 else a)
-runForward1D _ (S1DV y) = force (mapVectorInPlace relu y) `seq` (S1DV y, S1DV y) -- y will be replaced, which however still leads to a correct implementation!
+runForward1D _ (S1DV y) =
+  (S1DV y, S1DV (mapVectorInPlace relu y)) -- y will be replaced, which however still leads to a correct implementation!
+  -- force (mapVectorInPlace relu y) `seq` (S1DV y, S1DV y) -- y will be replaced, which however still leads to a correct implementation!
+  -- (S1DV y, S1DV $ mapVector relu y) -- y will be replaced, which however still leads to a correct implementation!
     where
       relu a = if a <= 0 then 0 else a
 
@@ -83,7 +86,7 @@ runBackward1D :: (KnownNat i) => Relu -> S ('D1 i) -> S ('D1 i) -> (Gradient Rel
 runBackward1D _ (S1D y) (S1D dEdy) = ((), S1D (relu' y * dEdy))
     where
       relu' = LAS.dvmap (\a -> if a <= 0 then 0 else 1)
-runBackward1D _ (S1DV y) (S1DV dEdy) = zipWithVectorInPlaceSnd reluDifZip y dEdy `seq` ((), S1DV dEdy)
+runBackward1D _ (S1DV y) (S1DV dEdy) = ((), S1DV (zipWithVectorInPlaceSnd reluDifZip y dEdy))
 runBackward1D l y dEdy = runBackward1D l y (toLayerShape y dEdy)
 
 
@@ -97,7 +100,7 @@ runBackward2D :: (KnownNat i, KnownNat j) => Relu -> S ('D2 i j) -> S ('D2 i j) 
 runBackward2D _ (S2D y) (S2D dEdy) = ((), S2D (relu' y * dEdy))
     where
       relu' = LAS.dmmap (\a -> if a <= 0 then 0 else 1)
-runBackward2D _ (S2DV y) (S2DV dEdy) = ((), S2DV $ zipWithVectorInPlaceSnd reluDifZip y dEdy)
+runBackward2D _ (S2DV y) (S2DV dEdy) = ((), S2DV (zipWithVectorInPlaceSnd reluDifZip y dEdy))
 runBackward2D l y dEdy = runBackward2D l y (toLayerShape y dEdy)
 
 instance (KnownNat i, KnownNat j) => Layer Relu ('D2 i j) ('D2 i j) where

@@ -30,9 +30,6 @@ import           Control.Monad.Primitive        (PrimBase, PrimState)
 import           Data.Maybe                     (fromMaybe)
 import           Data.Reflection                (reifyNat)
 import qualified Data.Vector.Storable           as V
-import qualified Data.Vector.Storable           as U (unsafeFromForeignPtr0,
-                                                      unsafeToForeignPtr0)
-import           Foreign.ForeignPtr             (withForeignPtr)
 import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
 import           System.Random.MWC              hiding (create)

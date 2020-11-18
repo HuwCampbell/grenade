@@ -22,7 +22,7 @@ module Grenade.Layers.LeakyRelu (
   , leakyRelu
   ) where
 
-import           Control.DeepSeq                (NFData (..))
+import           Control.DeepSeq                (NFData (..), force)
 import           Data.Constraint                (Dict (..))
 import           Data.Reflection                (reifyNat)
 import           Data.Serialize
@@ -63,19 +63,15 @@ instance (KnownNat i) => Layer LeakyRelu ('D1 i) ('D1 i) where
   runForwards _ (S1D y) = (S1D y, S1D (relu y))
     where
       relu = LAS.dvmap (\a -> if a < 0 then alpha * a else a)
-  runForwards _ (S1DV y) = (S1DV y, S1DV (relu y))
+  runForwards _ (S1DV y) = (S1DV y, S1DV (mapVectorInPlace relu y))
     where
-      relu = mapVectorInPlace (\a -> if a < 0 then alpha * a else a) -- we do not change the sign, so we can use inPlace here
+      relu = (\a -> if a < 0 then alpha * a else a) -- we do not change the sign, so we can use inPlace here
   runBackwards _ (S1D y) (S1D dEdy) = ((), S1D (relu' y * dEdy))
     where
       relu' = LAS.dvmap (\a -> if a < 0 then alpha else 1)
   runBackwards _ (S1DV y) (S1DV dEdy) = ((), S1DV $ zipWithVectorInPlaceSnd reluDif y dEdy)
   runBackwards x y dEdy = runBackwards x y (toLayerShape y dEdy)
 
-reluDif :: RealNum -> RealNum -> RealNum
-reluDif a g
-  | a < 0 = alpha * g
-  | otherwise = g
 
 instance (KnownNat i, KnownNat j) => Layer LeakyRelu ('D2 i j) ('D2 i j) where
   type Tape LeakyRelu ('D2 i j) ('D2 i j) = S ('D2 i j)
@@ -83,9 +79,9 @@ instance (KnownNat i, KnownNat j) => Layer LeakyRelu ('D2 i j) ('D2 i j) where
   runForwards _ (S2D y) = (S2D y, S2D (relu y))
     where
       relu = LAS.dmmap (\a -> if a < 0 then alpha * a else a)
-  runForwards _ (S2DV y) = (S2DV y, S2DV (relu y))
+  runForwards _ (S2DV y) = (S2DV y, S2DV (mapVectorInPlace relu y))
     where
-      relu = mapVector (\a -> if a < 0 then alpha * a else a)
+      relu = (\a -> if a < 0 then alpha * a else a)
   runBackwards _ (S2D y) (S2D dEdy) = ((), S2D (relu' y * dEdy))
     where
       relu' = LAS.dmmap (\a -> if a < 0 then alpha else 1)
@@ -105,6 +101,11 @@ instance (KnownNat i, KnownNat j, KnownNat k) => Layer LeakyRelu ('D3 i j k) ('D
 
 alpha :: RealNum
 alpha = 0.02
+
+reluDif :: RealNum -> RealNum -> RealNum
+reluDif a g
+  | a < 0 = alpha * g
+  | otherwise = g
 
 
 -------------------- DynamicNetwork instance --------------------

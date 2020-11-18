@@ -28,8 +28,6 @@ import           Control.Monad
 import           Data.IORef
 import           Data.Proxy
 import qualified Data.Vector.Storable         as V
-import qualified Data.Vector.Storable         as U (unsafeFromForeignPtr0,
-                                                    unsafeToForeignPtr0)
 import           Foreign                      (withForeignPtr)
 import           Foreign.C.Types
 import           Foreign.Ptr
@@ -45,24 +43,21 @@ import           Grenade.Types
 
 import           Debug.Trace
 
--- DGEMM seems to be a little faster. So we aim for implementing all operations with DGEMM
-
 #define USE_DGEMM_ONLY 0
 
 -- | Memory copy a vector from one to the other.
 unsafeMemCopyVectorFromTo :: V.Vector RealNum -> V.Vector RealNum -> V.Vector RealNum
-unsafeMemCopyVectorFromTo from to= unsafePerformIO (memCopyVectorFromTo from to)
+unsafeMemCopyVectorFromTo from to = unsafePerformIO (memCopyVectorFromTo from to)
+{-# NOINLINE unsafeMemCopyVectorFromTo #-}
 
 -- | Memory copy a vector from one to the other.
 memCopyVectorFromTo :: V.Vector RealNum -> V.Vector RealNum -> IO (V.Vector RealNum)
 memCopyVectorFromTo from to = do
-  let (fromPtr, _) = U.unsafeToForeignPtr0 from
-      (toPtr, _) = U.unsafeToForeignPtr0 to
-  withForeignPtr fromPtr $ \fromPtr' ->
-    withForeignPtr toPtr $ \toPtr' -> do
+  V.unsafeWith from $ \fromPtr' ->
+    V.unsafeWith to $ \toPtr' ->
       void $ memcpy toPtr' fromPtr' (fromIntegral $ sizeOf (V.head from) * V.length to)
-      return $ U.unsafeFromForeignPtr0 toPtr (V.length to)
-{-# NOINLINE unsafeMemCopyVectorFromTo #-}
+  return to
+{-# INLINE memCopyVectorFromTo #-}
 
 
 -- | Write zero to all elements in a vector.
@@ -73,9 +68,9 @@ unsafeMemZero = unsafePerformIO . memZero
 -- | Write zero to all elements in a vector.
 memZero :: V.Vector RealNum -> IO (V.Vector RealNum)
 memZero vec = do
-  let (vecPtr, _) = U.unsafeToForeignPtr0 vec
-  withForeignPtr vecPtr $ \vecPtr' -> void $ memset vecPtr' 0 (fromIntegral $ sizeOf (0 :: RealNum) * V.length vec)
-  return $ U.unsafeFromForeignPtr0 vecPtr (V.length vec)
+  V.unsafeWith vec $ \vecPtr' ->
+    void $ memset vecPtr' 0 (fromIntegral $ sizeOf (0 :: RealNum) * V.length vec)
+  return vec
 {-# NOINLINE memZero #-}
 
 foreign import ccall unsafe "string.h" memset  :: Ptr a -> CInt  -> CSize -> IO (Ptr a)
@@ -184,12 +179,9 @@ dgemmUnsafe trA trB (axIn, ayIn) (bxIn, byIn) alpha matrixA matrixB beta matrixC
     "bad dimension args to dgemmUnsafe: ax ay bx by cx cy: " ++
     show [ax, ay, bx, by, ax, by] ++ " matrix C length: " ++ show (V.length matrixC) ++ "\n\t" ++ mkDimText (ax, ay) (bx, by) (ax, by)
   | otherwise = do
-      let (aPtr, _) = U.unsafeToForeignPtr0 matrixA
-          (bPtr, _) = U.unsafeToForeignPtr0 matrixB
-          (cPtr, _) = U.unsafeToForeignPtr0 matrixC
-      withForeignPtr aPtr $ \aPtr' ->
-        withForeignPtr bPtr $ \bPtr' ->
-          withForeignPtr cPtr $ \cPtr' -> do
+      V.unsafeWith matrixA $ \aPtr' ->
+        V.unsafeWith matrixB $ \bPtr' ->
+          V.unsafeWith matrixC $ \cPtr' ->  do
 #ifdef USE_FLOAT
             sgemm_direct
 #else
@@ -208,7 +200,7 @@ dgemmUnsafe trA trB (axIn, ayIn) (bxIn, byIn) alpha matrixA matrixB beta matrixC
               beta
               cPtr'
               (fromIntegral ax)   -- LDC
-            return $ U.unsafeFromForeignPtr0 cPtr (ax * by)
+            return matrixC
   where
     (ax, ay) = swapTranspose trA (axIn, ayIn)
     (bx, by) = swapTranspose trB (bxIn, byIn)
@@ -248,12 +240,9 @@ dgemvUnsafe trA (m, k) alpha matrixA vecX beta vecY
     "bad dimension args to dgemvUnsafe: ax ay (length vecX) (length vecY): " ++
     show [ax, ay, V.length vecX, V.length vecY] ++ " \n\t" ++ mkDimText (ax, ay) (V.length vecX, 1) (m, 1)
   | otherwise = do
-      let (aPtr, _) = U.unsafeToForeignPtr0 matrixA
-          (xPtr, _) = U.unsafeToForeignPtr0 vecX
-          (yPtr, _) = U.unsafeToForeignPtr0 vecY
-      withForeignPtr aPtr $ \aPtr' ->
-        withForeignPtr xPtr $ \xPtr' ->
-          withForeignPtr yPtr $ \yPtr' -> do
+      V.unsafeWith matrixA $ \aPtr' ->
+        V.unsafeWith vecX $ \xPtr' ->
+          V.unsafeWith vecY $ \yPtr' -> do
 #ifdef USE_FLOAT
             sgemv_direct
 #else
@@ -270,7 +259,7 @@ dgemvUnsafe trA (m, k) alpha matrixA vecX beta vecY
               beta
               yPtr'
               1
-            return $ U.unsafeFromForeignPtr0 yPtr ax
+            return vecY
   where
     (ax, ay) = swapTranspose trA (m, k)
 
@@ -301,12 +290,9 @@ dgerUnsafe (ax, ay) alpha vecX vecY matrixA
   | ax /= len || ay /= V.length vecY =
     error $! "bad dimension args to dgerUnsafe: X Y ax ay: " ++ show [len, V.length vecY, ax, ay] ++ " \n\t" ++ mkDimText (ax, ay) (V.length vecX, 1) (V.length vecY, 1)
   | otherwise = do
-      let (aPtr, _) = U.unsafeToForeignPtr0 matrixA
-          (xPtr, _) = U.unsafeToForeignPtr0 vecX
-          (yPtr, _) = U.unsafeToForeignPtr0 vecY
-      withForeignPtr aPtr $ \aPtr' ->
-        withForeignPtr xPtr $ \xPtr' ->
-          withForeignPtr yPtr $ \yPtr' -> do
+      V.unsafeWith matrixA $ \aPtr' ->
+        V.unsafeWith vecX $ \xPtr' ->
+          V.unsafeWith vecY $ \yPtr' -> do
 #ifdef USE_FLOAT
             sger_direct
 #else
@@ -321,7 +307,7 @@ dgerUnsafe (ax, ay) alpha vecX vecY matrixA
               1
               aPtr'
               (fromIntegral ax)
-            return $ U.unsafeFromForeignPtr0 aPtr (V.length matrixA)
+            return matrixA
   where
     len = V.length vecX
 

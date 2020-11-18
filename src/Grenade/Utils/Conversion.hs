@@ -26,8 +26,6 @@ import           Data.Proxy
 import           Data.Singletons
 import           Data.Singletons.TypeLits
 import qualified Data.Vector.Storable         as V
-import qualified Data.Vector.Storable         as U (unsafeFromForeignPtr0,
-                                                    unsafeToForeignPtr0)
 import qualified Data.Vector.Storable.Mutable as VM
 import           Foreign                      (withForeignPtr)
 import           Foreign.C.Types

@@ -13,6 +13,7 @@ module Grenade.Layers.Internal.CUDA
     , cudaDescendUnsafeAdamGPU
     ) where
 
+import           Control.Exception            (IOException, handle)
 import           Control.Monad
 import           Data.IORef
 import qualified Data.Map.Strict              as M
@@ -52,7 +53,9 @@ cudaInitialise = do
   putStrLn ""
   unless (null devs) $ do
     props <- CUDA.props (head devs)
-    putStrLn $ "Using CUDA with device: " ++ show (CUDA.deviceName props) ++ "\n"
+    let threadsPerBlock = CUDA.maxThreadsPerBlock props
+    putStrLn $ "Using CUDA with device: " ++ show (CUDA.deviceName props) ++ "; threads per Block: " ++ show threadsPerBlock ++ "\n"
+    writeIORef cudaThreadsPerBlock threadsPerBlock
     device <- CUDA.device 0
     writeIORef cudaDevice (Just device)
     ctx <- CUDA.create device []
@@ -61,6 +64,11 @@ cudaInitialise = do
     mdl <- CUDA.loadFile "cbits/gpu_gradient_descent.ptx"
     descendAdamGpuFun <- CUDA.getFun mdl (fromString "descend_adam_gpu")
     writeIORef cudaDescendAdamGPUFun (Just descendAdamGpuFun)
+
+
+-- | Cuda context
+cudaThreadsPerBlock :: IORef Int
+cudaThreadsPerBlock = unsafePerformIO $ newIORef 128
 
 
 -- | If you use CUDA, destroy the context after the ANN is not needed anymore!
@@ -77,6 +85,7 @@ cudaDevice = unsafePerformIO $ newIORef Nothing
 cudaCtx :: IORef (Maybe CUDA.Context)
 cudaCtx = unsafePerformIO $ newIORef Nothing
 
+
 getCudaCtx :: IO (Maybe CUDA.Context)
 getCudaCtx = do
   mCtx <- readIORef cudaCtx
@@ -88,23 +97,10 @@ getCudaCtx = do
 cudaDescendAdamGPUFun :: IORef (Maybe CUDA.Fun)
 cudaDescendAdamGPUFun = unsafePerformIO $ newIORef Nothing
 
-devicePtrs :: IORef (M.Map Int [CUDA.DevicePtr RealNum])
-devicePtrs = unsafePerformIO $ newIORef mempty
-{-# NOINLINE devicePtrs #-}
-
--- | Get a device pointer.
-getDevicePtr :: Int -> IO (CUDA.DevicePtr RealNum)
-getDevicePtr size = do
-  mPtr <- atomicModifyIORef devicePtrs $ \m ->
-    case M.lookup size m of
-      Nothing     -> (m, Nothing)
-      Just []     -> (m, Nothing)
-      Just (x:xs) -> (M.insert size xs m, Just x)
-  maybe (CUDA.mallocArray size) return mPtr
-
--- | Return a device pointer.
-putDevicePtr :: Int -> CUDA.DevicePtr RealNum -> IO ()
-putDevicePtr size ptr = atomicModifyIORef devicePtrs $ \m -> (M.insertWith (++) size [ptr] m, ())
+-- | To in form the user if it works again
+cudaErrored :: IORef Bool
+cudaErrored = unsafePerformIO $ newIORef False
+{-# NOINLINE cudaErrored #-}
 
 
 cudaDescendUnsafeAdamGPU ::
@@ -125,32 +121,29 @@ cudaDescendUnsafeAdamGPU len step alpha beta1 beta2 epsilon lambda weights gradi
     mFun <- readIORef cudaDescendAdamGPUFun
     case mFun of
       Nothing -> cudaInitialise >> readIORef cudaDescendAdamGPUFun >>= cudaDescendAdamGPU' -- Ensure it was initialised
-      x -> cudaDescendAdamGPU' x
+      x -> handle handler (cudaDescendAdamGPU' x)
   where
-    cudaDescendAdamGPU' mFun = do
+    handler (e :: CUDA.CUDAException) = writeIORef cudaErrored True >> print e >> return Nothing
+    cudaDescendAdamGPU' mFun =
       case mFun of
         Nothing -> return Nothing
         Just fun -> do
-          let (wPtr, _) = U.unsafeToForeignPtr0 weights
-          let (gPtr, _) = U.unsafeToForeignPtr0 gradient
-          let (mPtr, _) = U.unsafeToForeignPtr0 m
-          let (vPtr, _) = U.unsafeToForeignPtr0 v
-          withForeignPtr wPtr $ \wPtr' ->
-            withForeignPtr gPtr $ \gPtr' ->
-              withForeignPtr mPtr $ \mPtr' ->
-                withForeignPtr vPtr $ \vPtr' -> do
-                  wPtrDev <- getDevicePtr len
-                  gPtrDev <- getDevicePtr len :: IO (CUDA.DevicePtr RealNum)
-                  mPtrDev <- getDevicePtr len :: IO (CUDA.DevicePtr RealNum)
-                  vPtrDev <- getDevicePtr len :: IO (CUDA.DevicePtr RealNum)
+          threadsPerBlock <- readIORef cudaThreadsPerBlock
+          V.unsafeWith weights $ \wPtr' ->
+            V.unsafeWith gradient $ \gPtr' ->
+              V.unsafeWith m $ \mPtr' ->
+                V.unsafeWith v $ \vPtr' -> do
+                  wPtrDev <- CUDA.mallocArray len :: IO (CUDA.DevicePtr RealNum)
+                  gPtrDev <- CUDA.mallocArray len :: IO (CUDA.DevicePtr RealNum)
+                  mPtrDev <- CUDA.mallocArray len :: IO (CUDA.DevicePtr RealNum)
+                  vPtrDev <- CUDA.mallocArray len :: IO (CUDA.DevicePtr RealNum)
                   CUDA.pokeArray len wPtr' wPtrDev
                   CUDA.pokeArray len gPtr' gPtrDev
                   CUDA.pokeArray len mPtr' mPtrDev
                   CUDA.pokeArray len vPtr' vPtrDev
-                  let tx = ceiling (fromIntegral len / threadsPerBlockDbl) :: Int
+                  let tx = ceiling (fromIntegral len / (fromIntegral threadsPerBlock :: Float)) :: Int
                   -- print (len, step+1)
                   -- print (alpha, beta1, beta2, epsilon, lambda)
-
                   CUDA.launchKernel
                     fun
                     (tx, 1, 1 :: Int)
@@ -164,11 +157,6 @@ cudaDescendUnsafeAdamGPU len step alpha beta1 beta2 epsilon lambda weights gradi
                     , CUDA.VArg (beta2 :: RealNum)
                     , CUDA.VArg (epsilon :: RealNum)
                     , CUDA.VArg (lambda :: RealNum)
-                    -- , CUDA.FArg (realToFrac alpha :: Float)
-                    -- , CUDA.FArg (realToFrac beta1 :: Float)
-                    -- , CUDA.FArg (realToFrac beta2 :: Float)
-                    -- , CUDA.FArg (realToFrac epsilon :: Float)
-                    -- , CUDA.FArg (realToFrac lambda :: Float)
                     , CUDA.VArg wPtrDev
                     , CUDA.VArg gPtrDev
                     , CUDA.VArg mPtrDev
@@ -178,13 +166,8 @@ cudaDescendUnsafeAdamGPU len step alpha beta1 beta2 epsilon lambda weights gradi
                   CUDA.peekArray len wPtrDev wPtr'
                   CUDA.peekArray len mPtrDev mPtr'
                   CUDA.peekArray len vPtrDev vPtr'
-                  putDevicePtr len wPtrDev -- put pointers back for reuse
-                  putDevicePtr len gPtrDev
-                  putDevicePtr len mPtrDev
-                  putDevicePtr len vPtrDev
-                  -- putStrLn "Freed GPU"
-                  -- descend_adam_cpu len step alpha beta1 beta2 epsilon lambda wPtr' gPtr' mPtr' vPtr'
-          return $ Just (U.unsafeFromForeignPtr0 wPtr len, U.unsafeFromForeignPtr0 mPtr len, U.unsafeFromForeignPtr0 vPtr len)
-    threadsPerBlock = 32 :: Int
-    threadsPerBlockDbl = fromIntegral threadsPerBlock :: Double
+                  mapM_ CUDA.free [wPtrDev,gPtrDev,mPtrDev,vPtrDev] -- put pointers back for reuse
+                  err <- readIORef cudaErrored
+                  when err $ writeIORef cudaErrored False >> putStrLn "Cuda works again"
+                  return $ Just (weights, m, v)
 {-# NOINLINE cudaDescendUnsafeAdamGPU #-}

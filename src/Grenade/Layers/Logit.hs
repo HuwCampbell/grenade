@@ -65,10 +65,10 @@ instance (a ~ b, SingI a) => Layer Logit a b
                                        where
   type Tape Logit a b = S a
   runForwards _ (S1DV vec) =
-    let l = mapVector sigmoid vec
+    let l = mapVector sigmoid vec -- we need l later, no inplace transformation possible!
      in (S1DV l, S1DV l)
   runForwards _ (S2DV vec) =
-    let l = mapVector sigmoid vec
+    let l = mapVector sigmoid vec -- we need l later, no inplace transformation possible!
      in (S2DV l, S2DV l)
   runForwards _ a =
     let l = sigmoid a
