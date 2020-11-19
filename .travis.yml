@@ -15,56 +15,56 @@ matrix:
     # Add build targets here
   - env:
     - BUILD=stack ARGS=""
-    - CUDA=10.1.105-1
-    - CUDA_SHORT=10.1
+    - CUDA=10.2.2.105
+    - CUDA_SHORT=10.2
     - UBUNTU_VERSION=ubuntu1804
     compiler: ": #stack default"
     addons: {apt: {packages: [ libblas3,liblapack3,liblapack-dev,libblas-dev,pkg-config,libatlas-base-dev ]}}
 
   - env:
     - BUILD=stack ARGS="--resolver lts-16.20 --ghc-options=-Werror"
-    - CUDA=10.1.105-1
-    - CUDA_SHORT=10.1
+    - CUDA=10.2.2.105
+    - CUDA_SHORT=10.2
     - UBUNTU_VERSION=ubuntu1804
     compiler: ": #stack 8.8.4"
     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config,libatlas-base-dev ]}}
 
   - env:
     - BUILD=stack ARGS="--resolver lts-16.20"
-    - CUDA=10.1.105-1
-    - CUDA_SHORT=10.1
+    - CUDA=10.2.2.105
+    - CUDA_SHORT=10.2
     - UBUNTU_VERSION=ubuntu1804
     compiler: ": #stack 8.8.4"
     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config,libatlas-base-dev ]}}
 
   - env:
     - BUILD=stack ARGS="--resolver lts-15.8"
-    - CUDA=10.1.105-1
-    - CUDA_SHORT=10.1
+    - CUDA=10.2.2.105
+    - CUDA_SHORT=10.2
     - UBUNTU_VERSION=ubuntu1804
     compiler: ": #stack 8.8.3"
     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config,libatlas-base-dev ]}}
 
   - env:
     - BUILD=stack ARGS="--resolver lts-15.3"
-    - CUDA=10.1.105-1
-    - CUDA_SHORT=10.1
+    - CUDA=10.2.2.105
+    - CUDA_SHORT=10.2
     - UBUNTU_VERSION=ubuntu1804
     compiler: ": #stack 8.8.2"
     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config,libatlas-base-dev ]}}
 
   - env:
     - BUILD=stack ARGS="--resolver lts-14.27"
-    - CUDA=10.1.105-1
-    - CUDA_SHORT=10.1
+    - CUDA=10.2.2.105
+    - CUDA_SHORT=10.2
     - UBUNTU_VERSION=ubuntu1804
     compiler: ": #stack 8.6.5"
     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config,libatlas-base-dev ]}}
 
   - env:
     - BUILD=stack ARGS="--resolver nightly"
-    - CUDA=10.1.105-1
-    - CUDA_SHORT=10.1
+    - CUDA=10.2.2.105
+    - CUDA_SHORT=10.2
     - UBUNTU_VERSION=ubuntu1804
     compiler: ": #stack nightly"
     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config,libatlas-base-dev ]}}
@@ -108,13 +108,13 @@ before_install:
  - sudo apt install -y cuda-core-${CUDA_SHORT/./-} cuda-cudart-dev-${CUDA_SHORT/./-} cuda-cufft-dev-${CUDA_SHORT/./-}
  - sudo apt clean
  - CUDA_HOME=/usr/local/cuda-${CUDA_SHORT}
- - LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${LD_LIBRARY_PATH}
+ - LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${CUDA_HOME}/lib:${LD_LIBRARY_PATH}
  - PATH=${CUDA_HOME}/bin:${PATH}
+ - sudo ln -s ${CUDA_HOME} /opt/cuda
 
  # Install blas and lapack
  # - travis_retry sudo apt-get update
- # - travis_retry sudo apt-get install nvidia-cuda-toolkit
-   # libblas-dev liblapack-dev
+ # - travis_retry sudo apt-get install libblas-dev liblapack-dev
 
 install:
  - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
