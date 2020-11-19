@@ -13,31 +13,59 @@ matrix:
   fast_finish: true
   include:
     # Add build targets here
-  - env: BUILD=stack ARGS=""
+  - env:
+    - BUILD=stack ARGS=""
+    - CUDA=10.1.105-1
+    - CUDA_SHORT=10.1
+    - UBUNTU_VERSION=ubuntu1804
     compiler: ": #stack default"
     addons: {apt: {packages: [ libblas3,liblapack3,liblapack-dev,libblas-dev,pkg-config,libatlas-base-dev ]}}
 
-  - env: BUILD=stack ARGS="--resolver lts-16.20 --ghc-options=-Werror"
+  - env:
+    - BUILD=stack ARGS="--resolver lts-16.20 --ghc-options=-Werror"
+    - CUDA=10.1.105-1
+    - CUDA_SHORT=10.1
+    - UBUNTU_VERSION=ubuntu1804
     compiler: ": #stack 8.8.4"
     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config,libatlas-base-dev ]}}
 
-  - env: BUILD=stack ARGS="--resolver lts-16.20"
+  - env:
+    - BUILD=stack ARGS="--resolver lts-16.20"
+    - CUDA=10.1.105-1
+    - CUDA_SHORT=10.1
+    - UBUNTU_VERSION=ubuntu1804
     compiler: ": #stack 8.8.4"
     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config,libatlas-base-dev ]}}
 
-  - env: BUILD=stack ARGS="--resolver lts-15.8"
+  - env:
+    - BUILD=stack ARGS="--resolver lts-15.8"
+    - CUDA=10.1.105-1
+    - CUDA_SHORT=10.1
+    - UBUNTU_VERSION=ubuntu1804
     compiler: ": #stack 8.8.3"
     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config,libatlas-base-dev ]}}
 
-  - env: BUILD=stack ARGS="--resolver lts-15.3"
+  - env:
+    - BUILD=stack ARGS="--resolver lts-15.3"
+    - CUDA=10.1.105-1
+    - CUDA_SHORT=10.1
+    - UBUNTU_VERSION=ubuntu1804
     compiler: ": #stack 8.8.2"
     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config,libatlas-base-dev ]}}
 
-  - env: BUILD=stack ARGS="--resolver lts-14.27"
+  - env:
+    - BUILD=stack ARGS="--resolver lts-14.27"
+    - CUDA=10.1.105-1
+    - CUDA_SHORT=10.1
+    - UBUNTU_VERSION=ubuntu1804
     compiler: ": #stack 8.6.5"
     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config,libatlas-base-dev ]}}
 
-  - env: BUILD=stack ARGS="--resolver nightly"
+  - env:
+    - BUILD=stack ARGS="--resolver nightly"
+    - CUDA=10.1.105-1
+    - CUDA_SHORT=10.1
+    - UBUNTU_VERSION=ubuntu1804
     compiler: ": #stack nightly"
     addons: {apt: {packages: [ libblas3,liblapack3,libblas-dev,liblapack-dev,pkg-config,libatlas-base-dev ]}}
 
