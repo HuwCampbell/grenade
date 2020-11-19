@@ -71,8 +71,10 @@ before_install:
    echo 'remote-repo-cache: $HOME/.cabal/packages' >> $HOME/.cabal/config
 
  # Install blas and lapack
- # - travis_retry sudo apt-get update
- # - travis_retry sudo apt-get install libblas-dev liblapack-dev
+
+ - travis_retry sudo apt-get update
+ - travis_retry sudo apt-get install nvidia-cuda-toolkit
+   # libblas-dev liblapack-dev
 
 install:
  - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
