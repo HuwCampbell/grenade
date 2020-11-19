@@ -27,7 +27,7 @@ import           Grenade
 
 
 netSpec :: SpecNet
-netSpec = specFullyConnected 2 4000 |=> specRelu1D 4000 |=> specFullyConnected 4000 1 |=> specLogit1D 1 |=> specNil1D 1
+netSpec = specFullyConnected 2 400 |=> specRelu1D 400 |=> specFullyConnected 400 1 |=> specLogit1D 1 |=> specNil1D 1
 
 -- netSpec :: SpecNet
 -- netSpec = specFullyConnected 2 4000 |=> specRelu1D 4000 |=> specFullyConnected 4000 1 |=> specLogit1D 1 |=> specNil1D 1

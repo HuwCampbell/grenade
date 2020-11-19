@@ -89,12 +89,12 @@ data S (n :: Shape) where
 
   -- HMatrix instances
   S1DV :: (KnownNat len) -- ^ Always a row-vector
-       => V.Vector RealNum
+       => !(V.Vector RealNum)
        -> S ('D1 len)
 
   -- HMatrix instances
   S2DV :: (KnownNat rows, KnownNat columns)
-       => V.Vector RealNum -- ^ Vector in row or column major accoring to @order@ in @Grenade.Utils.Conversion@. Use Data.Matrix here?
+       => !(V.Vector RealNum) -- ^ Vector in row or column major accoring to @order@ in @Grenade.Utils.Conversion@. Use Data.Matrix here?
        -> S ('D2 rows columns)
 
   -- HMatrix instances
