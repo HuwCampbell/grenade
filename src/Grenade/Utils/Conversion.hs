@@ -8,10 +8,19 @@
 
 module Grenade.Utils.Conversion
   ( toLayerShape
+  -- 1D conversions
   , toS1D
+  , toS1DV
   , fromS1D
+  , fromS1DV
+  -- 2D converions
   , toS2D
+  , toS2DV
   , fromS2D
+  , fromS2DV
+  -- further conversions
+  , toRows
+  , toCols
   , toColumnsS2D
   , toRowsS2D
   , fromRowMajorVectorToSD1
@@ -20,43 +29,50 @@ module Grenade.Utils.Conversion
   , fromRowMajorVectorToSD2V
   ) where
 
-import           Control.Monad
 import           Data.Maybe                   (fromMaybe)
 import           Data.Proxy
-import           Data.Singletons
 import           Data.Singletons.TypeLits
 import qualified Data.Vector.Storable         as V
-import qualified Data.Vector.Storable.Mutable as VM
 import           Foreign
-import           Foreign.C.Types
-import           Foreign.Ptr
-import           Foreign.Storable             (sizeOf)
-import           GHC.IO.Handle.Text           (memcpy)
-import           GHC.TypeLits                 hiding (natVal)
-import qualified Numeric.LinearAlgebra        as NLA
 import qualified Numeric.LinearAlgebra        as LA
 import qualified Numeric.LinearAlgebra.Static as LAS
 import           System.IO.Unsafe             (unsafePerformIO)
 import           Unsafe.Coerce                (unsafeCoerce)
 
 import           Grenade.Core.Shape
-import           Grenade.Layers.Internal.BLAS
 import           Grenade.Types
 import           Grenade.Utils.Vector
 
-import           Debug.Trace
+-- import           Debug.Trace
 
-toRows :: (KnownNat m, KnownNat n) => S ('D2 m n) -> [V.Vector RealNum]
-toRows (S2D x)    = map LAS.extract $ LAS.toRows x
-toRows x@(S2DV{}) = toRowsS2D x
+-- test =
+--   toCols $
+--   (fromRowMajorVectorToSD2 (V.fromList [0..9]) :: S ('D2 2 5))
+--   (fromRowMajorVectorToSD1 (V.fromList [0..9]) :: S ('D1 10))
 
-toCols :: (KnownNat m, KnownNat n) => S ('D2 m n) -> [V.Vector RealNum]
-toCols (S2D x)    = map LAS.extract $ LAS.toColumns x
-toCols x@(S2DV{}) = toColumnsS2D x
+-- testShapeV = fromRowMajorVectorToSD2V (V.fromList [0..9]) :: S ('D2 2 5)
+-- testShape = fromRowMajorVectorToSD2 (V.fromList [0..9]) :: S ('D2 2 5)
 
+-- | Convert the Shape to a list of rows.
+toRows :: S x -> [V.Vector RealNum]
+toRows x =
+  case x of
+    (S1DV v)  -> [v]
+    (S1D v)   -> [unsafeCoerce v]
+    (S2D m)   -> map LAS.extract . LAS.toRows $ m
+    (S2DV {}) -> toRowsS2D x
+    (S3D m)   -> map LAS.extract . LAS.toRows $ m
+{-# INLINE toRows #-}
 
-testShapeV = fromRowMajorVectorToSD2V (V.fromList [0..9]) :: S ('D2 2 5)
-testShape = fromRowMajorVectorToSD2 (V.fromList [0..9]) :: S ('D2 2 5)
+-- | Convert the Shape to a list of columns.
+toCols :: S x -> [V.Vector RealNum]
+toCols x =
+  case x of
+    S1DV v    -> map V.singleton . V.toList $ v
+    S1D v     -> map V.singleton . V.toList $ (unsafeCoerce v :: V.Vector RealNum)
+    (S2DV {}) -> toColumnsS2D x
+    (S2D m)   -> map LAS.extract . LAS.toColumns $ m
+    (S3D m)   -> map LAS.extract . LAS.toColumns $ m
 
 
 -- | Converts the given vector to the correct layer shape.
@@ -66,25 +82,37 @@ toLayerShape x y = case (x, y) of
   (S1DV{}, S1D{}) -> fromS1D y
   (S2D{}, S2DV{}) -> toS2D y
   (S2DV{}, S2D{}) -> fromS2D y
-  -- (S3D{}, S2DV{}) -> y
-  -- (S3D{}, S1DV{}) -> y
   _               -> y
 {-# INLINE toLayerShape #-}
 
+-- 1D conversion
+
+-- | Convert to S1D.
 toS1D :: S ('D1 l) -> S ('D1 l)
-toS1D (S1DV vec) = S1D $ (fromMaybe (error $ "wrong length of vector with " ++ show (V.length vec) ++ " in toS1D ") $
-                        -- test = LAS.create $ NLA.reshape 5 $ (V.fromList [0..9]) :: Maybe (LAS.L 2 5)
-                         -- trace ("toS1D vec: " ++ show (vec))
-                         -- trace ("toS1D inp: " ++ show (res)) res)
-                         res)
-                         where res = LAS.create vec
+toS1D (S1DV vec) = S1D $ (fromMaybe err . LAS.create $ vec)
+  where
+    err = error $ "wrong length of vector with " ++ show (V.length vec) ++ " in toS1D "
 toS1D x@S1D{} = x
 {-# INLINE toS1D #-}
 
+-- | Convert from S1DV. This is the same as @toS1D@.
+fromS1DV :: S ('D1 l) -> S ('D1 l)
+fromS1DV = toS1D
+{-# INLINE fromS1DV #-}
+
+-- | Convert from S1D to S1DV.
 fromS1D :: S ('D1 l) -> S ('D1 l)
 fromS1D (S1D vec) = S1DV (LAS.extract vec)
 fromS1D x@S1DV{}  = x
 {-# INLINE fromS1D #-}
+
+-- | Convert to S1DV (from S1D). Thsi is the same as @fromS1D@.
+toS1DV :: S ('D1 l) -> S ('D1 l)
+toS1DV = fromS1D
+{-# INLINE toS1DV #-}
+
+
+-- 2D conversions
 
 -- | Convert from vector representation.
 toS2D :: forall i j . S ('D2 i j) -> S ('D2 i j)
@@ -92,15 +120,25 @@ toS2D (S2DV vec) = S2D $ LAS.matrix $ V.toList . LA.flatten . reshapeF n . LA.ve
   where
     n = fromIntegral $ natVal (Proxy :: Proxy j)
     reshapeF r = LA.tr' . LA.reshape r
-
 toS2D x@S2D{}    = x
 {-# INLINE toS2D #-}
 
--- | Convert to vector representation.
+-- | Convert from S2DV. This is the same as @toS2D@.
+fromS2DV :: S ('D2 i j) -> S ('D2 i j)
+fromS2DV = toS2D
+{-# INLINE fromS2DV #-}
+
+-- | Convert from S2D to S2DV.
 fromS2D :: S ('D2 i j) -> S ('D2 i j)
-fromS2D (S2D mat) = S2DV $ V.concat $ map LAS.extract $ LAS.toColumns mat
+fromS2D (S2D mat) = S2DV . V.concat . map LAS.extract . LAS.toColumns $ mat
 fromS2D x@S2DV{}  = x
 {-# INLINE fromS2D #-}
+
+-- | Convert to S2DV. This is the same as @fromS2D@.
+toS2DV :: S ('D2 i j) -> S ('D2 i j)
+toS2DV = fromS2D
+{-# INLINE toS2DV #-}
+
 
 -- test = LAS.create $ NLA.reshape 5 $ (V.fromList [0..9]) :: Maybe (LAS.L 2 5)
 -- Just (matrix
@@ -137,6 +175,7 @@ toRowsS2D (S2DV vec) =
     n = fromIntegral $ natVal (Proxy :: Proxy j)
 {-# INLINE toRowsS2D #-}
 
+-- | Convert from a row major vector to @SD1@.
 fromRowMajorVectorToSD1 :: forall l . (KnownNat l) => V.Vector RealNum -> S ('D1 l)
 fromRowMajorVectorToSD1 vec
   | V.length vec /= l = error $ "cannot create Vector R " ++ show l ++ " from vector with length " ++ show (V.length vec) ++ " in fromRowMajorVectorToSD1"
@@ -144,10 +183,12 @@ fromRowMajorVectorToSD1 vec
   where l = fromIntegral $ natVal (Proxy :: Proxy l)
 {-# INLINE fromRowMajorVectorToSD1 #-}
 
+-- | Convert from a row major vector to @SD1V@.
 fromRowMajorVectorToSD1V :: forall l . (KnownNat l) => V.Vector RealNum -> S ('D1 l)
 fromRowMajorVectorToSD1V = S1DV
 {-# INLINE fromRowMajorVectorToSD1V #-}
 
+-- | Convert from a row major vector to @SD2@.
 fromRowMajorVectorToSD2 :: forall i j . (KnownNat i, KnownNat j) => V.Vector RealNum -> S ('D2 i j)
 fromRowMajorVectorToSD2 vec
   | V.length vec /= m * n = error $ "cannot create matrix L " ++ show (m,n) ++ " from vector length " ++ show (V.length vec) ++ " in fromRowMajorVectorToSD2"
@@ -157,6 +198,7 @@ fromRowMajorVectorToSD2 vec
     n = fromIntegral $ natVal (Proxy :: Proxy j)
 {-# INLINE fromRowMajorVectorToSD2 #-}
 
+-- | Convert from a row major vector to @SD2V@.
 fromRowMajorVectorToSD2V :: forall i j . (KnownNat i, KnownNat j) => V.Vector RealNum -> S ('D2 i j)
 fromRowMajorVectorToSD2V vec = unsafePerformIO $ do
   vec' <- createVector (V.length vec)
@@ -172,15 +214,14 @@ fromRowMajorVectorToSD2V vec = unsafePerformIO $ do
           go (k-1)
     go (V.length vec - 1)
   return $ S2DV vec'
-
-  -- S2DV $ LA.flatten . reshapeF n . LA.vector . V.toList $ vec
   where
     m = fromIntegral $ natVal (Proxy :: Proxy i)
     n = fromIntegral $ natVal (Proxy :: Proxy j)
-    reshapeF r = LA.tr' . LA.reshape r
 {-# INLINE fromRowMajorVectorToSD2V #-}
 
 -- test =
 --   toRowsS2D $
---   (fromRowMajorVectorToSD2V (V.fromList [0..9]) :: S ('D2 2 5))
+
+--   ((\(S2D x) -> S2DV $ V.concat $ map LAS.extract . LAS.toColumns $ x :: S ('D2 2 5)) )
+--   (fromRowMajorVectorToSD2 (V.fromList [0..9]) :: S ('D2 2 5))
 --   -- (fromRowMajorVectorToSD1 (V.fromList [0..9]) :: S ('D1 10))
