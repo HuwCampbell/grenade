@@ -108,9 +108,9 @@ instance FoldableGradient () where
   squaredSums _ = []
 
 -- | Instance for tuples.
-instance (FoldableGradient x, FoldableGradient y) => FoldableGradient (x, y) where
-  mapGradient f (x, y) = (mapGradient f x `using` rpar, mapGradient f y `using` rpar)
-  squaredSums (x, y) = squaredSums x ++ squaredSums y
+instance (NFData x, NFData y, FoldableGradient x, FoldableGradient y) => FoldableGradient (x, y) where
+  mapGradient f (x, y) = (mapGradient f x `using` rparWith rdeepseq, mapGradient f y `using` rparWith rdeepseq)
+  squaredSums (x, y) = (squaredSums x `using` rparWith rdeepseq) ++ (squaredSums y `using` rparWith rdeepseq)
 
 
 -- | This is the class which abstracts on how to store the data

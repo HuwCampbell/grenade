@@ -190,10 +190,7 @@ runGradient net tapes o =
 
 
 -- | Apply one step of stochastic gradient descent across the network.
-applyUpdate :: Optimizer opt
-            -> Network layers shapes
-            -> Gradients layers
-            -> Network layers shapes
+applyUpdate :: Optimizer opt -> Network layers shapes -> Gradients layers -> Network layers shapes
 applyUpdate rate (layer :~> rest) (gradient :/> grest) =
   let layer' = runUpdate rate layer gradient
       rest' = applyUpdate rate rest grest `using` rpar
@@ -255,12 +252,12 @@ instance FoldableGradient (Gradients '[]) where
   mapGradient _ GNil = GNil
   squaredSums GNil = []
 
-instance (FoldableGradient (Gradient x), FoldableGradient (Gradients xs)) => FoldableGradient (Gradients (x ': xs)) where
+instance (NFData (Gradient x), NFData (Gradients xs), FoldableGradient (Gradient x), FoldableGradient (Gradients xs)) => FoldableGradient (Gradients (x ': xs)) where
   mapGradient f (x :/> xs) =
-    let x' = mapGradient f x
-        xs' = mapGradient f xs
+    let x' = mapGradient f x `using` rparWith rdeepseq
+        xs' = mapGradient f xs `using` rparWith rdeepseq
      in x' :/> xs'
-  squaredSums (x :/> xs) = squaredSums x ++ squaredSums xs
+  squaredSums (x :/> xs) = (squaredSums x `using` rparWith rdeepseq) ++ (squaredSums xs `using` rparWith rdeepseq)
 
 -- | Get the L2 Norm of a Foldable Gradient.
 l2Norm :: (FoldableGradient x) => x -> RealNum

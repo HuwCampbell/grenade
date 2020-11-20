@@ -109,7 +109,7 @@ before_install:
  - sudo apt install -y cuda-core-${CUDA_SHORT/./-} cuda-cudart-dev-${CUDA_SHORT/./-} cuda-cufft-dev-${CUDA_SHORT/./-}
  - sudo apt clean
  - CUDA_HOME=/usr/local/cuda-${CUDA_SHORT}
- - LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${CUDA_HOME}/lib:${LD_LIBRARY_PATH}
+ - export LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${CUDA_HOME}/lib:${LD_LIBRARY_PATH}
  - PATH=${CUDA_HOME}/bin:${PATH}
  - sudo ln -s ${CUDA_HOME} /opt/cuda
 
