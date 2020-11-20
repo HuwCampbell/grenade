@@ -144,4 +144,4 @@ instance ( KnownNat kernelRows
 instance GNum (Pooling k k' s s') where
   _ |* _ = Pooling
   _ |+ _ = Pooling
-  gFromRational _ = Pooling
+  zipVectorsWithInPlaceReplSnd _ _ Pooling = Pooling

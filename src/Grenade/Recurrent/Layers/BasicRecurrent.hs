@@ -76,7 +76,7 @@ instance (KnownNat i, KnownNat o, KnownNat (i + o)) => UpdateLayer (BasicRecurre
   runUpdate _ l d = runUpdate defOptimizer l d
 
 instance (KnownNat i, KnownNat o, KnownNat x, KnownNat (x*o), x ~ (i+o)) => RandomLayer (BasicRecurrent i o) where
-  createRandomWith (NetworkInitSettings m HMatrix) gen = do
+  createRandomWith (NetworkInitSettings m HMatrix _) gen = do
     wB <- getRandomVector i o m gen
     wN <- getRandomMatrix i o m gen
     let bm = konst 0
@@ -84,7 +84,7 @@ instance (KnownNat i, KnownNat o, KnownNat x, KnownNat (x*o), x ~ (i+o)) => Rand
     return $ BasicRecurrent wB bm wN mm
       where i = natVal (Proxy :: Proxy i)
             o = natVal (Proxy :: Proxy o)
-  createRandomWith (NetworkInitSettings _ cpu) _ = error $ "CPU backend " ++ show cpu ++ " not supported by BasicRecurrent layer"
+  createRandomWith (NetworkInitSettings _ cpu _) _ = error $ "CPU backend " ++ show cpu ++ " not supported by BasicRecurrent layer"
 
 
 instance (KnownNat i, KnownNat o, KnownNat (i + o), i <= (i + o), o ~ ((i + o) - i)) => RecurrentUpdateLayer (BasicRecurrent i o) where
@@ -112,4 +112,5 @@ instance (KnownNat i, KnownNat o, KnownNat (i + o), i <= (i + o), o ~ ((i + o) -
 instance (KnownNat i, KnownNat o, KnownNat (i + o)) => GNum (BasicRecurrent i o) where
   n |* (BasicRecurrent wB mB mA nM) = BasicRecurrent (fromRational n * wB) (fromRational n * mB) (fromRational n * mA) (fromRational n * nM)
   (BasicRecurrent wB mB mA nM) |+ (BasicRecurrent wB2 mB2 a2 nM2) = BasicRecurrent (wB + wB2) (mB + mB2) (mA + a2) (nM + nM2)
-  gFromRational r = BasicRecurrent (fromRational r) 0 (fromRational r) 0
+  zipVectorsWithInPlaceReplSnd f (BasicRecurrent wB mB mA nM) (BasicRecurrent wB2 mB2 a2 nM2) =
+    BasicRecurrent (zipVectorsWithInPlaceReplSnd f wB wB2) (zipVectorsWithInPlaceReplSnd f mB mB2) (zipVectorsWithInPlaceReplSnd f mA a2) (zipVectorsWithInPlaceReplSnd f nM nM2)

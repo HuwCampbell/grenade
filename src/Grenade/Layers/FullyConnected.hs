@@ -36,11 +36,11 @@ import           System.Random.MWC              hiding (create)
 #if MIN_VERSION_singletons(2,6,0)
 import           Data.Singletons.TypeLits       (SNat (..))
 #endif
+import           Data.List                      (foldl')
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.Prelude.Num    ((%*))
-
 import qualified Numeric.LinearAlgebra          as LA
 import           Numeric.LinearAlgebra.Static   hiding (zipWithVector)
 
@@ -184,16 +184,9 @@ runBackward (FullyConnected (FullyConnectedHMatrix _ wN) _) (S1D x) (S1D dEdy) =
       -- undefined $
   (FullyConnectedHMatrix wB' mm', S1D dWs)
 runBackward (FullyConnected (FullyConnectedBLAS uuid io@(i, o) _ wN) _) (S1DV x) (S1DV dEdy) =
-  let -- !mm' = withTempVector uuid (V.length wN) (outerV dEdy x) -- mmInp
-      mmInp = createVectorUnsafe (V.length wN)
-      !mm' = unsafePerformIO $ outerV dEdy x mmInp
-      -- !dWs' = withTempVector uuid i (matXVec BlasTranspose wN dEdy 0) -- dWsInp
+  let !mm' = unsafePerformIO $ outerV dEdy x
       dWsInp = createVectorUnsafe i
       !dWs' = unsafePerformIO $ matXVec BlasTranspose wN dEdy 0 dWsInp
-      -- mmCheck  = ((vector (V.toList dEdy) :: R o) `outer` (vector (V.toList x) :: R i) :: L o i)
-      -- mat = S2D ((vector (V.toList dEdy) :: R o) `outer` (vector (V.toList x) :: R i) :: L o i)
-      -- S2DV mmCheck  = fromS2D mat
-
    in -- mm' `seq` dWs' `seq`
     -- (if checkVectors mm' mmCheck then id else trace ("dEdy: " ++ show dEdy ++ "\nx: " ++ show x ++ "\nmmCheck : " ++ show mmCheck ++ "\nmm' : " ++ show mm' ++ "\nmat: " ++ show mat) undefined)
      -- (if checkVecs dWs' mmCheck2 then id else trace ("wN': " ++ show wN) trace ("dEdy : " ++ show dEdy) trace ("dWs:   " ++ show dWs) trace ("\nL i o: " ++ show (tr (matrix $ V.toList wN) :: L i o)) trace ("R o: " ++ show (vector (V.toList dEdy) :: R o)) undefined)
@@ -245,21 +238,17 @@ instance (KnownNat i, KnownNat o, KnownNat (i*o)) => RandomLayer (FullyConnected
 
 randomFullyConnected :: forall m i o . (PrimBase m, KnownNat i, KnownNat o, KnownNat (i*o))
                      => NetworkInitSettings -> Gen (PrimState m) -> m (FullyConnected i o)
-randomFullyConnected (NetworkInitSettings m HMatrix) gen = do
+randomFullyConnected (NetworkInitSettings m HMatrix _) gen = do
   wN <- getRandomMatrix i o m gen
   wB <- getRandomVector i o m gen
   return $!! FullyConnected (FullyConnectedHMatrix wB wN) mkListStore
   where i = natVal (Proxy :: Proxy i)
         o = natVal (Proxy :: Proxy o)
-randomFullyConnected (NetworkInitSettings m BLAS) gen = do
+randomFullyConnected (NetworkInitSettings m BLAS _) gen = do
+
   wB <- getRandomVectorV i o o' m gen
   wN <- getRandomVectorV i o (i' * o') m gen
-  -- let wInTmp = createVectorUnsafe i'
-  --     wBTmp  = createVectorUnsafe o'
-  --     wNTmp  = createVectorUnsafe (i' * o')
-  -- wB <- V.fromList <$> getRandomList i o o' m gen
-  -- wN <- V.fromList <$> getRandomList i o (i' * o') m gen
-  return $ FullyConnected (FullyConnectedBLAS newUUID (i', o') wB wN) mkListStore
+  return $!! FullyConnected (FullyConnectedBLAS newUUID (i', o') wB wN) mkListStore
   where
     i = natVal (Proxy :: Proxy i)
     i' = fromIntegral i
@@ -298,12 +287,17 @@ fullyConnected rows = do
 instance (KnownNat i, KnownNat o) => GNum (FullyConnected i o) where
   s |* FullyConnected w store = FullyConnected (s |* w) (s |* store)
   FullyConnected w1 store1 |+ FullyConnected w2 store2 = FullyConnected (w1 |+ w2) (store1 |+ store2)
-  gFromRational r = error "gFromRational is considered bad in FullyConnected!" -- FullyConnected (gFromRational r) mkListStore (gFromRational 0)
+  zipVectorsWithInPlaceReplSnd f (FullyConnected w1 store1) (FullyConnected w2 store2)= FullyConnected (zipVectorsWithInPlaceReplSnd f w1 w2) (zipVectorsWithInPlaceReplSnd f store1 store2)
 
 instance (KnownNat i, KnownNat o) => GNum (FullyConnected' i o) where
   s |* FullyConnectedHMatrix b w = FullyConnectedHMatrix (dvmap (fromRational s *) b) (dmmap (fromRational s *) w)
   s |* FullyConnectedBLAS uuid io b w = FullyConnectedBLAS uuid io (mapVector (fromRational s *) b) (mapVector (fromRational s *) w)
   FullyConnectedHMatrix b1 w1 |+ FullyConnectedHMatrix b2 w2 = FullyConnectedHMatrix (b1 + b2) (w1 + w2)
-  FullyConnectedBLAS uuid io b1 w1 |+ FullyConnectedBLAS _ _ b2 w2 = FullyConnectedBLAS uuid io (zipWithVector (+) b1 b2) (zipWithVector (+) w1 w2)
+  FullyConnectedBLAS uuid io b1 w1 |+ FullyConnectedBLAS _ _ b2 w2 = FullyConnectedBLAS uuid io (zipWithVector (+) b2 b1) (zipWithVector (+) w2 w1)
   x |+ y = error $ "Cannot add different network types in |+ in FullyConnected: " ++ show (x,y)
-  gFromRational r = FullyConnectedHMatrix (fromRational r) (fromRational r)
+  zipVectorsWithInPlaceReplSnd f (FullyConnectedBLAS _ _ b1 w1) (FullyConnectedBLAS uuid io b2 w2)= FullyConnectedBLAS uuid io (zipWithVectorInPlaceSnd f b1 b2) (zipWithVectorInPlaceSnd f w1 w2)
+  zipVectorsWithInPlaceReplSnd _ _ _ = error "zipVectorsWithInPlaceReplSnd only works with BLAS CPU backend. See the NetworkInitSettings."
+
+  sumG xs@(FullyConnectedBLAS uuid io _ _:_) = FullyConnectedBLAS uuid io (foldl' (+) (head bs) (tail bs)) (foldl' (+) (head ws) (tail ws))
+    where (bs, ws) = unzip $ map (\(FullyConnectedBLAS _ _ b w) -> (b, w)) xs
+  sumG _ = error "SumG only works with BLAS CPU backend. See the NetworkInitSettings to switch CPU backends."

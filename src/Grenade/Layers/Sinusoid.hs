@@ -98,4 +98,4 @@ sinusoid = buildGetLastLayerOut >>= buildAddSpec . SpecNetLayer . SpecSinusoid
 instance GNum Sinusoid where
   _ |* Sinusoid = Sinusoid
   _ |+ Sinusoid = Sinusoid
-  gFromRational _ = Sinusoid
+  zipVectorsWithInPlaceReplSnd _ _ Sinusoid = Sinusoid

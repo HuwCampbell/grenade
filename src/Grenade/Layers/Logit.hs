@@ -135,4 +135,4 @@ logit = buildGetLastLayerOut >>= buildAddSpec . SpecNetLayer . SpecLogit
 instance GNum Logit where
   _ |* x = x
   _ |+ x = x
-  gFromRational _ = Logit
+  zipVectorsWithInPlaceReplSnd _ _ Logit = Logit

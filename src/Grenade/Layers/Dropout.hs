@@ -129,4 +129,4 @@ dropoutWithSeed ratio mSeed = buildRequireLastLayerOut Is1D >>= \(i, _, _) -> bu
 instance GNum (Dropout pct) where
   _ |* x = x
   _ |+ x = x
-  gFromRational r = Dropout True (round r)
+  zipVectorsWithInPlaceReplSnd _ _ x = x

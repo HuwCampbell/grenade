@@ -31,8 +31,9 @@ data CPUBackend
 data NetworkInitSettings = NetworkInitSettings
   { weightInitMethod :: WeightInitMethod -- ^ Initialization method for random numbers.
   , cpuBackend       :: CPUBackend       -- ^ Backend for CPU vector/matrix computations.
+  , gpuTriggerSize   :: Maybe Int        -- ^ Use the GPU when the vectors are greater or equal to that number.
   } deriving (Show, Eq, Ord, NFData, Serialize, Generic)
 
 
 instance Default NetworkInitSettings where
-  def = NetworkInitSettings UniformInit HMatrix
+  def = NetworkInitSettings UniformInit HMatrix (Just $ 10 ^ (5 :: Int))

@@ -148,4 +148,4 @@ leakyRelu = buildGetLastLayerOut >>= buildAddSpec . SpecNetLayer . SpecLeakyRelu
 instance GNum LeakyRelu where
   _ |* LeakyRelu = LeakyRelu
   _ |+ LeakyRelu = LeakyRelu
-  gFromRational _ = LeakyRelu
+  zipVectorsWithInPlaceReplSnd _ _ LeakyRelu = LeakyRelu

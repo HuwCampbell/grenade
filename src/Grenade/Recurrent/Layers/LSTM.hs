@@ -234,7 +234,7 @@ instance (KnownNat i, KnownNat o) => RecurrentLayer (LSTM i o) ('D1 i) ('D1 o) w
 --
 randomLSTM :: forall m i o. (PrimBase m, KnownNat i, KnownNat o, KnownNat (i*o),KnownNat (o*o))
            => NetworkInitSettings -> Gen (PrimState m) -> m (LSTM i o)
-randomLSTM (NetworkInitSettings m HMatrix) gen = do
+randomLSTM (NetworkInitSettings m HMatrix _) gen = do
   let w = getRandomMatrix i o m gen
   let u = getRandomMatrix i o m gen
   let v = getRandomVector i o m gen
@@ -248,7 +248,7 @@ randomLSTM (NetworkInitSettings m HMatrix) gen = do
 
   where i = natVal (Proxy :: Proxy i)
         o = natVal (Proxy :: Proxy o)
-randomLSTM (NetworkInitSettings _ cpu) _ = error $ "CPU backend " ++ show cpu ++ " not supported by LSTM layer"
+randomLSTM (NetworkInitSettings _ cpu _) _ = error $ "CPU backend " ++ show cpu ++ " not supported by LSTM layer"
 
 -- | Maths
 --
@@ -303,11 +303,7 @@ instance (KnownNat i, KnownNat o) => Serialize (LSTM i o) where
 instance (KnownNat i, KnownNat o) => GNum (LSTM i o) where
   n |* (LSTM w m) = LSTM (n |* w) (n |* m)
   (LSTM w1 m1) |+ (LSTM w2 m2) = LSTM (w1 |+ w2) (m1 |+ m2)
-  gFromRational r = LSTM (gFromRational r) (LSTMWeights w0 u0 v0 w0 u0 v0 w0 u0 v0 w0 v0)
-    where
-      v0 = konst 0
-      w0 = konst 0
-      u0 = konst 0
+  zipVectorsWithInPlaceReplSnd f (LSTM w1 m1) (LSTM w2 m2) = LSTM (zipVectorsWithInPlaceReplSnd f w1 w2) (zipVectorsWithInPlaceReplSnd f m1 m2)
 
 
 instance (KnownNat i, KnownNat o) => GNum (LSTMWeights i o) where
@@ -326,8 +322,16 @@ instance (KnownNat i, KnownNat o) => GNum (LSTMWeights i o) where
       (fromRational n * bc)
   (LSTMWeights wf1 uf1 bf1 wi1 ui1 bi1 wo1 uo1 bo1 wc1 bc1) |+ (LSTMWeights wf2 uf2 bf2 wi2 ui2 bi2 wo2 uo2 bo2 wc2 bc2) =
     LSTMWeights (wf1 + wf2) (uf1 + uf2) (bf1 + bf2) (wi1 + wi2) (ui1 + ui2) (bi1 + bi2) (wo1 + wo2) (uo1 + uo2) (bo1 + bo2) (wc1 + wc2) (bc1 + bc2)
-  gFromRational r = LSTMWeights w0 u0 v0 w0 u0 v0 w0 u0 v0 w0 v0
-    where
-      v0 = fromRational r
-      w0 = fromRational r
-      u0 = fromRational r
+  zipVectorsWithInPlaceReplSnd f (LSTMWeights wf1 uf1 bf1 wi1 ui1 bi1 wo1 uo1 bo1 wc1 bc1) (LSTMWeights wf2 uf2 bf2 wi2 ui2 bi2 wo2 uo2 bo2 wc2 bc2) =
+    LSTMWeights
+      (zipVectorsWithInPlaceReplSnd f wf1 wf2)
+      (zipVectorsWithInPlaceReplSnd f uf1 uf2)
+      (zipVectorsWithInPlaceReplSnd f bf1 bf2)
+      (zipVectorsWithInPlaceReplSnd f wi1 wi2)
+      (zipVectorsWithInPlaceReplSnd f ui1 ui2)
+      (zipVectorsWithInPlaceReplSnd f bi1 bi2)
+      (zipVectorsWithInPlaceReplSnd f wo1 wo2)
+      (zipVectorsWithInPlaceReplSnd f uo1 uo2)
+      (zipVectorsWithInPlaceReplSnd f bo1 bo2)
+      (zipVectorsWithInPlaceReplSnd f wc1 wc2)
+      (zipVectorsWithInPlaceReplSnd f bc1 bc2)

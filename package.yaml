@@ -16,6 +16,8 @@ extra-source-files:
 - cbits/pad.c
 - cbits/type.h
 - cbits/blas.c
+- cbits/gpu_gradient_descent.cu
+- cbits/gpu_gradient_descent.ptx
 
 # Metadata used when publishing your package
 synopsis:            Practical Deep Learning in Haskell
@@ -71,6 +73,7 @@ dependencies:
   - data-default
   - binary                          >= 0.8
   - mtl
+  - file-embed
   - parallel
   - cuda
 when:

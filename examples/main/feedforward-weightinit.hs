@@ -73,7 +73,7 @@ goals = [((0.50, 0.50), 0.25), ((-0.50, -0.50), 0.25)]
 -- | Specifications can be built using the following interface also. Here one does not have to carefully pay attention to match the dimension inputs and outputs as when using specification directly.
 buildNetViaInterface :: IO SpecConcreteNetwork
 buildNetViaInterface =
-  buildModelWith (NetworkInitSettings UniformInit HMatrix) (DynamicBuildSetup { printResultingSpecification = False })  $
+  buildModelWith (NetworkInitSettings UniformInit HMatrix (Just 10)) (DynamicBuildSetup { printResultingSpecification = False })  $
   inputLayer1D 2 >>                            -- 1. Every model has to start with an input dimension
   fullyConnected 10 >> dropout 0.89 >> relu >> -- 2. Layers are simply added as desired. The input of each layer is determined automatically,
   fullyConnected 20 >> relu >>                 --    whereas the output is specified as in `fullyConnected 20`. Thus, the layer empits 20 signals
@@ -201,28 +201,28 @@ main = do
 
 
   FeedForwardOpts examples rate <- execParser (info (feedForward' <**> helper) idm)
---   putStrLn "| Nr | Correct | Incorrect | FalsePositives | FalseNegatives |"
---   putStrLn "--------------------------------------------------------------"
---   let nr = 10 :: Int
---   mapM_
---     (\n -> do
---        putStr $ "| " ++ show n ++ " | "
--- #if HMATRIX
---           SpecConcreteNetwork1D1D (net0 :: Network layers shapes) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl HMatrix) netSpec
--- #else
---           SpecConcreteNetwork1D1D (net0 :: Network layers shapes) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl BLAS) netSpec
--- #endif
---       -- We need to specify the actual number of output nodes, as our functions requiere that!
---        case (unsafeCoerce (Dict :: Dict ()) :: Dict (('D1 1) ~ Last shapes)) of
---          Dict -> do
---            net <- netTrain net0 rate examples
---            unsafeCoerce $ -- only needed as GADTs are enabled, which disallowes the type to escape and thus prevents the type inference to work. The result is not needed anyways.
---              testValues net)
---     [1 .. nr]
+  putStrLn "| Nr | Correct | Incorrect | FalsePositives | FalseNegatives |"
+  putStrLn "--------------------------------------------------------------"
+  let nr = 10 :: Int
+  mapM_
+    (\n -> do
+       putStr $ "| " ++ show n ++ " | "
+#if HMATRIX
+       SpecConcreteNetwork1D1D (net0 :: Network layers shapes) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl HMatrix Nothing) netSpec
+#else
+       SpecConcreteNetwork1D1D (net0 :: Network layers shapes) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl BLAS Nothing) netSpec
+#endif
+       -- We need to specify the actual number of output nodes, as our functions requiere that!
+       case (unsafeCoerce (Dict :: Dict ()) :: Dict (('D1 1) ~ Last shapes)) of
+         Dict -> do
+           net <- netTrain net0 rate examples
+           unsafeCoerce $ -- only needed as GADTs are enabled, which disallowes the type to escape and thus prevents the type inference to work. The result is not needed anyways.
+             testValues net)
+    [1 .. nr]
 
 
---   -- Features of dynamic networks:
-  SpecConcreteNetwork1D1D (net' :: Network layers shapes) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl BLAS) netSpec
+  -- Features of dynamic networks:
+  SpecConcreteNetwork1D1D (net' :: Network layers shapes) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl BLAS (Just 50000)) netSpec
   net2 <- netTrain net' rate 0
   let spec' = networkToSpecification net2
   putStrLn "String represenation of the network specification: "
@@ -233,7 +233,7 @@ main = do
     Left err -> print err
     Right spec2 -> do
       print spec2
-      SpecConcreteNetwork1D1D (net3 :: Network layers3 shapes3) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl BLAS) spec2
+      SpecConcreteNetwork1D1D (net3 :: Network layers3 shapes3) <- networkFromSpecificationWith (NetworkInitSettings HeEtAl BLAS (Just 50000)) spec2
       net4 <- foldM (\n _ -> netTrain n rate examples) net3 [(1 :: Int)..30]
       case (unsafeCoerce (Dict :: Dict ()) :: Dict (('D1 1) ~ Last shapes3)) of
         Dict -> netScore net4

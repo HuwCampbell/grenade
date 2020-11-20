@@ -40,6 +40,7 @@ import           System.IO.Unsafe             (unsafePerformIO)
 
 import           Grenade.Layers.Internal.CUDA
 import           Grenade.Types
+import           Grenade.Utils.Vector
 
 import           Debug.Trace
 
@@ -71,7 +72,7 @@ memZero vec = do
   V.unsafeWith vec $ \vecPtr' ->
     void $ memset vecPtr' 0 (fromIntegral $ sizeOf (0 :: RealNum) * V.length vec)
   return vec
-{-# NOINLINE memZero #-}
+{-# INLINE memZero #-}
 
 foreign import ccall unsafe "string.h" memset  :: Ptr a -> CInt  -> CSize -> IO (Ptr a)
 
@@ -91,12 +92,12 @@ matXVec trMat mat vec1 beta vec2 =
 
 
 -- | Computes the outer product of two vectors: mat <- vec1 `outer` vec2
-outerV :: V.Vector RealNum -> V.Vector RealNum -> V.Vector RealNum -> IO (V.Vector RealNum)
-outerV vec1 vec2 mat =
+outerV :: V.Vector RealNum -> V.Vector RealNum -> IO (V.Vector RealNum)
+outerV vec1 vec2 =
 #if USE_DGEMM_ONLY
-  dgemmUnsafe BlasNoTranspose BlasNoTranspose (o, 1) (1, i) 1.0 vec1 vec2 0 mat -- beta = 0 initialises the matrix
+  dgemmUnsafe BlasNoTranspose BlasNoTranspose (o, 1) (1, i) 1.0 vec1 vec2 0 (createVectorUnsafe (i * o)) -- beta = 0 initialises the matrix
 #else
-  memZero mat >>= dgerUnsafe (o, i) 1.0 vec1 vec2
+  createVector (i * o) >>= memZero >>= dgerUnsafe (o, i) 1.0 vec1 vec2
 #endif
   where o = V.length vec1
         i = V.length vec2

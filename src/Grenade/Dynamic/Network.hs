@@ -56,6 +56,7 @@ import           Grenade.Core.Network
 import           Grenade.Core.NetworkInitSettings
 import           Grenade.Core.Shape
 import           Grenade.Dynamic.Specification
+import           Grenade.Layers.Internal.CUDA     (setCudaTriggerSize)
 
 ----------------------------------------
 -- Some Convenience functions
@@ -126,6 +127,7 @@ networkFromSpecification = networkFromSpecificationWith def
 networkFromSpecificationWith :: NetworkInitSettings -> SpecNet -> IO SpecConcreteNetwork
 networkFromSpecificationWith wInit spec = do
   SpecNetwork (net :: Network layers shapes) <- withSystemRandom . asGenST $ \gen -> toDynamicLayer wInit gen spec
+  setCudaTriggerSize (gpuTriggerSize wInit)
   case (sing :: Sing (Head shapes), sing :: Sing (Last shapes), unsafeCoerce (Dict :: Dict ()) :: Dict ()) of
     (inp :: Sing (Head shapes), out :: Sing (Last shapes), Dict) ->
       withSingI inp $
@@ -144,7 +146,7 @@ networkFromSpecificationWith wInit spec = do
 -- | Create a network according to the given specification. See @DynamicNetwork@. This version uses UniformInit and the system random number generator. WARNING: This also allows to build unsafe
 -- networks where input and output layers do not match! Thus use with care! Furthermore, if you need to specify the actual I/O types, see @networkFromSpecificationWith@ for implementation details!
 networkFromSpecificationGenericWith :: NetworkInitSettings -> SpecNet -> IO SpecNetwork
-networkFromSpecificationGenericWith wInit spec = withSystemRandom . asGenST $ \gen -> toDynamicLayer wInit gen spec
+networkFromSpecificationGenericWith wInit spec = withSystemRandom . asGenST $ \gen -> setCudaTriggerSize (gpuTriggerSize wInit) >> toDynamicLayer wInit gen spec
 
 
 -- | Create a network according to the given specification. See @DynamicNetwork@. This version uses UniformInit and the system random number generator.

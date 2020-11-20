@@ -23,22 +23,14 @@ module Grenade.Layers.Relu (
   , relu
   ) where
 
-import           Control.Concurrent.MVar
-import           Control.DeepSeq                (NFData (..), force)
-import           Control.Monad.ST.Safe          (ST)
 import           Control.Parallel.Strategies
 import           Data.Constraint                (Dict (..))
-import qualified Data.Map.Strict                as M
 import           Data.Reflection                (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
-import qualified Data.Vector.Storable           as V
-import qualified Data.Vector.Storable.Mutable   as VM
-import           GHC.Conc                       (numCapabilities)
 import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
 import qualified Numeric.LinearAlgebra.Static   as LAS
-import           System.IO.Unsafe               (unsafePerformIO)
 import           Unsafe.Coerce                  (unsafeCoerce)
 
 import           Grenade.Core
@@ -166,4 +158,5 @@ relu = buildGetLastLayerOut >>= buildAddSpec . SpecNetLayer . SpecRelu
 instance GNum Relu where
   _ |* Relu = Relu
   _ |+ Relu = Relu
-  gFromRational _ = Relu
+  zipVectorsWithInPlaceReplSnd _ _ Relu = Relu
+  sumG _ = Relu

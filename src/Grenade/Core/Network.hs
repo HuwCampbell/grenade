@@ -47,6 +47,7 @@ import           Data.Default
 import           Data.Serialize
 import           Data.Singletons
 import           Data.Singletons.Prelude
+import qualified Data.Vector.Storable             as V
 import           GHC.TypeLits                     (KnownNat)
 import           Numeric.LinearAlgebra.Static
 import           System.Random.MWC
@@ -60,6 +61,7 @@ import           Grenade.Core.NetworkInitSettings
 import           Grenade.Core.NetworkSettings
 import           Grenade.Core.Optimizer
 import           Grenade.Core.Shape
+import           Grenade.Layers.Internal.CUDA     (setCudaTriggerSize)
 import           Grenade.Types
 
 -- | Type of a network.
@@ -227,7 +229,7 @@ randomNetworkInitWith m = liftIO $ withSystemRandom . asGenST $ \gen -> randomNe
 
 
 instance SingI i => CreatableNetwork '[] '[i] where
-  randomNetworkWith _  _ = return NNil
+  randomNetworkWith initCfg  _ = setCudaTriggerSize (gpuTriggerSize initCfg) >> return NNil
 
 instance (SingI i, SingI o, Layer x i o, RandomLayer x, CreatableNetwork xs (o ': rs)) => CreatableNetwork (x ': xs) (i ': o ': rs) where
   randomNetworkWith m gen = (:~>) <$> createRandomWith m gen <*> randomNetworkWith m gen
@@ -296,7 +298,10 @@ instance (i ~ (Head subshapes), o ~ (Last subshapes)) => Layer (Network sublayer
 class GNum a where
   (|*) :: Rational -> a -> a
   (|+) :: a -> a -> a
-  gFromRational :: Rational -> a
+  zipVectorsWithInPlaceReplSnd :: (Double -> Double -> Double) -> a -> a -> a
+  sumG :: [a] -> a
+  -- default sumG :: [a] -> a
+  -- sumG [] = error "sumG called on empty list"
 
 infixl 7 |*
 infixr 5 |+
@@ -304,56 +309,73 @@ infixr 5 |+
 instance (SingI i) => GNum (Network '[] '[ i]) where
   _ |* NNil = NNil
   _ |+ NNil = NNil
-  gFromRational _ = NNil
+  zipVectorsWithInPlaceReplSnd _ _ NNil = NNil
+  sumG _ = NNil
 
-instance (SingI i, SingI o, Layer x i o, NFData (Network xs (o ': rs)), GNum x, GNum (Network xs (o ': rs))) => GNum (Network (x ': xs) (i ': o ': rs)) where
+instance (SingI i, SingI o, Layer x i o, NFData x, NFData (Network xs (o ': rs)), GNum x, GNum (Network xs (o ': rs))) => GNum (Network (x ': xs) (i ': o ': rs)) where
   s |* (x :~> xs) =
     let x' = (s |* x)
-        xs' = (s |* xs) `using` rdeepseq
+        xs' = (s |* xs) `using` rparWith rdeepseq
      in x' :~> xs'
   (x :~> xs) |+ (y :~> ys) =
     let x' = (x |+ y)
-        xs' = (xs |+ ys) `using` rdeepseq
+        xs' = (xs |+ ys) `using` rparWith rdeepseq
      in x' :~> xs'
-  gFromRational r = gFromRational r :~> gFromRational r
+  zipVectorsWithInPlaceReplSnd f (x :~> xs) (y :~> ys) =
+    let x' = zipVectorsWithInPlaceReplSnd f x y
+        xs' = zipVectorsWithInPlaceReplSnd f xs ys `using` rparWith rdeepseq
+     in x' :~> xs'
+  sumG xs = sumG (map (\(l :~> _) -> l) xs) :~> sumG (map (\(_ :~> ls) -> ls) xs) `using` rparWith rdeepseq
 
 instance GNum (Gradients '[]) where
   _ |* GNil = GNil
   _ |+ GNil = GNil
-  gFromRational _ = GNil
+  zipVectorsWithInPlaceReplSnd _ _ GNil = GNil
+  sumG _ = GNil
 
 instance (GNum a) => GNum [a] where
   r |* xs = fmap (r |*) xs
   xs |+ ys = zipWith (|+) xs ys
-  gFromRational _ = error "Cannot create a list of elements using gFromRational"
+  zipVectorsWithInPlaceReplSnd f xs ys = zipWith (zipVectorsWithInPlaceReplSnd f) xs ys
+  sumG xs = map sumG xs
 
-instance (UpdateLayer x, GNum (Gradient x), GNum (Gradients xs), NFData (Gradients xs)) => GNum (Gradients (x ': xs)) where
+instance (UpdateLayer x, GNum (Gradient x), GNum (Gradients xs), NFData (Gradient x), NFData (Gradients xs)) => GNum (Gradients (x ': xs)) where
   s |* (x :/> xs) =
     let x' = (s |* x)
-        xs' = (s |* xs) `using` rdeepseq
+        xs' = (s |* xs) `using` rparWith rdeepseq
      in x' :/> xs'
   (x :/> xs) |+ (y :/> ys) =
     let x' = (x |+ y)
-        xs' = (xs |+ ys) `using` rdeepseq
+        xs' = (xs |+ ys) `using` rparWith rdeepseq
      in x' :/> xs'
-  gFromRational r = gFromRational r :/> gFromRational r
+  zipVectorsWithInPlaceReplSnd f (x :/> xs) (y :/> ys) =
+    let x' = zipVectorsWithInPlaceReplSnd f x y
+        xs' = zipVectorsWithInPlaceReplSnd f xs ys `using` rparWith rdeepseq
+     in x' :/> xs'
+  sumG xs = sumG (map (\(x :/> _) -> x) xs) :/> sumG (map (\(_ :/> xs') -> xs') xs) `using` rparWith rdeepseq
+
 
 instance GNum () where
   _ |* () = ()
   _ |+ () = ()
-  gFromRational _ = ()
+  zipVectorsWithInPlaceReplSnd _ _ () = ()
+  sumG _ = ()
 
 instance (GNum a, GNum b) => GNum (a, b) where
   s |* (a, b) = (s |* a, s |* b)
   (a1, b1) |+ (a2, b2) = (a1 |+ a2, b1 |+ b2)
-  gFromRational v = (gFromRational v, gFromRational v)
+  zipVectorsWithInPlaceReplSnd f (a1, b1) (a2, b2) = (zipVectorsWithInPlaceReplSnd f a1 a2, zipVectorsWithInPlaceReplSnd f b1 b2)
+  sumG xs = (sumG (map fst xs), sumG (map snd xs))
 
 instance (KnownNat m) => GNum (R m) where
   s |* vec = dvmap (fromRational s *) vec
   (|+) = (+)
-  gFromRational = fromRational
+  zipVectorsWithInPlaceReplSnd _ _ _ = error "zipVectorsWithInPlaceReplSnd not implemented for HMatrix CPU-backGrad"
+  sumG xs = sum xs
+
 
 instance (KnownNat m, KnownNat n) => GNum (L m n) where
   s |* mat = dmmap (fromRational s *) mat
   (|+) = (+)
-  gFromRational = fromRational
+  zipVectorsWithInPlaceReplSnd _ _ _ = error "zipVectorsWithInPlaceReplSnd not implemented for HMatrix CPU-backGrad"
+  sumG xs = sum xs

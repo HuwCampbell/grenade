@@ -197,4 +197,6 @@ instance (GNum x, GNum y) => GNum (ConcatRecurrent m (p x) n (q y)) where
   (ConcatRecLeft x1 y1) |+ (ConcatRecLeft x2 y2) = ConcatRecLeft (x1 |+ x2) (y1 |+ y2)
   (ConcatRecRight x1 y1) |+ (ConcatRecRight x2 y2) = ConcatRecRight (x1 |+ x2) (y1 |+ y2)
   (ConcatRecBoth x1 y1) |+ (ConcatRecBoth x2 y2) = ConcatRecBoth (x1 |+ x2) (y1 |+ y2)
-  gFromRational _ = error "ConcatRecurrent.gFromRational must not be called"
+  zipVectorsWithInPlaceReplSnd f (ConcatRecLeft x1 y1) (ConcatRecLeft x2 y2) = ConcatRecLeft (zipVectorsWithInPlaceReplSnd f x1 x2) (zipVectorsWithInPlaceReplSnd f y1 y2)
+  zipVectorsWithInPlaceReplSnd f (ConcatRecRight x1 y1) (ConcatRecRight x2 y2) = ConcatRecRight (zipVectorsWithInPlaceReplSnd f x1 x2) (zipVectorsWithInPlaceReplSnd f y1 y2)
+  zipVectorsWithInPlaceReplSnd f (ConcatRecBoth x1 y1) (ConcatRecBoth x2 y2) = ConcatRecBoth (zipVectorsWithInPlaceReplSnd f x1 x2) (zipVectorsWithInPlaceReplSnd f y1 y2)

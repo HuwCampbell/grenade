@@ -4,14 +4,16 @@
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE Strict              #-}
+{-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE TypeOperators       #-}
 
 module Grenade.Layers.Internal.CUDA
-    ( -- easy interface
-      getCudaCtx
-    , cudaDestroy -- if you use CUDA, destroy the context after the ANN is not needed anymore!
-    , cudaDescendUnsafeAdamGPU
-    ) where
+  ( setCudaTriggerSize
+  , useCuda
+  , getCudaCtx
+  , cudaDestroy -- if you use CUDA, destroy the context after the ANN is not needed anymore!
+  , cudaDescendUnsafeAdamGPU
+  ) where
 
 import           Control.Exception            (IOException, handle)
 import           Control.Monad
@@ -25,6 +27,9 @@ import qualified Data.Vector.Storable         as U (unsafeFromForeignPtr0,
 import           Foreign                      (withForeignPtr)
 import           Foreign.C.Types
 -- import qualified Foreign.CUDA.BLAS            as BLAS
+import           Control.Monad.Primitive      (PrimBase)
+import qualified Data.ByteString
+import           Data.FileEmbed               (embedFile)
 import qualified Foreign.CUDA.Driver          as CUDA
 import           Foreign.Ptr
 import           Foreign.Storable             (sizeOf)
@@ -38,10 +43,24 @@ import           Grenade.Types
 
 import           Debug.Trace
 
--- DGEMM seems to be a little faster, and CBLAS has some overhead. So we aim for implementing all operations with DGEMM and use the direct calls to BLAS
 
-#define USE_DGEMM_ONLY 0
-#define USE_CBLAS 0
+-- | Cuda context
+cudaTriggerSize :: IORef (Maybe Int)
+cudaTriggerSize = unsafePerformIO $ newIORef Nothing
+
+-- | Set the minimum vector/matrix size (nr of elements) of when CUDA is used.
+setCudaTriggerSize :: (PrimBase m) => Maybe Int -> m ()
+setCudaTriggerSize sz = unsafePerformIO (writeIORef cudaTriggerSize sz) `seq` return ()
+
+useCuda :: Int -> Bool
+useCuda sz = unsafePerformIO $ do
+  minSz <- readIORef cudaTriggerSize
+  return $ maybe False (sz >=) minSz
+
+
+-- Load the ptx file into the binary at compile-time!
+bsGPUGradientDescent :: Data.ByteString.ByteString
+bsGPUGradientDescent = $(embedFile "cbits/gpu_gradient_descent.ptx")
 
 cudaInitialise :: IO ()
 cudaInitialise = do
@@ -61,7 +80,7 @@ cudaInitialise = do
     ctx <- CUDA.create device []
     writeIORef cudaCtx (Just ctx)
     -- Compile to ptx?
-    mdl <- CUDA.loadFile "cbits/gpu_gradient_descent.ptx"
+    mdl <- CUDA.loadData bsGPUGradientDescent
     descendAdamGpuFun <- CUDA.getFun mdl (fromString "descend_adam_gpu")
     writeIORef cudaDescendAdamGPUFun (Just descendAdamGpuFun)
 

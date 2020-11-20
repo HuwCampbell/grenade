@@ -62,7 +62,7 @@ buildModelWith :: NetworkInitSettings -> DynamicBuildSetup -> BuildM () -> IO Sp
 buildModelWith wInit setup builder = do
   let spec = snd $ buildSpec setup builder
   when (printResultingSpecification setup) $ do
-    putStrLn "Build following model specification: "
+    putStrLn "Building following model specification: "
     print spec
   networkFromSpecificationWith wInit spec
 

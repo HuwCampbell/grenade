@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE DeriveAnyClass      #-}
@@ -45,6 +46,8 @@ import           System.Random.MWC.Distributions
 import           Grenade.Types
 import           Grenade.Utils.Vector
 
+import           Debug.Trace
+
 -- ^ Weight initialization method.
 data WeightInitMethod
   = UniformInit -- ^ W_l,i ~ U(-1/sqrt(n_l),1/sqrt(n_l))                   where n_l is the number of nodes in layer l
@@ -82,13 +85,21 @@ getRandomVectorV ::
   -> m (V.Vector RealNum)
 getRandomVectorV i o n method gen = do
   let mkVec :: [RealNum] -> V.Vector RealNum
-      mkVec xs = V.imap (\idx (_ :: RealNum) -> xs !! idx) (createVectorUnsafe n)
+      mkVec xs = V.imap (\idx (_ :: RealNum) -> xs' V.! idx) (createVectorUnsafe n)
+        where
+          xs' = V.fromList xs -- convert first to vector, otherwise this function is quadratic!
   let unifRands = replicateM n (uniformR (-1, 1) gen)
       gaussRands = replicateM n (realToFrac <$> standard gen)
   case method of
     UniformInit -> mkVec . map (1 / sqrt (fromIntegral i) *) <$> unifRands
-    Xavier      -> mkVec . map ((sqrt 6 / sqrt (fromIntegral i + fromIntegral o)) *) <$> unifRands
-    HeEtAl      -> mkVec . map (sqrt (2 / fromIntegral i) *) <$> gaussRands
+    Xavier -> mkVec . map ((sqrt 6 / sqrt (fromIntegral i + fromIntegral o)) *) <$> unifRands
+    HeEtAl -> mkVec . map (sqrt (2 / fromIntegral i) *) <$> gaussRands
+
+-- test :: IO [Double]
+-- test = withSystemRandom $ asGenIO $ \gen -> replicateM 10000 (uniformR (-1, 1) gen)
+
+test :: Int -> IO (V.Vector Double)
+test n = withSystemRandom $ asGenIO $ getRandomVectorV 10 100 n UniformInit
 
 
 -- | Get a random vector initialized according to the specified method.

@@ -139,12 +139,12 @@ instance ( KnownNat channels
          , KnownNat (filters * ((kernelRows * kernelColumns) * channels))
          ) =>
          RandomLayer (Convolution channels filters kernelRows kernelColumns strideRows strideColumns) where
-  createRandomWith (NetworkInitSettings m HMatrix) gen = do
+  createRandomWith (NetworkInitSettings m HMatrix _) gen = do
     wN <- getRandomMatrix i i m gen
     return $ Convolution wN mkListStore
     where
       i = natVal (Proxy :: Proxy ((kernelRows * kernelColumns) * channels))
-  createRandomWith (NetworkInitSettings _ cpu) _ = error $ "CPU backend " ++ show cpu ++ " not supported by Convolution layer"
+  createRandomWith (NetworkInitSettings _ cpu _) _ = error $ "CPU backend " ++ show cpu ++ " not supported by Convolution layer"
 
 
 instance ( KnownNat channels
@@ -484,11 +484,11 @@ instance (KnownNat striCols, KnownNat strideRows, KnownNat kernelCols, KnownNat 
          GNum (Convolution channels filters kernelRows kernelCols strideRows striCols) where
   n |* (Convolution w store) = Convolution (dmmap (fromRational n *) w) (n |* store)
   (Convolution w1 store1) |+ (Convolution w2 store2) = Convolution (w1 + w2) (store1 |+ store2)
-  gFromRational r = Convolution (fromRational r) mkListStore
+  zipVectorsWithInPlaceReplSnd f (Convolution w1 store1) (Convolution w2 store2) = Convolution (zipVectorsWithInPlaceReplSnd f w1 w2) (zipVectorsWithInPlaceReplSnd f store1 store2)
 
 
 instance (KnownNat striCols, KnownNat strideRows, KnownNat kernelCols, KnownNat kernelRows, KnownNat filters, KnownNat channels, KnownNat ((kernelRows * kernelCols) * channels)) =>
          GNum (Convolution' channels filters kernelRows kernelCols strideRows striCols) where
   n |* (Convolution' g) = Convolution' (dmmap (fromRational n *) g)
   (Convolution' g) |+ (Convolution' g2) = Convolution' (g + g2)
-  gFromRational r = Convolution' (fromRational r)
+  zipVectorsWithInPlaceReplSnd f (Convolution' g1) (Convolution' g2) = Convolution' (zipVectorsWithInPlaceReplSnd f g1 g2)

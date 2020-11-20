@@ -110,4 +110,5 @@ tanhLayer = buildGetLastLayerOut >>= buildAddSpec . SpecNetLayer . SpecTanh
 instance GNum Tanh where
   _ |* Tanh = Tanh
   _ |+ Tanh = Tanh
-  gFromRational _ = Tanh
+  zipVectorsWithInPlaceReplSnd _ _ Tanh = Tanh
+  sumG _ = Tanh
