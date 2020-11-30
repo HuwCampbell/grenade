@@ -27,6 +27,7 @@ module Grenade.Layers.FullyConnected (
 import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.Primitive        (PrimBase, PrimState)
+import           Control.Parallel.Strategies
 import           Data.Maybe                     (fromMaybe)
 import           Data.Reflection                (reifyNat)
 import qualified Data.Vector.Storable           as V
@@ -294,10 +295,16 @@ instance (KnownNat i, KnownNat o) => GNum (FullyConnected' i o) where
   s |* FullyConnectedBLAS uuid io b w = FullyConnectedBLAS uuid io (mapVector (fromRational s *) b) (mapVector (fromRational s *) w)
   FullyConnectedHMatrix b1 w1 |+ FullyConnectedHMatrix b2 w2 = FullyConnectedHMatrix (b1 + b2) (w1 + w2)
   FullyConnectedBLAS uuid io b1 w1 |+ FullyConnectedBLAS _ _ b2 w2 = FullyConnectedBLAS uuid io (zipWithVector (+) b2 b1) (zipWithVector (+) w2 w1)
-  x |+ y = error $ "Cannot add different network types in |+ in FullyConnected: " ++ show (x,y)
-  zipVectorsWithInPlaceReplSnd f (FullyConnectedBLAS _ _ b1 w1) (FullyConnectedBLAS uuid io b2 w2)= FullyConnectedBLAS uuid io (zipWithVectorInPlaceSnd f b1 b2) (zipWithVectorInPlaceSnd f w1 w2)
+  x |+ y = error $ "Cannot add different network types in |+ in FullyConnected: " ++ show (x, y)
+  zipVectorsWithInPlaceReplSnd f (FullyConnectedBLAS _ _ b1 w1) (FullyConnectedBLAS uuid io b2 w2) =
+    FullyConnectedBLAS uuid io (zipWithVectorInPlaceSnd f b1 b2) (zipWithVectorInPlaceSnd f w1 w2)
   zipVectorsWithInPlaceReplSnd _ _ _ = error "zipVectorsWithInPlaceReplSnd only works with BLAS CPU backend. See the NetworkInitSettings."
-
-  sumG xs@(FullyConnectedBLAS uuid io _ _:_) = FullyConnectedBLAS uuid io (foldl' (+) (head bs) (tail bs)) (foldl' (+) (head ws) (tail ws))
-    where (bs, ws) = unzip $ map (\(FullyConnectedBLAS _ _ b w) -> (b, w)) xs
+  sumG xs@(FullyConnectedBLAS uuid io _ _:_) =
+    -- FullyConnectedBLAS uuid io (foldl1 (+) bs) (foldl1 (+) ws)
+    (foldl' add bs' bs `using` rparWith rdeepseq) `seq` (foldl' add ws' ws `using` rparWith rdeepseq) `seq` FullyConnectedBLAS uuid io bs' ws'
+    where
+      add acc x = zipWithVectorInPlaceSnd (+) x acc
+      (bs, ws) = unzip $ map (\(FullyConnectedBLAS _ _ b w) -> (b, w)) xs
+      !bs' = unsafeMemZero $ createVectorUnsafe (V.length $ head bs)
+      !ws' = unsafeMemZero $ createVectorUnsafe (V.length $ head ws)
   sumG _ = error "SumG only works with BLAS CPU backend. See the NetworkInitSettings to switch CPU backends."

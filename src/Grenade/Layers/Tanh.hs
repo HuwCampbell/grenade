@@ -32,11 +32,13 @@ import           Data.Serialize
 import           Data.Singletons
 import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
+import qualified Numeric.LinearAlgebra.Static   as LAS
 import           Unsafe.Coerce                  (unsafeCoerce)
 
 import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
+import           Grenade.Utils.Conversion
 import           Grenade.Utils.Vector
 
 -- | A Tanh layer.
@@ -60,9 +62,13 @@ instance (a ~ b, SingI a) => Layer Tanh a b where
   -- runForwards _ (S1DV v) = (S1DV v, S1DV $ mapVectorInPlace tanh v) -- This is inplace replacement!
   -- runForwards _ (S2DV v) = (S2DV v, S2DV $ mapVectorInPlace tanh v) -- This is inplace replacement!
   runForwards _ a        = (a, tanh a)
-  -- runBackwards _ (S1DV v) (S1DV gs) = ((), S1DV $ zipWithVectorInPlaceSnd (\t g -> 1 - t ^ (2 :: Int) * g) v gs)
-  -- runBackwards _ (S2DV v) (S2DV gs) = ((), S2DV $ zipWithVectorInPlaceSnd (\t g -> 1 - t ^ (2 :: Int) * g) v gs)
-  runBackwards _ a g = ((), tanh' a * g)
+  runBackwards _ (S1DV v) (S1DV gs) = ((), S1DV $ zipWithVector (\t g -> max 0.005 (1 - (tanh t) ^ (2 :: Int)) * g) v gs)
+  runBackwards _ (S2DV v) (S2DV gs) = ((), S2DV $ zipWithVector (\t g -> max 0.005 (1 - (tanh t) ^ (2 :: Int)) * g) v gs)
+  runBackwards _ (S1D a) (S1D g)= ((), S1D $ LAS.dvmap (max 0.005) (tanh' a) * g)
+  runBackwards _ (S2D a) (S2D g)= ((), S2D $ LAS.dmmap (max 0.005) (tanh' a) * g)
+  runBackwards _ (S3D a) (S3D g)= ((), S3D $ LAS.dmmap (max 0.005) (tanh' a) * g)
+  runBackwards l x y = runBackwards l x (toLayerShape x y)
+  -- runBackwards _ a g = ((), tanh' a * g)
 
 tanh' :: (Floating a) => a -> a
 tanh' t = 1 - s ^ (2 :: Int)  where s = tanh t

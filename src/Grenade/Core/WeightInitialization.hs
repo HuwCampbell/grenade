@@ -98,8 +98,8 @@ getRandomVectorV i o n method gen = do
 -- test :: IO [Double]
 -- test = withSystemRandom $ asGenIO $ \gen -> replicateM 10000 (uniformR (-1, 1) gen)
 
-test :: Int -> IO (V.Vector Double)
-test n = withSystemRandom $ asGenIO $ getRandomVectorV 10 100 n UniformInit
+-- test :: Int -> IO (V.Vector Double)
+-- test n = withSystemRandom $ asGenIO $ getRandomVectorV 10 100 n UniformInit
 
 
 -- | Get a random vector initialized according to the specified method.

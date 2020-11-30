@@ -69,7 +69,7 @@ instance (KnownNat i) => Layer LeakyRelu ('D1 i) ('D1 i) where
   runBackwards _ (S1D y) (S1D dEdy) = ((), S1D (relu' y * dEdy))
     where
       relu' = LAS.dvmap (\a -> if a < 0 then alpha else 1)
-  runBackwards _ (S1DV y) (S1DV dEdy) = ((), S1DV $ zipWithVectorInPlaceSnd reluDif y dEdy)
+  runBackwards _ (S1DV y) (S1DV dEdy) = ((), zipWithVectorInPlaceSnd reluDif y dEdy `seq` S1DV dEdy)
   runBackwards x y dEdy = runBackwards x y (toLayerShape y dEdy)
 
 
@@ -85,7 +85,7 @@ instance (KnownNat i, KnownNat j) => Layer LeakyRelu ('D2 i j) ('D2 i j) where
   runBackwards _ (S2D y) (S2D dEdy) = ((), S2D (relu' y * dEdy))
     where
       relu' = LAS.dmmap (\a -> if a < 0 then alpha else 1)
-  runBackwards _ (S2DV y) (S2DV dEdy) = ((), S2DV $ zipWithVectorInPlaceSnd reluDif y dEdy)
+  runBackwards _ (S2DV y) (S2DV dEdy) = ((), zipWithVectorInPlaceSnd reluDif y dEdy `seq` S2DV dEdy)
   runBackwards x y dEdy = runBackwards x y (toLayerShape y dEdy)
 
 instance (KnownNat i, KnownNat j, KnownNat k) => Layer LeakyRelu ('D3 i j k) ('D3 i j k) where

@@ -1,4 +1,5 @@
 #include "gradient_descent.h"
+#include <math.h>
 
 void descend_sgd_cpu(int len, RealNum rate, RealNum momentum, RealNum regulariser,
     const RealNum* weights,
