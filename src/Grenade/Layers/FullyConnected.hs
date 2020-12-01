@@ -300,11 +300,11 @@ instance (KnownNat i, KnownNat o) => GNum (FullyConnected' i o) where
     FullyConnectedBLAS uuid io (zipWithVectorInPlaceSnd f b1 b2) (zipWithVectorInPlaceSnd f w1 w2)
   zipVectorsWithInPlaceReplSnd _ _ _ = error "zipVectorsWithInPlaceReplSnd only works with BLAS CPU backend. See the NetworkInitSettings."
   sumG xs@(FullyConnectedBLAS uuid io _ _:_) =
-    -- FullyConnectedBLAS uuid io (foldl1 (+) bs) (foldl1 (+) ws)
-    (foldl' add bs' bs `using` rparWith rdeepseq) `seq` (foldl' add ws' ws `using` rparWith rdeepseq) `seq` FullyConnectedBLAS uuid io bs' ws'
+    FullyConnectedBLAS uuid io (foldl1 (+) bs) (foldl1 (+) ws)
+    -- (foldl' add bs' bs `using` rparWith rdeepseq) `seq` (foldl' add ws' ws `using` rparWith rdeepseq) `seq` FullyConnectedBLAS uuid io bs' ws'
     where
       add acc x = zipWithVectorInPlaceSnd (+) x acc
       (bs, ws) = unzip $ map (\(FullyConnectedBLAS _ _ b w) -> (b, w)) xs
-      !bs' = unsafeMemZero $ createVectorUnsafe (V.length $ head bs)
-      !ws' = unsafeMemZero $ createVectorUnsafe (V.length $ head ws)
+      -- !bs' = unsafeMemZero $ createVectorUnsafe (V.length $ head bs)
+      -- !ws' = unsafeMemZero $ createVectorUnsafe (V.length $ head ws)
   sumG _ = error "SumG only works with BLAS CPU backend. See the NetworkInitSettings to switch CPU backends."

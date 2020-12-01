@@ -5,7 +5,11 @@
 {-# LANGUAGE RankNTypes       #-}
 {-# LANGUAGE Strict           #-}
 module Grenade.Utils.Vector
-    ( mapVector
+    ( unsafeMemCopyVectorFromTo
+    , memCopyVectorFromTo
+    , unsafeMemZero
+    , memZero
+    , mapVector
     , mapVectorInPlace
     , createVector
     , createVectorUnsafe
@@ -17,12 +21,45 @@ module Grenade.Utils.Vector
 import           Control.Monad        (when)
 import qualified Data.Vector.Storable as V
 import           Foreign
+import           Foreign.C.Types
 import           GHC.ForeignPtr       (mallocPlainForeignPtrAlignedBytes,
                                        mallocPlainForeignPtrBytes)
+import           GHC.IO.Handle.Text   (memcpy)
 import           System.IO.Unsafe     (unsafePerformIO)
 
 
 import           Grenade.Types
+
+
+-- | Memory copy a vector from one to the other.
+unsafeMemCopyVectorFromTo :: V.Vector RealNum -> V.Vector RealNum -> V.Vector RealNum
+unsafeMemCopyVectorFromTo from to = unsafePerformIO (memCopyVectorFromTo from to)
+{-# NOINLINE unsafeMemCopyVectorFromTo #-}
+
+-- | Memory copy a vector from one to the other.
+memCopyVectorFromTo :: V.Vector RealNum -> V.Vector RealNum -> IO (V.Vector RealNum)
+memCopyVectorFromTo from to = do
+  V.unsafeWith from $ \fromPtr' ->
+    V.unsafeWith to $ \toPtr' ->
+      void $ memcpy toPtr' fromPtr' (fromIntegral $ sizeOf (V.head from) * V.length to)
+  return to
+{-# INLINE memCopyVectorFromTo #-}
+
+
+-- | Write zero to all elements in a vector.
+unsafeMemZero :: V.Vector RealNum -> V.Vector RealNum
+unsafeMemZero = unsafePerformIO . memZero
+
+
+-- | Write zero to all elements in a vector.
+memZero :: V.Vector RealNum -> IO (V.Vector RealNum)
+memZero vec = do
+  V.unsafeWith vec $ \vecPtr' ->
+    void $ memset vecPtr' 0 (fromIntegral $ sizeOf (0 :: RealNum) * V.length vec)
+  return vec
+{-# INLINE memZero #-}
+
+foreign import ccall unsafe "string.h" memset  :: Ptr a -> CInt  -> CSize -> IO (Ptr a)
 
 
 -- | allocates memory for a new vector (code from HMatrix)
