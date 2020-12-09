@@ -78,7 +78,7 @@ runBackward1D :: (KnownNat i) => Relu -> S ('D1 i) -> S ('D1 i) -> (Gradient Rel
 runBackward1D _ (S1D y) (S1D dEdy) = ((), S1D (relu' y * dEdy))
     where
       relu' = LAS.dvmap (\a -> if a <= 0 then 0 else 1)
-runBackward1D _ (S1DV y) (S1DV dEdy) = ((), zipWithVectorInPlaceSnd reluDifZip y dEdy `seq` S1DV dEdy) -- (zipWithVector reluDifZip y dEdy))
+runBackward1D _ (S1DV y) (S1DV dEdy) = ((), zipWithVectorInPlaceSnd reluDifZip y dEdy `seq` S1DV dEdy)
 runBackward1D l y dEdy = runBackward1D l y (toLayerShape y dEdy)
 
 
@@ -92,7 +92,7 @@ runBackward2D :: (KnownNat i, KnownNat j) => Relu -> S ('D2 i j) -> S ('D2 i j) 
 runBackward2D _ (S2D y) (S2D dEdy) = ((), S2D (relu' y * dEdy))
     where
       relu' = LAS.dmmap (\a -> if a <= 0 then 0 else 1)
-runBackward2D _ (S2DV y) (S2DV dEdy) = ((), zipWithVectorInPlaceSnd reluDifZip y dEdy `seq` S2DV dEdy) -- (zipWithVector reluDifZip y dEdy))
+runBackward2D _ (S2DV y) (S2DV dEdy) = ((), zipWithVectorInPlaceSnd reluDifZip y dEdy `seq` S2DV dEdy)
 runBackward2D l y dEdy = runBackward2D l y (toLayerShape y dEdy)
 
 instance (KnownNat i, KnownNat j) => Layer Relu ('D2 i j) ('D2 i j) where

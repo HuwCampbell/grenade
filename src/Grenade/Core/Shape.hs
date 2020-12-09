@@ -111,12 +111,20 @@ isVectorShape _      = False
 
 
 instance Show (S n) where
-  show (S1D x)  = "S1D " ++ show x
-  show (S2D x)  = "S2D " ++ show x
-  show (S3D x)  = "S3D " ++ show x
+  show (S1D x) = "S1D " ++ show x
+  show (S2D x) = "S2D " ++ show x
+  show (S3D x) = "S3D " ++ show x
   show (S1DV x) = "S1DV " ++ show x
-  show (S2DV x) = "S2DV " ++ show x
-  -- show (S3DH x) = "S3DH " ++ show (unsafePerformIO $ V.freeze $ HBLAS._bufferDenMutMat x)
+  show inp@(S2DV x) = "S2DV" ++ show (sz inp) ++ " " ++ show x
+    where
+      sz ::
+           forall rows cols. (KnownNat rows, KnownNat cols)
+        => (S ('D2 rows cols))
+        -> (Int, Int)
+      sz _ =
+        let rows = fromIntegral $ natVal (Proxy :: Proxy rows)
+            cols = fromIntegral $ natVal (Proxy :: Proxy cols)
+         in (rows, cols)
 
 -- Singleton instances.
 --

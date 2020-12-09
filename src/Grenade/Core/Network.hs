@@ -33,6 +33,7 @@ module Grenade.Core.Network (
 
   , l2Norm
   , clipByGlobalNorm
+  , clipByValue
   , runNetwork
   , runGradient
   , applyUpdate
@@ -262,15 +263,19 @@ instance (NFData (Gradient x), NFData (Gradients xs), FoldableGradient (Gradient
 
 -- | Get the L2 Norm of a Foldable Gradient.
 l2Norm :: (FoldableGradient x) => x -> RealNum
-l2Norm grad = sqrt (sum $ squaredSums grad)
+l2Norm grad = sqrt . sum $ squaredSums grad
 
 -- | Clip the gradients by the global norm.
 clipByGlobalNorm :: (FoldableGradient (Gradients xs)) => RealNum -> Gradients xs -> Gradients xs
 clipByGlobalNorm c grads =
-  let divisor = sqrt $ sum $ squaredSums grads
+  let divisor = sqrt . sum $ squaredSums grads
    in if divisor > c
         then mapGradient (* (c / divisor)) grads
         else grads
+
+-- | Clip the gradients by the value v. Preforms @min v (max(-v) x)@ on all gradients.
+clipByValue :: (FoldableGradient (Gradients xs)) => RealNum -> Gradients xs -> Gradients xs
+clipByValue v grads = mapGradient (min v . (max (-v))) grads
 
 
 instance CreatableNetwork sublayers subshapes => RandomLayer (Network sublayers subshapes) where
@@ -298,8 +303,8 @@ class GNum a where
   (|+) :: a -> a -> a
   zipVectorsWithInPlaceReplSnd :: (Double -> Double -> Double) -> a -> a -> a
   sumG :: [a] -> a
-  -- default sumG :: [a] -> a
-  -- sumG = foldl1 (|+)
+  default sumG :: [a] -> a
+  sumG = foldl1 (|+)
 
 infixl 7 |*
 infixr 5 |+

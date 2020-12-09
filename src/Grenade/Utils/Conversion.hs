@@ -7,7 +7,15 @@
 {-# LANGUAGE TypeOperators       #-}
 
 module Grenade.Utils.Conversion
-  ( toLayerShape
+  ( -- Column major mode helper functions
+    NrColumns
+  , Row
+  , Col
+  , ColumnMajorModeIndex
+  , columnMajorModeIndex
+  , columnMajorModeRowCol
+
+  , toLayerShape
   -- 1D conversions
   , toS1D
   , toS1DV
@@ -27,6 +35,7 @@ module Grenade.Utils.Conversion
   , fromRowMajorVectorToSD1V
   , fromRowMajorVectorToSD2
   , fromRowMajorVectorToSD2V
+  , fromColumnMajorVectorToSD2V
   ) where
 
 import           Data.Maybe                   (fromMaybe)
@@ -42,6 +51,22 @@ import           Unsafe.Coerce                (unsafeCoerce)
 import           Grenade.Core.Shape
 import           Grenade.Types
 import           Grenade.Utils.Vector
+
+
+-- Column major mode helper functions
+
+type NrColumns = Int
+type Row = Int
+type Col = Int
+type ColumnMajorModeIndex = Int
+
+
+columnMajorModeIndex :: NrColumns -> Row -> Col -> ColumnMajorModeIndex
+columnMajorModeIndex cols row col = row * cols + col
+
+columnMajorModeRowCol :: NrColumns -> ColumnMajorModeIndex -> (Row, Col)
+columnMajorModeRowCol cols idx = (idx `div` cols, idx `mod` cols)
+
 
 -- import           Debug.Trace
 
@@ -145,7 +170,7 @@ toS2DV = fromS2D
 --  [ 0.0, 1.0, 2.0, 3.0, 4.0
 --  , 5.0, 6.0, 7.0, 8.0, 9.0 ] :: L 2 5)
 
--- | Efficiently extract the columns of the shape.
+-- | Efficiently extract the columns of the shape. Returns a list of j vectors.
 toColumnsS2D :: forall i j . S ('D2 i j) -> [V.Vector RealNum]
 toColumnsS2D (S2D mat) = map LAS.extract . LAS.toColumns $ mat
 toColumnsS2D (S2DV vec) = map (\idx -> V.slice idx m vec) [0,m .. (V.length vec - m)]
@@ -153,7 +178,7 @@ toColumnsS2D (S2DV vec) = map (\idx -> V.slice idx m vec) [0,m .. (V.length vec 
     m = fromIntegral $ natVal (Proxy :: Proxy i)
 {-# INLINE toColumnsS2D #-}
 
--- | Efficiently extract the rows of the shape.
+-- | Efficiently extract the rows of the shape. Returns a list of i vectors.
 toRowsS2D :: forall i j . S ('D2 i j) -> [V.Vector RealNum]
 toRowsS2D (S2D mat) = map LAS.extract . LAS.toRows $ mat
 toRowsS2D (S2DV vec) =
@@ -219,9 +244,21 @@ fromRowMajorVectorToSD2V vec = unsafePerformIO $ do
     n = fromIntegral $ natVal (Proxy :: Proxy j)
 {-# INLINE fromRowMajorVectorToSD2V #-}
 
--- test =
---   toRowsS2D $
 
---   ((\(S2D x) -> S2DV $ V.concat $ map LAS.extract . LAS.toColumns $ x :: S ('D2 2 5)) )
---   (fromRowMajorVectorToSD2 (V.fromList [0..9]) :: S ('D2 2 5))
---   -- (fromRowMajorVectorToSD1 (V.fromList [0..9]) :: S ('D1 10))
+-- | Convert from a row major vector to @SD2V@.
+fromColumnMajorVectorToSD2V :: forall i j . (KnownNat i, KnownNat j) => V.Vector RealNum -> S ('D2 i j)
+fromColumnMajorVectorToSD2V = S2DV
+{-# INLINE fromColumnMajorVectorToSD2V #-}
+
+
+test =
+  -- (\x -> fromColumnMajorVectorToSD2V x :: S ('D2 5 2)) $
+  -- V.concat $
+  -- toColumnsS2D $
+
+  -- (\x -> fromRowMajorVectorToSD2V x :: S ('D2 5 2) ) $ V.concat $
+  -- toRowsS2D $
+  -- ((\(S2D x) -> S2DV $ V.concat $ map LAS.extract . LAS.toColumns $ x :: S ('D2 2 5)) )
+  -- (fromRowMajorVectorToSD2V (V.fromList [0..9]) :: S ('D2 2 5))
+  (fromRowMajorVectorToSD2V (V.fromList [0..9]) :: S ('D2 5 2))
+  -- (fromRowMajorVectorToSD1 (V.fromList [0..9]) :: S ('D1 10))

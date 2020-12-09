@@ -298,13 +298,16 @@ instance (KnownNat i, KnownNat o) => GNum (FullyConnected' i o) where
   x |+ y = error $ "Cannot add different network types in |+ in FullyConnected: " ++ show (x, y)
   zipVectorsWithInPlaceReplSnd f (FullyConnectedBLAS _ _ b1 w1) (FullyConnectedBLAS uuid io b2 w2) =
     FullyConnectedBLAS uuid io (zipWithVectorInPlaceSnd f b1 b2) (zipWithVectorInPlaceSnd f w1 w2)
+  -- zipVectorsWithInPlaceReplSnd f (FullyConnectedHMatrix b1 w1) (FullyConnectedHMatrix b2 w2) = FullyConnectedHMatrix (zipWithVector f b1 b2) w2
+
   zipVectorsWithInPlaceReplSnd _ _ _ = error "zipVectorsWithInPlaceReplSnd only works with BLAS CPU backend. See the NetworkInitSettings."
   sumG xs@(FullyConnectedBLAS uuid io _ _:_) =
-    FullyConnectedBLAS uuid io (foldl1 (+) bs) (foldl1 (+) ws)
+    force $ FullyConnectedBLAS uuid io (foldl1 (+) bs) (foldl1 (+) ws)
     -- (foldl' add bs' bs `using` rparWith rdeepseq) `seq` (foldl' add ws' ws `using` rparWith rdeepseq) `seq` FullyConnectedBLAS uuid io bs' ws'
     where
       add acc x = zipWithVectorInPlaceSnd (+) x acc
       (bs, ws) = unzip $ map (\(FullyConnectedBLAS _ _ b w) -> (b, w)) xs
+  sumG xs = foldl1 (|+) xs
       -- !bs' = unsafeMemZero $ createVectorUnsafe (V.length $ head bs)
       -- !ws' = unsafeMemZero $ createVectorUnsafe (V.length $ head ws)
   sumG _ = error "SumG only works with BLAS CPU backend. See the NetworkInitSettings to switch CPU backends."

@@ -156,6 +156,5 @@ zipWithVectorInPlaceSnd f u v = -- zipWithVector f u v
               pokeElemOff pv k (f x y)
               go (k - 1)
         go (n - 1)
-        fpv <- newForeignPtr_ pv
-        return $ V.unsafeFromForeignPtr0 fpv n
+    return v
 {-# INLINE zipWithVectorInPlaceSnd #-}
