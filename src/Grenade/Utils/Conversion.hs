@@ -38,7 +38,7 @@ module Grenade.Utils.Conversion
   , fromColumnMajorVectorToSD2V
   ) where
 
-import           Data.Maybe                   (fromMaybe)
+import           Data.Maybe                   (fromJust, fromMaybe)
 import           Data.Proxy
 import           Data.Singletons.TypeLits
 import qualified Data.Vector.Storable         as V
@@ -141,10 +141,7 @@ toS1DV = fromS1D
 
 -- | Convert from vector representation.
 toS2D :: forall i j . S ('D2 i j) -> S ('D2 i j)
-toS2D (S2DV vec) = S2D $ LAS.matrix $ V.toList . LA.flatten . reshapeF n . LA.vector . V.toList $ vec
-  where
-    n = fromIntegral $ natVal (Proxy :: Proxy j)
-    reshapeF r = LA.tr' . LA.reshape r
+toS2D mat@S2DV{} = S2D $ LAS.matrix (concatMap V.toList $ toRows mat)
 toS2D x@S2D{}    = x
 {-# INLINE toS2D #-}
 
@@ -217,11 +214,15 @@ fromRowMajorVectorToSD1V = S1DV
 fromRowMajorVectorToSD2 :: forall i j . (KnownNat i, KnownNat j) => V.Vector RealNum -> S ('D2 i j)
 fromRowMajorVectorToSD2 vec
   | V.length vec /= m * n = error $ "cannot create matrix L " ++ show (m,n) ++ " from vector length " ++ show (V.length vec) ++ " in fromRowMajorVectorToSD2"
-  | otherwise = S2D $ unsafeCoerce $ LA.reshape n vec
+  | otherwise = toS2D $ fromRowMajorVectorToSD2V vec
+                -- in S2D $ unsafeCoerce v'
   where
     m = fromIntegral $ natVal (Proxy :: Proxy i)
     n = fromIntegral $ natVal (Proxy :: Proxy j)
 {-# INLINE fromRowMajorVectorToSD2 #-}
+
+-- toRowMajorVector :: (KnownNat i, KnownNat j) => S ('D2 i j) -> V.Vector RealNum
+-- toRowMajorVector = V.concat . toColumnsS2D
 
 -- | Convert from a row major vector to @SD2V@.
 fromRowMajorVectorToSD2V :: forall i j . (KnownNat i, KnownNat j) => V.Vector RealNum -> S ('D2 i j)
@@ -231,9 +232,12 @@ fromRowMajorVectorToSD2V vec = unsafePerformIO $ do
     V.unsafeWith vec' $ \to ->  do
     let go (-1) = return ()
         go !k = do
-          let idx = nRow * m + nCol
-              nCol = k `div` n
-              nRow = k `mod` n
+          -- let idx = nRow * m + nCol
+              -- nCol = k `div` n
+              -- nRow = k `mod` n
+          let idx = columnMajorModeIndex n row col
+              col = k - row * n
+              row = k `mod` n
           x <- peekElemOff from k
           pokeElemOff to idx x
           go (k-1)
@@ -254,11 +258,12 @@ fromColumnMajorVectorToSD2V = S2DV
 test =
   -- (\x -> fromColumnMajorVectorToSD2V x :: S ('D2 5 2)) $
   -- V.concat $
-  -- toColumnsS2D $
-
+  -- toRowsS2D $
+  -- ttoRowMajorVector $
+  fromS2D $
   -- (\x -> fromRowMajorVectorToSD2V x :: S ('D2 5 2) ) $ V.concat $
   -- toRowsS2D $
   -- ((\(S2D x) -> S2DV $ V.concat $ map LAS.extract . LAS.toColumns $ x :: S ('D2 2 5)) )
   -- (fromRowMajorVectorToSD2V (V.fromList [0..9]) :: S ('D2 2 5))
-  (fromRowMajorVectorToSD2V (V.fromList [0..9]) :: S ('D2 5 2))
+  (fromRowMajorVectorToSD2 (V.fromList [0..9]) :: S ('D2 5 2))
   -- (fromRowMajorVectorToSD1 (V.fromList [0..9]) :: S ('D1 10))

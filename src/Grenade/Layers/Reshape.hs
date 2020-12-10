@@ -103,9 +103,9 @@ instance (KnownNat y, KnownNat x, KnownNat z, z ~ 1) => Layer Reshape ('D2 x y) 
 instance (KnownNat a, KnownNat x, KnownNat y, a ~ (x * y)) => Layer Reshape ('D1 a) ('D2 x y) where
   type Tape Reshape ('D1 a) ('D2 x y) = ()
   runForwards _ (S1D y)  = ((), fromJust' . fromStorable . extract $ y)
-  runForwards _ (S1DV y) = ((), fromRowMajorVectorToSD2V y)
-  runBackwards _ _ (S2D y)   = ((), fromJust' . fromStorable . flatten . extract $ y)
-  runBackwards _ _ x@S2DV {} = ((), S1DV $ V.concat $ toRowsS2D x)
+  runForwards _ (S1DV y) = ((), S2DV y) -- We use no conversion at all. This should not be a problem as long as the runBackwards does it in the same way.
+  runBackwards _ _ (S2D y)    = ((), fromJust' . fromStorable . flatten . extract $ y)
+  runBackwards _ _ x@(S2DV y) = ((), S1DV y)
 
 instance (KnownNat a, KnownNat x, KnownNat y, KnownNat (x * z), KnownNat z, a ~ (x * y * z)) => Layer Reshape ('D1 a) ('D3 x y z) where
   type Tape Reshape ('D1 a) ('D3 x y z) = ()

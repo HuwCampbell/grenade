@@ -52,6 +52,8 @@ import qualified Numeric.LinearAlgebra.Static as H
 import           System.Random.MWC
 import           Unsafe.Coerce                (unsafeCoerce)
 
+import           Debug.Trace
+
 import           Grenade.Types
 import           Grenade.Utils.Vector
 
@@ -246,16 +248,15 @@ instance SingI x => Serialize (S x) where
       S1D x -> put (1 :: Int) >> (putListOf put . NLA.toList . H.extract $ x)
       S2D x -> put (1 :: Int) >> (putListOf put . NLA.toList . NLA.flatten . H.extract $ x)
       S3D x -> put (1 :: Int) >> (putListOf put . NLA.toList . NLA.flatten . H.extract $ x)
-      S1DV x -> put (2 :: Int) >> put (V.toList x)
-      S2DV x -> put (2 :: Int) >> put (V.toList x)
+      S1DV x -> put (2 :: Int) >> putListOf put (V.toList x)
+      S2DV x -> put (2 :: Int) >> putListOf put (V.toList x)
   get = do
     (nr :: Int) <- get
     case nr of
       1 -> do
-       Just i <- fromStorable . V.fromList <$> getListOf get
-       return i
-      2 ->
-        fromStorableV . V.fromList <$> get
+        Just i <- fromStorable . V.fromList <$> getListOf get
+        return i
+      2 -> fromStorableV . V.fromList <$> getListOf get
       _ -> error "unexpected case in get in Serialize instance in Shape.hs"
 
 -- Helper function for creating the number instances

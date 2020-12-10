@@ -227,9 +227,9 @@ instance (KnownNat i, KnownNat o) => Serialize (FullyConnected' i o) where
       1 -> do
         uuid <- get
         io <- get
-        b <- V.fromList <$> get
-        w <- V.fromList <$> get
-        return $ FullyConnectedBLAS (fromMaybe newUUID uuid) io b w
+        b <- V.fromList <$> getListOf get
+        w <- V.fromList <$> getListOf get
+        return $ FullyConnectedBLAS uuid io b w
       _ -> error $ "Unexpected nr in get in Serialize of FullyConnected' " ++ show nr
 
 
