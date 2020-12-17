@@ -108,10 +108,15 @@ before_install:
  - sudo apt update -qq
  - sudo apt install -y cuda-core-${CUDA_SHORT/./-} cuda-cudart-dev-${CUDA_SHORT/./-} cuda-cufft-dev-${CUDA_SHORT/./-}
  - sudo apt clean
- - CUDA_HOME=/usr/local/cuda-${CUDA_SHORT}
+ - export CUDA_HOME=/usr/local/cuda-${CUDA_SHORT}
  - export LD_LIBRARY_PATH=${CUDA_HOME}/lib64:${CUDA_HOME}/lib:${CUDA_HOME}/nvvm/lib64:${LD_LIBRARY_PATH}
  - export PATH=${CUDA_HOME}/bin:${PATH}
  - sudo ln -s ${CUDA_HOME} /opt/cuda
+
+ # Check varialbes
+ - echo $LD_LIBRARY_PATH
+ - echo $PATH
+ - echo $CUDA_HOME
 
  # Install blas and lapack
  # - travis_retry sudo apt-get update
