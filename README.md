@@ -1,7 +1,7 @@
 Grenade
 =======
 
-[![Build Status](https://api.travis-ci.org/schnecki/grenade.svg?branch=master)](https://travis-ci.org/schnecki/grenade)
+[![Build Status](https://api.travis-ci.com/schnecki/grenade.svg?branch=master)](https://travis-ci.org/schnecki/grenade)
 <!-- [![Hackage page (downloads and API reference)][hackage-png]][hackage] -->
 <!-- [![Hackage-Deps][hackage-deps-png]][hackage-deps] -->
 
