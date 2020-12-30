@@ -58,8 +58,8 @@ main = do
   SpecConcreteNetwork1D1D netFF <- networkFromSpecificationWith def ff
   SpecConcreteNetwork1D1D netHuge <- networkFromSpecificationWith def hugeFf
   SpecConcreteNetwork1D1D netHugeBig <- networkFromSpecificationWith def hugeBigFf
-  SpecConcreteNetwork1D1D netHugeBlas <- networkFromSpecificationWith (NetworkInitSettings UniformInit BLAS) hugeFf
-  SpecConcreteNetwork1D1D netHugeBigBlas <- networkFromSpecificationWith (NetworkInitSettings UniformInit BLAS) hugeBigFf
+  SpecConcreteNetwork1D1D netHugeBlas <- networkFromSpecificationWith (NetworkInitSettings UniformInit BLAS Nothing) hugeFf
+  SpecConcreteNetwork1D1D netHugeBigBlas <- networkFromSpecificationWith (NetworkInitSettings UniformInit BLAS Nothing) hugeBigFf
   defaultMain
     [ -- bgroup
     --     "im2col"
