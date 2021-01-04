@@ -18,6 +18,7 @@ module Grenade.Layers (
   , module Grenade.Layers.Softmax
   , module Grenade.Layers.Sinusoid
   , module Grenade.Layers.Tanh
+  , module Grenade.Layers.LeakyTanh
   , module Grenade.Layers.Trivial
   ) where
 
@@ -31,6 +32,7 @@ import           Grenade.Layers.FullyConnected
 import           Grenade.Layers.Gelu
 import           Grenade.Layers.Inception
 import           Grenade.Layers.LeakyRelu
+import           Grenade.Layers.LeakyTanh
 import           Grenade.Layers.Logit
 import           Grenade.Layers.Merge
 import           Grenade.Layers.Pad

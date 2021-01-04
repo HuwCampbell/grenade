@@ -58,7 +58,7 @@ netSpec = specFullyConnected 2 400 |=> specRelu1D 400 |=> specFullyConnected 400
 -- netSpec :: SpecNet
 -- netSpec =
 --  specFullyConnected 2 40 |=> specTanh1D 40 |=>
---  specDropout 40 0.95 Nothing |=>
+--  specDropout 400 0.95 Nothing |=>
 --  netSpecInner |=>
 --  specFullyConnected 20 30 |=> specRelu1D 30 |=>
 --  specFullyConnected 30 20 |=> specRelu1D 20 |=>

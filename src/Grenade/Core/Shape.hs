@@ -267,7 +267,6 @@ n1 f (S3D x)  = S3D (f x)
 n1 f (S1DV x) = S1DV (mapVector f x)
 n1 f (S2DV x) = S2DV (mapVector f x)
 
-
 -- helper function for creating the number instances
 n2 :: ( forall a. Floating a => a -> a -> a ) -> S x -> S x -> S x
 n2 f (S1D x) (S1D y)    = S1D (f x y)

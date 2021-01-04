@@ -38,11 +38,8 @@ import           Grenade.Dynamic.Internal.Build
 import           Grenade.Types
 import           Grenade.Utils.Vector
 
--- Dropout layer help to reduce overfitting.
--- Idea here is that the vector is a shape of 1s and 0s, which we multiply the input by.
--- After backpropogation, we return a new matrix/vector, with different bits dropped out.
--- The provided argument is the proportion to drop in each training iteration (like 1% or
--- 5% would be reasonable).
+-- | Dropout layer help to reduce overfitting. Idea here is that the vector is a shape of 1s and 0s, which we multiply the input by. After backpropogation, we return a new matrix/vector, with
+-- different bits dropped out. The provided argument is the proportion to drop in each training iteration (like 1% or 5% would be reasonable). The proportion is given as promille, i.e. 100 are 10%.
 data Dropout (pct :: Nat) =
   Dropout
     { dropoutActive :: Bool     -- ^ Add possibility to deactivate dropout
@@ -73,7 +70,7 @@ instance (KnownNat pct, KnownNat i) => Layer (Dropout pct) ('D1 i) ('D1 i) where
     | not act = (extract v, S1D $ dvmap (rate *) x) -- multily with rate to normalise throughput
     | otherwise = (extract v, S1D $ v * x)
     where
-      rate = (/100) $ fromIntegral $ max 0 $ min 100 $ natVal (Proxy :: Proxy pct)
+      rate = (/1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy pct)
       v = dvmap mask $ randomVector seed Uniform
       mask r
         | not act || r < rate = 1
@@ -83,7 +80,7 @@ instance (KnownNat pct, KnownNat i) => Layer (Dropout pct) ('D1 i) ('D1 i) where
     | otherwise = (v, S1DV $ zipWithVectorInPlaceSnd (*) v x)
     where
       rate :: RealNum
-      rate = (/100) $ fromIntegral $ max 0 $ min 100 $ natVal (Proxy :: Proxy pct)
+      rate = (/1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy pct)
       v :: V.Vector RealNum
       v = mapVectorInPlace mask $ extract (randomVector seed Uniform :: R i)
       mask r
@@ -98,12 +95,12 @@ instance (KnownNat pct) => FromDynamicLayer (Dropout pct) where
   fromDynamicLayer inp _ (Dropout _ seed) = case tripleFromSomeShape inp of
     (rows, 1, 1) -> SpecNetLayer $ SpecDropout rows rate (Just seed)
     _            -> error "Dropout is only allows for vectors, i.e. 1D spaces."
-    where rate = (/100) $ fromIntegral $ max 0 $ min 100 $ natVal (Proxy :: Proxy pct)
+    where rate = (/1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy pct)
 
 instance ToDynamicLayer SpecDropout where
   toDynamicLayer _ gen (SpecDropout rows rate mSeed) =
     reifyNat rows $ \(_ :: (KnownNat i) => Proxy i) ->
-    reifyNat (round $ 100 * rate) $ \(_ :: (KnownNat pct) => Proxy pct) ->
+    reifyNat (round $ 1000 * rate) $ \(_ :: (KnownNat pct) => Proxy pct) ->
     case mSeed of
       Just seed -> return $ SpecLayer (Dropout True seed :: Dropout pct) (sing :: Sing ('D1 i)) (sing :: Sing ('D1 i))
       Nothing -> do

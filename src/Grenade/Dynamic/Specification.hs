@@ -37,6 +37,7 @@ module Grenade.Dynamic.Specification
   , SpecSinusoid(..)
   , SpecSoftmax(..)
   , SpecTanh(..)
+  , SpecLeakyTanh(..)
   , SpecTrivial(..)
   ) where
 
@@ -62,6 +63,7 @@ import {-# SOURCE #-} Grenade.Layers.Elu            ()
 import {-# SOURCE #-} Grenade.Layers.FullyConnected ()
 import {-# SOURCE #-} Grenade.Layers.Gelu           ()
 import {-# SOURCE #-} Grenade.Layers.LeakyRelu      ()
+import {-# SOURCE #-} Grenade.Layers.LeakyTanh      ()
 import {-# SOURCE #-} Grenade.Layers.Logit          ()
 import {-# SOURCE #-} Grenade.Layers.Relu           ()
 import {-# SOURCE #-} Grenade.Layers.Reshape        ()
@@ -354,6 +356,11 @@ newtype SpecSoftmax = SpecSoftmax Integer
 -- | Specification of Tanh, saves input dimensions as triple, where every element >= 1.
 newtype SpecTanh = SpecTanh Dimensions
   deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
+
+-- | Specification of LeakyTanh, saves input dimensions as triple, where every element >= 1.
+data SpecLeakyTanh = SpecLeakyTanh RealNum Dimensions
+  deriving (Show, Read, Eq, Ord, Serialize, Generic, NFData)
+
 
 -- | Specification of Trivial, saves input dimensions as triple, where every element >= 1.
 newtype SpecTrivial = SpecTrivial Dimensions

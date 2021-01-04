@@ -20,6 +20,7 @@ module Grenade.Dynamic.Specification
   , SpecSinusoid(..)
   , SpecSoftmax(..)
   , SpecTanh(..)
+  , SpecLeakyTanh(..)
   , SpecTrivial(..)
   ) where
 
@@ -132,5 +133,7 @@ newtype SpecSinusoid = SpecSinusoid (Integer, Integer, Integer)
 newtype SpecSoftmax = SpecSoftmax Integer
 
 newtype SpecTanh = SpecTanh (Integer, Integer, Integer)
+
+data SpecLeakyTanh = SpecLeakyTanh RealNum (Integer, Integer, Integer)
 
 newtype SpecTrivial = SpecTrivial (Integer, Integer, Integer)
