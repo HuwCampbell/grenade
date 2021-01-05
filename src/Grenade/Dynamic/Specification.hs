@@ -229,6 +229,7 @@ parseSpecDataConstructor repStr
   | repStr == show (typeRep (Proxy :: Proxy SpecSinusoid))       = SpecNetLayer <$> (get :: Get SpecSinusoid)
   | repStr == show (typeRep (Proxy :: Proxy SpecSoftmax))        = SpecNetLayer <$> (get :: Get SpecSoftmax)
   | repStr == show (typeRep (Proxy :: Proxy SpecTanh))           = SpecNetLayer <$> (get :: Get SpecTanh)
+  | repStr == show (typeRep (Proxy :: Proxy SpecLeakyTanh))      = SpecNetLayer <$> (get :: Get SpecLeakyTanh)
   | repStr == show (typeRep (Proxy :: Proxy SpecTrivial))        = SpecNetLayer <$> (get :: Get SpecTrivial)
   | repStr == show (typeRep (Proxy :: Proxy SpecNet))            = SpecNetLayer <$> (get :: Get SpecNet)
   | otherwise = error $ "unexpected input parseSpecDataConstructor: " ++ repStr
