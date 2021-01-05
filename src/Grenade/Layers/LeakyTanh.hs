@@ -62,41 +62,34 @@ instance Serialize (LeakyTanh maxVal) where
 
 instance (a ~ b, SingI a, KnownNat maxVal) => Layer (LeakyTanh maxVal) a b where
   type Tape (LeakyTanh maxVal) a b = S a
-  -- runBackwards _ (S1DV v) (S1DV gs) = ((), S1DV $ zipWithVector (\t g -> max 0.005 (1 - (tanh t) ^ (2 :: Int)) * g) v gs)
-  -- runBackwards _ (S2DV v) (S2DV gs) = ((), S2DV $ zipWithVector (\t g -> max 0.005 (1 - (tanh t) ^ (2 :: Int)) * g) v gs)
-  -- runBackwards _ (S1D a) (S1D g)= ((), S1D $ LAS.dvmap (max 0.005) (tanh' a) * g)
-  -- runBackwards _ (S2D a) (S2D g)= ((), S2D $ LAS.dmmap (max 0.005) (tanh' a) * g)
-  -- runBackwards _ (S3D a) (S3D g)= ((), S3D $ LAS.dmmap (max 0.005) (tanh' a) * g)
-  -- runForwards _ (S1DV v) = (S1DV val, S1DV $ mapVector (mima maxVal . tanh) v)
-  --   where
-  --     val = mima maxVal v
-  --     maxVal = (/ 1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy maxVal)
+  runForwards _ (S1DV v) = (S1DV v, S1DV $ mapVector (tanhMax maxVal) v)
+    where
+      maxVal = (/ 1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy maxVal)
   runForwards _ (S2DV v) = (S2DV v, S2DV $ mapVector (tanhMax maxVal) v)
     where
       maxVal = (/ 1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy maxVal)
-  runForwards _ a = (a, tanh a)
-  -- runForwards _ (S1D a) = (S1D a, S1D $ LAS.dvmap (mima maxVal . tanh) a)
-  --   where
-  --     maxVal = (/ 1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy maxVal)
-  -- runForwards _ (S2D a) = (S2D a, S2D $ LAS.dmmap (mima maxVal . tanh) a)
-  --   where
-  --     maxVal = (/ 1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy maxVal)
-  -- runForwards _ (S3D a) = (S3D a, S3D $ LAS.dmmap (mima maxVal . tanh) a)
-  --   where
-  --     maxVal = (/ 1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy maxVal)
-  -- runBackwards _ (S1DV v) (S1DV gs) = ((), S1DV $ zipWithVector (\t g -> max 0.005 (1 - (tanh t) ^ (2 :: Int)) * g) v gs)
-  --   where
-  --     maxVal = (/ 1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy maxVal)
+  runForwards _ (S1D a) = (S1D a, S1D $ LAS.dvmap (tanhMax maxVal) a)
+    where
+      maxVal = (/ 1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy maxVal)
+  runForwards _ (S2D a) = (S2D a, S2D $ LAS.dmmap (tanhMax maxVal) a)
+    where
+      maxVal = (/ 1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy maxVal)
+  runForwards _ (S3D a) = (S3D a, S3D $ LAS.dmmap (tanhMax maxVal) a)
+    where
+      maxVal = (/ 1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy maxVal)
+  runBackwards _ (S1DV v) (S1DV gs) = ((), S1DV $ zipWithVector (\t g -> tanhMax' maxVal t * g) v gs)
+    where
+      maxVal = (/ 1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy maxVal)
   runBackwards _ (S2DV v) (S2DV gs) = ((), S2DV $ zipWithVector (\t g -> tanhMax' maxVal t * g) v gs)
     where
       maxVal = (/ 1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy maxVal)
-  runBackwards _ (S1D a) (S1D g) = ((), S1D $ LAS.dvmap (max 0.005) (tanh' a) * g)
+  runBackwards _ (S1D a) (S1D g) = ((), S1D $ LAS.dvmap (tanhMax' maxVal) a * g)
     where
       maxVal = (/ 1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy maxVal)
-  runBackwards _ (S2D a) (S2D g) = ((), S2D $ LAS.dmmap (max 0.005) (tanh' a) * g)
+  runBackwards _ (S2D a) (S2D g) = ((), S2D $ LAS.dmmap (tanhMax' maxVal) (tanh' a) * g)
     where
       maxVal = (/ 1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy maxVal)
-  runBackwards _ (S3D a) (S3D g) = ((), S3D $ LAS.dmmap (max 0.005) (tanh' a) * g)
+  runBackwards _ (S3D a) (S3D g) = ((), S3D $ LAS.dmmap (tanhMax' maxVal) (tanh' a) * g)
     where
       maxVal = (/ 1000) $ fromIntegral $ max 0 $ min 1000 $ natVal (Proxy :: Proxy maxVal)
   runBackwards l x y = runBackwards l x (toLayerShape x y)
