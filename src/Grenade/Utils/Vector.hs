@@ -15,10 +15,12 @@ module Grenade.Utils.Vector
     , createVectorUnsafe
     , zipWithVector
     , zipWithVectorInPlaceSnd
+    , sumVectors
     ) where
 
 
 import           Control.Monad        (when)
+import qualified Data.Vector          as VB
 import qualified Data.Vector.Storable as V
 import           Foreign
 import           Foreign.C.Types
@@ -158,3 +160,37 @@ zipWithVectorInPlaceSnd f u v = -- zipWithVector f u v
         go (n - 1)
     return v
 {-# INLINE zipWithVectorInPlaceSnd #-}
+
+
+-- | zipWith for Vectors (code from HMatrix)
+sumVectors :: [V.Vector RealNum] -> V.Vector RealNum
+sumVectors [] = V.empty
+sumVectors vs =
+  -- unsafePerformIO $ do
+  --   let len = V.length (head vs)
+  --   out <- memCopyVectorFromTo (head vs) (createVectorUnsafe len)
+  --   V.unsafeWith out $ \pout -> do
+  --     let go (-1) _ = return ()
+  --         go idx v = do
+  --           x <- peekElemOff v idx
+  --           t <- peekElemOff pout idx
+  --           pokeElemOff pout idx (x + t)
+  --           go (idx - 1) v
+  --     mapM_ (\v -> V.unsafeWith v (go (len - 1))) (tail vs)
+  --   return out
+  unsafePerformIO $ do
+    let len = V.length (head vs)
+    out <- memZero (createVectorUnsafe len)
+    V.unsafeWith out $ \pout -> do
+      let w = foldl (\acc v -> V.unsafeWith v : acc) [] vs
+      let go (-1) _ = return ()
+          go idx v = do
+            x <- peekElemOff v idx
+            t <- peekElemOff pout idx
+            pokeElemOff pout idx (x + t)
+            go (idx - 1) v
+      mapM_ (\f -> f (go (len - 1))) w
+    return out
+{-# INLINE sumVectors #-}
+
+foreign import ccall unsafe "sum_vectors" dger_direct :: CInt -> CInt -> Ptr (Ptr Double) -> Ptr Double -> Ptr Double

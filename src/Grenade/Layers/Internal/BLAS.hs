@@ -20,8 +20,6 @@ module Grenade.Layers.Internal.BLAS
     , dgemmUnsafe
     , dgemvUnsafe
     , dgerUnsafe
-
-    , cudaDestroy -- if you use CUDA, destroy the context after the ANN is not needed anymore!
     ) where
 
 import           Control.Monad

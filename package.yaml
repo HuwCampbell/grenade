@@ -75,6 +75,7 @@ dependencies:
   - mtl
   - file-embed
   - parallel
+  - concurrent-extra
   - cuda
 when:
   condition: flag(use-float)

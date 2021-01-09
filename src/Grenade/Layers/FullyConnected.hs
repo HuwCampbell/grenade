@@ -44,16 +44,17 @@ import           Data.Singletons
 import           Data.Singletons.Prelude.Num    ((%*))
 import qualified Numeric.LinearAlgebra          as LA
 import           Numeric.LinearAlgebra.Static   hiding (zipWithVector)
+import           Text.Printf
 
 import           Control.Monad                  (void)
-import           Foreign.Storable               (sizeOf)
+import           Foreign.Storable               (peekElemOff, pokeElemOff, sizeOf)
 import           System.IO.Unsafe               (unsafePerformIO)
 
 import           Grenade.Core
 import           Grenade.Dynamic
 import           Grenade.Dynamic.Internal.Build
 import           Grenade.Layers.Internal.BLAS
-import           Grenade.Layers.Internal.Memory
+import           Grenade.Layers.Internal.CUDA
 import           Grenade.Layers.Internal.Update
 import           Grenade.Types
 import           Grenade.Utils.Conversion
@@ -83,7 +84,6 @@ data FullyConnected' i o
       !(R o)   -- ^ Bias
       !(L o i) -- ^ Activations
   | FullyConnectedBLAS
-    !UUID
     !(Int, Int)         -- ^ Input, output
     !(V.Vector RealNum) -- ^ Bias, Temporary vector of same size
     !(V.Vector RealNum) -- ^ Activations
@@ -94,8 +94,8 @@ instance Show (FullyConnected' i o) where
   show FullyConnectedHMatrix{} = "FullyConnectedHMatrix"
 
 instance NFData (FullyConnected' i o) where
-  rnf (FullyConnectedHMatrix b w)      = rnf b `seq` rnf w
-  rnf (FullyConnectedBLAS !uuid !io !b !w) = rnf uuid `seq` rnf io `seq` rnf b `seq` rnf w
+  rnf (FullyConnectedHMatrix b w)    = rnf b `seq` rnf w
+  rnf (FullyConnectedBLAS !io !b !w) = rnf io `seq` rnf b `seq` rnf w
 
 
 instance (KnownNat i, KnownNat o, KnownNat (i * o)) => UpdateLayer (FullyConnected i o) where
@@ -114,31 +114,29 @@ instance (KnownNat i, KnownNat o, KnownNat (i * o)) => UpdateLayer (FullyConnect
           descendMatrix opt (MatrixValuesAdam (getStep store) oldActivations activationGradient oldMActivations oldVActivations)
         newStore = setData opt x store [FullyConnectedHMatrix newMBias newMActivations, FullyConnectedHMatrix newVBias newVActivations]
      in FullyConnected (FullyConnectedHMatrix newBias newActivations) newStore
-  runUpdate opt@OptSGD {} x@(FullyConnected (FullyConnectedBLAS uuid io@(i,o) oldBiasH oldActivationsH) store) (FullyConnectedBLAS _ _ biasGradient activationGradient) =
+  runUpdate opt@OptSGD {} x@(FullyConnected (FullyConnectedBLAS io@(i,o) oldBiasH oldActivationsH) store) (FullyConnectedBLAS _ biasGradient activationGradient) =
       let oldBias = oldBiasH
           oldActivations = oldActivationsH
           (oldMBias, oldMActivations) = case getData opt x store of -- In the first periods until the store is filled newData is called, which will generate FullyConnectedHMatrix instances!
-            FullyConnectedBLAS _ _ oldMBias' oldMActivations' -> (oldMBias', oldMActivations')
+            FullyConnectedBLAS _ oldMBias' oldMActivations' -> (oldMBias', oldMActivations')
             FullyConnectedHMatrix oldMBias' oldMActivations' -> (extract oldMBias', extractM oldMActivations')
           VectorResultSGDV newBias newMBias               = descendVectorV opt (VectorValuesSGDV oldBias biasGradient oldMBias)
           MatrixResultSGDV newActivations newMActivations = descendMatrixV opt (MatrixValuesSGDV oldActivations activationGradient oldMActivations)
-          newStore = setData opt x store (FullyConnectedBLAS uuid io newMBias newMActivations)
-      in  -- releaseTmpVectors uuid `seq`
-      FullyConnected (FullyConnectedBLAS uuid io newBias newActivations) newStore
+          newStore = setData opt x store (FullyConnectedBLAS io newMBias newMActivations)
+      in FullyConnected (FullyConnectedBLAS io newBias newActivations) newStore
     where extractM mat = (\(S2DV vec) -> vec) . fromS2D $ S2D mat
-  runUpdate opt@OptAdam {} x@(FullyConnected (FullyConnectedBLAS uuid io@(i,o) oldBiasH oldActivationsH) store) (FullyConnectedBLAS _ _ biasGradient activationGradient) =
+  runUpdate opt@OptAdam {} x@(FullyConnected (FullyConnectedBLAS io@(i,o) oldBiasH oldActivationsH) store) (FullyConnectedBLAS _ biasGradient activationGradient) =
       let oldBias = oldBiasH
           oldActivations = oldActivationsH
           (oldMBias, oldMActivations, oldVBias, oldVActivations) = case getData opt x store of -- In the first periods until the store is filled newData is called, which will generate FullyConnectedHMatrix instances!
-            [FullyConnectedBLAS _ _ oldMBias' oldMActivations', FullyConnectedBLAS _ _ oldVBias' oldVActivations'] -> (oldMBias', oldMActivations', oldVBias', oldVActivations')
+            [FullyConnectedBLAS _ oldMBias' oldMActivations', FullyConnectedBLAS _ oldVBias' oldVActivations'] -> (oldMBias', oldMActivations', oldVBias', oldVActivations')
             [FullyConnectedHMatrix oldMBias' oldMActivations', FullyConnectedHMatrix oldVBias' oldVActivations'] -> (extract oldMBias', extractM oldMActivations', extract oldVBias', extractM oldVActivations')
-            [FullyConnectedBLAS _ _ oldMBias' oldMActivations', FullyConnectedHMatrix oldVBias' oldVActivations'] -> (oldMBias', oldMActivations', extract oldVBias', extractM oldVActivations')
+            [FullyConnectedBLAS _ oldMBias' oldMActivations', FullyConnectedHMatrix oldVBias' oldVActivations'] -> (oldMBias', oldMActivations', extract oldVBias', extractM oldVActivations')
             xs -> error $ "unexpected data in ListStore in FullyConnected BLAS implementation: " ++ show xs
           VectorResultAdamV newBias newMBias newVBias                      = descendVectorV opt (VectorValuesAdamV (getStep store) oldBias biasGradient oldMBias oldVBias)
           MatrixResultAdamV newActivations newMActivations newVActivations = descendMatrixV opt (MatrixValuesAdamV (getStep store) oldActivations activationGradient oldMActivations oldVActivations)
-          newStore = setData opt x store [FullyConnectedBLAS uuid io newMBias newMActivations, FullyConnectedBLAS uuid io newVBias newVActivations]
-      in -- releaseTmpVectors uuid `seq`
-        FullyConnected (FullyConnectedBLAS uuid io newBias newActivations) newStore
+          newStore = setData opt x store [FullyConnectedBLAS io newMBias newMActivations, FullyConnectedBLAS io newVBias newVActivations]
+      in FullyConnected (FullyConnectedBLAS io newBias newActivations) newStore
     where extractM mat = (\(S2DV vec) -> vec) . fromS2D $ S2D mat
   runUpdate opt (FullyConnected layer _) _ = error $ "Unexpected input in runUpdate in FullyConnected layer. Optimizer" ++ show opt ++ ". Layer: " ++ show layer
 
@@ -158,16 +156,15 @@ instance (KnownNat i, KnownNat o, KnownNat (i * o)) => LayerOptimizerData (Fully
 
 instance (KnownNat i, KnownNat o) => FoldableGradient (FullyConnected' i o) where
   mapGradient f (FullyConnectedHMatrix bias activations) = FullyConnectedHMatrix (dvmap f bias) (dmmap f activations)
-  mapGradient f (FullyConnectedBLAS uuid io bias activations) = FullyConnectedBLAS uuid io (mapVector f bias) (mapVector f activations)
+  mapGradient f (FullyConnectedBLAS io bias activations) = FullyConnectedBLAS io (mapVector f bias) (mapVector f activations)
   squaredSums (FullyConnectedHMatrix bias activations) = [sumV . squareV $ bias, sumM . squareM $ activations]
-  squaredSums (FullyConnectedBLAS _ _ bias activations) = [V.sum . mapVector (^(2::Int)) $ bias, V.sum . mapVector (^(2::Int)) $ activations]
+  squaredSums (FullyConnectedBLAS _ bias activations) = [V.sum . mapVector (^(2::Int)) $ bias, V.sum . mapVector (^(2::Int)) $ activations]
 
 
 runForward :: forall i o. (KnownNat i, KnownNat o) => FullyConnected i o -> S ('D1 i) -> (Tape (FullyConnected i o) ('D1 i) ('D1 o), S ('D1 o))
 runForward (FullyConnected (FullyConnectedHMatrix wB wN) _) (S1D v) = (S1D v, S1D (wB + wN #> v))
-runForward (FullyConnected (FullyConnectedBLAS uuid _ wB wN) _) (S1DV v) =
-  let -- !out' = withTempVector uuid (V.length wB) (memCopyVectorFromTo wB >=> matXVec BlasNoTranspose wN v 1.0)
-      inp = unsafeMemCopyVectorFromTo wB (createVectorUnsafe (V.length wB))
+runForward (FullyConnected (FullyConnectedBLAS _ wB wN) _) (S1DV v) =
+  let inp = unsafeMemCopyVectorFromTo wB (createVectorUnsafe (V.length wB))
       !out' = unsafePerformIO $ matXVec BlasNoTranspose wN v 1 inp
    in force out' `seq` (S1DV v, S1DV out')
 runForward lay@(FullyConnected (FullyConnectedHMatrix _ _) _ ) v@S1DV{} = runForward lay (toS1D v)
@@ -180,23 +177,17 @@ runBackward (FullyConnected (FullyConnectedHMatrix _ wN) _) (S1D x) (S1D dEdy) =
       mm' = dEdy `outer` x
             -- calcluate derivatives for next step
       dWs = tr wN #> dEdy
-   in -- trace ("ff inp dEdy: " ++ show dEdy)
-      -- trace ("ff inp x: " ++ show x)
-      -- undefined $
-  (FullyConnectedHMatrix wB' mm', S1D dWs)
-runBackward (FullyConnected (FullyConnectedBLAS uuid io@(i, o) _ wN) _) (S1DV x) (S1DV dEdy) =
+   in (FullyConnectedHMatrix wB' mm', S1D dWs)
+runBackward (FullyConnected (FullyConnectedBLAS io@(i, o) _ wN) _) (S1DV x) (S1DV dEdy) =
   let !mm' = unsafePerformIO $ outerV dEdy x
       dWsInp = createVectorUnsafe i
       !dWs' = unsafePerformIO $ matXVec BlasTranspose wN dEdy 0 dWsInp
-   in -- mm' `seq` dWs' `seq`
-    -- (if checkVectors mm' mmCheck then id else trace ("dEdy: " ++ show dEdy ++ "\nx: " ++ show x ++ "\nmmCheck : " ++ show mmCheck ++ "\nmm' : " ++ show mm' ++ "\nmat: " ++ show mat) undefined)
-     -- (if checkVecs dWs' mmCheck2 then id else trace ("wN': " ++ show wN) trace ("dEdy : " ++ show dEdy) trace ("dWs:   " ++ show dWs) trace ("\nL i o: " ++ show (tr (matrix $ V.toList wN) :: L i o)) trace ("R o: " ++ show (vector (V.toList dEdy) :: R o)) undefined)
-    force mm' `seq` force dWs' `seq` (FullyConnectedBLAS uuid io dEdy mm', S1DV dWs')
+   in force mm' `seq` force dWs' `seq` (FullyConnectedBLAS io dEdy mm', S1DV dWs')
 runBackward l x dEdy = runBackward l x (toLayerShape x dEdy)
 
 
 instance (KnownNat i, KnownNat o, KnownNat (i * o)) => Layer (FullyConnected i o) ('D1 i) ('D1 o) where
-  type Tape (FullyConnected i o) ('D1 i) ('D1 o) = S ('D1 i) -- V.Vector RealNum
+  type Tape (FullyConnected i o) ('D1 i) ('D1 o) = S ('D1 i)
   runForwards = runForward   -- Do a matrix vector multiplication and return the result.
   runBackwards = runBackward -- Run a backpropogation step for a full connected layer.
 
@@ -210,9 +201,8 @@ instance (KnownNat i, KnownNat o) => Serialize (FullyConnected' i o) where
     put (0 :: Int)
     putListOf put . LA.toList . extract $ b
     putListOf put . LA.toList . LA.flatten . extract $ w
-  put (FullyConnectedBLAS uuid io b w) = do
+  put (FullyConnectedBLAS io b w) = do
     put (1 :: Int)
-    put uuid
     put io
     putListOf put . V.toList $ b
     putListOf put . V.toList $ w
@@ -225,11 +215,10 @@ instance (KnownNat i, KnownNat o) => Serialize (FullyConnected' i o) where
         k <- maybe (fail "Vector of incorrect size") return . create . LA.reshape f . LA.fromList =<< getListOf get
         return $ FullyConnectedHMatrix b k
       1 -> do
-        uuid <- get
         io <- get
         b <- V.fromList <$> getListOf get
         w <- V.fromList <$> getListOf get
-        return $ FullyConnectedBLAS uuid io b w
+        return $ FullyConnectedBLAS io b w
       _ -> error $ "Unexpected nr in get in Serialize of FullyConnected' " ++ show nr
 
 
@@ -237,8 +226,11 @@ instance (KnownNat i, KnownNat o, KnownNat (i*o)) => RandomLayer (FullyConnected
   createRandomWith = randomFullyConnected
 
 
-randomFullyConnected :: forall m i o . (PrimBase m, KnownNat i, KnownNat o, KnownNat (i*o))
-                     => NetworkInitSettings -> Gen (PrimState m) -> m (FullyConnected i o)
+randomFullyConnected ::
+     forall m i o. (PrimBase m, KnownNat i, KnownNat o, KnownNat (i * o))
+  => NetworkInitSettings
+  -> Gen (PrimState m)
+  -> m (FullyConnected i o)
 randomFullyConnected (NetworkInitSettings m HMatrix _) gen = do
   wN <- getRandomMatrix i o m gen
   wB <- getRandomVector i o m gen
@@ -249,7 +241,7 @@ randomFullyConnected (NetworkInitSettings m BLAS _) gen = do
 
   wB <- getRandomVectorV i o o' m gen
   wN <- getRandomVectorV i o (i' * o') m gen
-  return $!! FullyConnected (FullyConnectedBLAS newUUID (i', o') wB wN) mkListStore
+  return $!! FullyConnected (FullyConnectedBLAS (i', o') wB wN) mkListStore
   where
     i = natVal (Proxy :: Proxy i)
     i' = fromIntegral i
@@ -292,22 +284,24 @@ instance (KnownNat i, KnownNat o) => GNum (FullyConnected i o) where
 
 instance (KnownNat i, KnownNat o) => GNum (FullyConnected' i o) where
   s |* FullyConnectedHMatrix b w = FullyConnectedHMatrix (dvmap (fromRational s *) b) (dmmap (fromRational s *) w)
-  s |* FullyConnectedBLAS uuid io b w = FullyConnectedBLAS uuid io (mapVector (fromRational s *) b) (mapVector (fromRational s *) w)
+  s |* FullyConnectedBLAS io b w = FullyConnectedBLAS io (mapVector (fromRational s *) b) (mapVector (fromRational s *) w)
   FullyConnectedHMatrix b1 w1 |+ FullyConnectedHMatrix b2 w2 = FullyConnectedHMatrix (b1 + b2) (w1 + w2)
-  FullyConnectedBLAS uuid io b1 w1 |+ FullyConnectedBLAS _ _ b2 w2 = FullyConnectedBLAS uuid io (zipWithVector (+) b2 b1) (zipWithVector (+) w2 w1)
+  FullyConnectedBLAS io b1 w1 |+ FullyConnectedBLAS _ b2 w2 = FullyConnectedBLAS io (zipWithVector (+) b2 b1) (zipWithVector (+) w2 w1)
   x |+ y = error $ "Cannot add different network types in |+ in FullyConnected: " ++ show (x, y)
-  zipVectorsWithInPlaceReplSnd f (FullyConnectedBLAS _ _ b1 w1) (FullyConnectedBLAS uuid io b2 w2) =
-    FullyConnectedBLAS uuid io (zipWithVectorInPlaceSnd f b1 b2) (zipWithVectorInPlaceSnd f w1 w2)
+  zipVectorsWithInPlaceReplSnd f (FullyConnectedBLAS _ b1 w1) (FullyConnectedBLAS io b2 w2) =
+    FullyConnectedBLAS io (zipWithVectorInPlaceSnd f b1 b2) (zipWithVectorInPlaceSnd f w1 w2)
   -- zipVectorsWithInPlaceReplSnd f (FullyConnectedHMatrix b1 w1) (FullyConnectedHMatrix b2 w2) = FullyConnectedHMatrix (zipWithVector f b1 b2) w2
-
   zipVectorsWithInPlaceReplSnd _ _ _ = error "zipVectorsWithInPlaceReplSnd only works with BLAS CPU backend. See the NetworkInitSettings."
-  sumG xs@(FullyConnectedBLAS uuid io _ _:_) =
-    force $ FullyConnectedBLAS uuid io (foldl1 (+) bs) (foldl1 (+) ws)
-    -- (foldl' add bs' bs `using` rparWith rdeepseq) `seq` (foldl' add ws' ws `using` rparWith rdeepseq) `seq` FullyConnectedBLAS uuid io bs' ws'
+  sumG xs@(FullyConnectedBLAS io _ _:_)
+   -- = (if any (\(x, y) -> showDouble x /= showDouble y) (zip (V.toList $ foldl1 (+) bs) (V.toList bs'))
+   --     then trace ("bs: " ++ show (foldl1 (+) bs) ++ "\nbs':" ++ show bs') --trace ("gpu: " ++ show (sumVectors bs))
+   --          undefined
+   --     else id)
+    = force $ FullyConnectedBLAS io bs' ws'
     where
-      add acc x = zipWithVectorInPlaceSnd (+) x acc
-      (bs, ws) = unzip $ map (\(FullyConnectedBLAS _ _ b w) -> (b, w)) xs
+      showDouble :: (PrintfArg n) => n -> String
+      showDouble = printf ("%+." ++ show 3 ++ "f")
+      (bs, ws) = unzip $ map (\(FullyConnectedBLAS _ b w) -> (b, w)) xs
+      bs' = sumVectors bs
+      ws' = sumVectors ws
   sumG xs = foldl1 (|+) xs
-      -- !bs' = unsafeMemZero $ createVectorUnsafe (V.length $ head bs)
-      -- !ws' = unsafeMemZero $ createVectorUnsafe (V.length $ head ws)
-  sumG _ = error "SumG only works with BLAS CPU backend. See the NetworkInitSettings to switch CPU backends."
