@@ -192,5 +192,3 @@ sumVectors vs =
       mapM_ (\f -> f (go (len - 1))) w
     return out
 {-# INLINE sumVectors #-}
-
-foreign import ccall unsafe "sum_vectors" dger_direct :: CInt -> CInt -> Ptr (Ptr Double) -> Ptr Double -> Ptr Double

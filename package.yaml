@@ -18,6 +18,10 @@ extra-source-files:
 - cbits/blas.c
 - cbits/gpu_gradient_descent.cu
 - cbits/gpu_gradient_descent.ptx
+- cbits/gpu_sum_vectors.cu
+- cbits/gpu_sum_vectors.ptx
+- cbits/compile_nvcc_gpu.sh
+
 
 # Metadata used when publishing your package
 synopsis:            Practical Deep Learning in Haskell
