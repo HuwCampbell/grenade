@@ -108,4 +108,3 @@ softmaxLayer = buildRequireLastLayerOut Is1D >>= buildAddSpec . SpecNetLayer . S
 instance GNum Softmax where
   _ |* Softmax = Softmax
   _ |+ Softmax = Softmax
-  zipVectorsWithInPlaceReplSnd _ _ Softmax = Softmax

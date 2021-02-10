@@ -163,5 +163,4 @@ leakyTanhLayer maxVal
 instance GNum (LeakyTanh maxVal) where
   _ |* _ = LeakyTanh
   _ |+ _ = LeakyTanh
-  zipVectorsWithInPlaceReplSnd _ _ _ = LeakyTanh
   sumG _ = LeakyTanh

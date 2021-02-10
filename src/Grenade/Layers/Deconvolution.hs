@@ -484,11 +484,9 @@ instance (KnownNat strideCols, KnownNat strideRows, KnownNat kernelCols, KnownNa
          GNum (Deconvolution channels filters kernelRows kernelCols strideRows strideCols) where
   n |* (Deconvolution w store) = Deconvolution (dmmap (fromRational n *) w) (n |* store)
   (Deconvolution w1 store1) |+ (Deconvolution w2 store2) = Deconvolution (w1 + w2) (store1 |+ store2)
-  zipVectorsWithInPlaceReplSnd f (Deconvolution w1 store1) (Deconvolution w2 store2) = Deconvolution (zipVectorsWithInPlaceReplSnd f w1 w2) (zipVectorsWithInPlaceReplSnd f store1 store2)
 
 
 instance (KnownNat strideCols, KnownNat strideRows, KnownNat kernelCols, KnownNat kernelRows, KnownNat filters, KnownNat channels, KnownNat ((kernelRows * kernelCols) * filters)) =>
          GNum (Deconvolution' channels filters kernelRows kernelCols strideRows strideCols) where
   n |* (Deconvolution' g) = Deconvolution' (dmmap (fromRational n *) g)
   (Deconvolution' g) |+ (Deconvolution' g2) = Deconvolution' (g + g2)
-  zipVectorsWithInPlaceReplSnd f (Deconvolution' g) (Deconvolution' g2) = Deconvolution' (zipVectorsWithInPlaceReplSnd f g g2)

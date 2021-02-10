@@ -112,5 +112,3 @@ instance (KnownNat i, KnownNat o, KnownNat (i + o), i <= (i + o), o ~ ((i + o) -
 instance (KnownNat i, KnownNat o, KnownNat (i + o)) => GNum (BasicRecurrent i o) where
   n |* (BasicRecurrent wB mB mA nM) = BasicRecurrent (fromRational n * wB) (fromRational n * mB) (fromRational n * mA) (fromRational n * nM)
   (BasicRecurrent wB mB mA nM) |+ (BasicRecurrent wB2 mB2 a2 nM2) = BasicRecurrent (wB + wB2) (mB + mB2) (mA + a2) (nM + nM2)
-  zipVectorsWithInPlaceReplSnd f (BasicRecurrent wB mB mA nM) (BasicRecurrent wB2 mB2 a2 nM2) =
-    BasicRecurrent (zipVectorsWithInPlaceReplSnd f wB wB2) (zipVectorsWithInPlaceReplSnd f mB mB2) (zipVectorsWithInPlaceReplSnd f mA a2) (zipVectorsWithInPlaceReplSnd f nM nM2)

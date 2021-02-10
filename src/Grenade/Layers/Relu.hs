@@ -158,5 +158,4 @@ relu = buildGetLastLayerOut >>= buildAddSpec . SpecNetLayer . SpecRelu
 instance GNum Relu where
   _ |* Relu = Relu
   _ |+ Relu = Relu
-  zipVectorsWithInPlaceReplSnd _ _ Relu = Relu
   sumG _ = Relu

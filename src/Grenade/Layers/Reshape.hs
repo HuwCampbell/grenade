@@ -210,4 +210,3 @@ reshape out@(rIn, cIn, dIn) = do
 instance GNum Reshape where
   _ |* Reshape = Reshape
   _ |+ Reshape = Reshape
-  zipVectorsWithInPlaceReplSnd _ _ Reshape = Reshape

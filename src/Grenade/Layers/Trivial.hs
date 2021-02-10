@@ -99,4 +99,3 @@ trivial = buildGetLastLayerOut >>= buildAddSpec . SpecNetLayer . SpecTrivial
 instance GNum Trivial where
   _ |* Trivial = Trivial
   _ |+ Trivial  = Trivial
-  zipVectorsWithInPlaceReplSnd _ _ Trivial = Trivial

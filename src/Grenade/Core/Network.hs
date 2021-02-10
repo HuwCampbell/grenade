@@ -301,7 +301,6 @@ instance (i ~ (Head subshapes), o ~ (Last subshapes)) => Layer (Network sublayer
 class GNum a where
   (|*) :: Rational -> a -> a
   (|+) :: a -> a -> a
-  zipVectorsWithInPlaceReplSnd :: (Double -> Double -> Double) -> a -> a -> a
   sumG :: [a] -> a
   default sumG :: [a] -> a
   sumG = foldl1 (|+)
@@ -312,7 +311,6 @@ infixr 5 |+
 instance (SingI i) => GNum (Network '[] '[ i]) where
   _ |* NNil = NNil
   _ |+ NNil = NNil
-  zipVectorsWithInPlaceReplSnd _ _ NNil = NNil
   sumG _ = NNil
 
 instance (SingI i, SingI o, Layer x i o, NFData x, NFData (Network xs (o ': rs)), GNum x, GNum (Network xs (o ': rs))) => GNum (Network (x ': xs) (i ': o ': rs)) where
@@ -324,23 +322,17 @@ instance (SingI i, SingI o, Layer x i o, NFData x, NFData (Network xs (o ': rs))
     let x' = (x |+ y)
         xs' = (xs |+ ys) `using` rparWith rdeepseq
      in x' :~> xs'
-  zipVectorsWithInPlaceReplSnd f (x :~> xs) (y :~> ys) =
-    let x' = zipVectorsWithInPlaceReplSnd f x y
-        xs' = zipVectorsWithInPlaceReplSnd f xs ys `using` rparWith rdeepseq
-     in x' :~> xs'
   sumG xs = sumG (map (\(l :~> _) -> l) xs) :~> (sumG (map (\(_ :~> ls) -> ls) xs) `using` rparWith rdeepseq)
 
 instance GNum (Gradients '[]) where
   _ |* GNil = GNil
   _ |+ GNil = GNil
-  zipVectorsWithInPlaceReplSnd _ _ GNil = GNil
   sumG _ = GNil
 
 instance (GNum a) => GNum [a] where
   r |* xs = fmap (r |*) xs
   xs |+ ys = zipWith (|+) xs ys
-  zipVectorsWithInPlaceReplSnd f xs ys = zipWith (zipVectorsWithInPlaceReplSnd f) xs ys
-  sumG xs = map sumG xs
+  sumG = map sumG
 
 instance (UpdateLayer x, GNum (Gradient x), GNum (Gradients xs), NFData (Gradient x), NFData (Gradients xs)) => GNum (Gradients (x ': xs)) where
   s |* (x :/> xs) =
@@ -351,34 +343,26 @@ instance (UpdateLayer x, GNum (Gradient x), GNum (Gradients xs), NFData (Gradien
     let x' = (x |+ y)
         xs' = (xs |+ ys) `using` rparWith rdeepseq
      in x' :/> xs'
-  zipVectorsWithInPlaceReplSnd f (x :/> xs) (y :/> ys) =
-    let x' = zipVectorsWithInPlaceReplSnd f x y
-        xs' = zipVectorsWithInPlaceReplSnd f xs ys `using` rparWith rdeepseq
-     in x' :/> xs'
   sumG xs = sumG (map (\(x :/> _) -> x) xs) :/> (sumG (map (\(_ :/> xs') -> xs') xs) `using` rparWith rdeepseq)
 
 
 instance GNum () where
   _ |* () = ()
   _ |+ () = ()
-  zipVectorsWithInPlaceReplSnd _ _ () = ()
   sumG _ = ()
 
 instance (GNum a, GNum b) => GNum (a, b) where
   s |* (a, b) = (s |* a, s |* b)
   (a1, b1) |+ (a2, b2) = (a1 |+ a2, b1 |+ b2)
-  zipVectorsWithInPlaceReplSnd f (a1, b1) (a2, b2) = (zipVectorsWithInPlaceReplSnd f a1 a2, zipVectorsWithInPlaceReplSnd f b1 b2)
   sumG xs = (sumG (map fst xs), sumG (map snd xs))
 
 instance (KnownNat m) => GNum (R m) where
   s |* vec = dvmap (fromRational s *) vec
   (|+) = (+)
-  zipVectorsWithInPlaceReplSnd _ _ _ = error "zipVectorsWithInPlaceReplSnd not implemented for HMatrix CPU-backGrad"
   sumG xs = sum xs
 
 
 instance (KnownNat m, KnownNat n) => GNum (L m n) where
   s |* mat = dmmap (fromRational s *) mat
   (|+) = (+)
-  zipVectorsWithInPlaceReplSnd _ _ _ = error "zipVectorsWithInPlaceReplSnd not implemented for HMatrix CPU-backGrad"
   sumG xs = sum xs

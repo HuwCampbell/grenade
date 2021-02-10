@@ -138,4 +138,3 @@ instance ( KnownNat padLeft
 instance GNum (Pad l t r b) where
   _ |* _ = Pad
   _ |+ _ = Pad
-  zipVectorsWithInPlaceReplSnd _ _ Pad = Pad

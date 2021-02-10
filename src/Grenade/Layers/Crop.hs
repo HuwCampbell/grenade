@@ -139,4 +139,3 @@ instance RandomLayer (Crop l t r b) where
 instance GNum (Crop l t r b) where
   _ |* Crop = Crop
   _ |+ Crop = Crop
-  zipVectorsWithInPlaceReplSnd _ _ Crop = Crop

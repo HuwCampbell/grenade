@@ -280,7 +280,6 @@ fullyConnected rows = do
 instance (KnownNat i, KnownNat o) => GNum (FullyConnected i o) where
   s |* FullyConnected w store = FullyConnected (s |* w) (s |* store)
   FullyConnected w1 store1 |+ FullyConnected w2 store2 = FullyConnected (w1 |+ w2) (store1 |+ store2)
-  zipVectorsWithInPlaceReplSnd f (FullyConnected w1 store1) (FullyConnected w2 store2)= FullyConnected (zipVectorsWithInPlaceReplSnd f w1 w2) (zipVectorsWithInPlaceReplSnd f store1 store2)
 
 instance (KnownNat i, KnownNat o) => GNum (FullyConnected' i o) where
   s |* FullyConnectedHMatrix b w = FullyConnectedHMatrix (dvmap (fromRational s *) b) (dmmap (fromRational s *) w)
@@ -288,20 +287,9 @@ instance (KnownNat i, KnownNat o) => GNum (FullyConnected' i o) where
   FullyConnectedHMatrix b1 w1 |+ FullyConnectedHMatrix b2 w2 = FullyConnectedHMatrix (b1 + b2) (w1 + w2)
   FullyConnectedBLAS io b1 w1 |+ FullyConnectedBLAS _ b2 w2 = FullyConnectedBLAS io (zipWithVector (+) b2 b1) (zipWithVector (+) w2 w1)
   x |+ y = error $ "Cannot add different network types in |+ in FullyConnected: " ++ show (x, y)
-  zipVectorsWithInPlaceReplSnd f (FullyConnectedBLAS _ b1 w1) (FullyConnectedBLAS io b2 w2) =
-    FullyConnectedBLAS io (zipWithVectorInPlaceSnd f b1 b2) (zipWithVectorInPlaceSnd f w1 w2)
-  -- zipVectorsWithInPlaceReplSnd f (FullyConnectedHMatrix b1 w1) (FullyConnectedHMatrix b2 w2) = FullyConnectedHMatrix (zipWithVector f b1 b2) w2
-  zipVectorsWithInPlaceReplSnd _ _ _ = error "zipVectorsWithInPlaceReplSnd only works with BLAS CPU backend. See the NetworkInitSettings."
-  sumG xs@(FullyConnectedBLAS io _ _:_)
-   -- = (if any (\(x, y) -> showDouble x /= showDouble y) (zip (V.toList $ foldl1 (+) bs) (V.toList bs'))
-   --     then trace ("bs: " ++ show (foldl1 (+) bs) ++ "\nbs':" ++ show bs') --trace ("gpu: " ++ show (sumVectors bs))
-   --          undefined
-   --     else id)
-    = force $ FullyConnectedBLAS io bs' ws'
+  sumG xs@(FullyConnectedBLAS io _ _:_) = FullyConnectedBLAS io bs' ws'
     where
-      showDouble :: (PrintfArg n) => n -> String
-      showDouble = printf ("%+." ++ show 3 ++ "f")
       (bs, ws) = unzip $ map (\(FullyConnectedBLAS _ b w) -> (b, w)) xs
-      bs' = sumVectors bs
-      ws' = sumVectors ws
+      bs' = sumVectors bs `using` rparWith rdeepseq
+      ws' = sumVectors ws `using` rparWith rdeepseq
   sumG xs = foldl1 (|+) xs

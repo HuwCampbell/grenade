@@ -147,4 +147,3 @@ gelu = buildGetLastLayerOut >>= buildAddSpec . SpecNetLayer . SpecGelu
 instance GNum Gelu where
   _ |* Gelu = Gelu
   _ |+ Gelu = Gelu
-  zipVectorsWithInPlaceReplSnd _ _ Gelu = Gelu

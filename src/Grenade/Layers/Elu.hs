@@ -125,4 +125,3 @@ elu = buildGetLastLayerOut >>= buildAddSpec . SpecNetLayer . SpecElu
 instance GNum Elu where
   _ |* Elu = Elu
   _ |+ Elu = Elu
-  zipVectorsWithInPlaceReplSnd _ _ Elu = Elu
