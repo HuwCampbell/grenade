@@ -293,10 +293,10 @@ descendUnsafeAdamGPU ::
   -> Vector RealNum -- V
   -> (Vector RealNum, Vector RealNum, Vector RealNum)
 descendUnsafeAdamGPU len step alpha beta1 beta2 epsilon lambda weights gradient m v
-  | useCuda len = -- We need some size, otherwise the overhead is too big and processing using BLAS is faster
-    fromMaybe
-      (descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v)
-      (cudaDescendUnsafeAdamGPU len step alpha beta1 beta2 epsilon lambda weights gradient m v)
+  --  | useCuda len = -- We need some size, otherwise the overhead is too big and processing using BLAS is faster
+  --   fromMaybe
+  --     (descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v)
+  --     (cudaDescendUnsafeAdamGPU len step alpha beta1 beta2 epsilon lambda weights gradient m v)
   | otherwise = descendUnsafeAdam len step alpha beta1 beta2 epsilon lambda weights gradient m v
 
 
