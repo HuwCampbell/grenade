@@ -19,12 +19,16 @@ import           GHC.TypeLits
 import           Grenade.Core
 
 import qualified Numeric.LinearAlgebra.Static as LAS
+import           Control.DeepSeq
 
 -- | An exponential linear unit.
 --   A layer which can act between any shape of the same dimension, acting as a
 --   diode on every neuron individually.
 data Elu = Elu
   deriving Show
+
+instance NFData Elu where
+  rnf Elu = ()
 
 instance UpdateLayer Elu where
   type Gradient Elu = ()

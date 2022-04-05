@@ -18,11 +18,15 @@ import           Data.Serialize
 import           Data.Singletons
 
 import           Grenade.Core
+import           Control.DeepSeq
 
 -- | A Tanh layer.
 --   A layer which can act between any shape of the same dimension, performing a tanh function.
 data Tanh = Tanh
   deriving Show
+
+instance NFData Tanh where
+  rnf Tanh = ()
 
 instance UpdateLayer Tanh where
   type Gradient Tanh = ()

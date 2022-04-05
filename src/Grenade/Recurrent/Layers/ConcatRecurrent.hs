@@ -36,6 +36,7 @@ import           Grenade.Core
 import           Grenade.Recurrent.Core
 
 import           Numeric.LinearAlgebra.Static ( (#), split, R )
+import           Control.DeepSeq
 
 -- | A Concatentating Layer.
 --
@@ -54,6 +55,15 @@ data ConcatRecurrent :: Shape -> Type -> Shape -> Type -> Type where
   ConcatRecLeft  :: x -> y -> ConcatRecurrent m (Recurrent x) n (FeedForward y)
   ConcatRecRight :: x -> y -> ConcatRecurrent m (FeedForward x) n (Recurrent y)
   ConcatRecBoth  :: x -> y -> ConcatRecurrent m (Recurrent x) n   (Recurrent y)
+
+instance (NFData x, NFData y) => NFData (ConcatRecurrent m (Recurrent x) n (Recurrent y)) where
+  rnf (ConcatRecBoth  x y) = rnf x `deepseq` rnf y `deepseq` ()
+
+instance (NFData x, NFData y) => NFData (ConcatRecurrent m (Recurrent x) n (FeedForward y)) where
+  rnf (ConcatRecLeft  x y) = rnf x `deepseq` rnf y `deepseq` ()
+
+instance (NFData x, NFData y) => NFData (ConcatRecurrent m (FeedForward x) n (Recurrent y)) where
+  rnf (ConcatRecRight x y) = rnf x `deepseq` rnf y `deepseq` ()
 
 instance (Show x, Show y) => Show (ConcatRecurrent m (p x) n (q y)) where
   show (ConcatRecLeft x y)  = "ConcatRecLeft\n" ++ show x ++ "\n" ++ show y

@@ -11,6 +11,7 @@ import           Control.Monad.Random hiding (fromList)
 
 import           GHC.TypeLits
 import           Grenade.Core
+import           Control.DeepSeq
 
 -- Dropout layer help to reduce overfitting.
 -- Idea here is that the vector is a shape of 1s and 0s, which we multiply the input by.
@@ -20,7 +21,10 @@ import           Grenade.Core
 data Dropout = Dropout {
     dropoutRate :: Double
   , dropoutSeed :: Int
-  } deriving Show
+  } deriving (Show)
+
+instance NFData Dropout where
+  rnf (Dropout r s) = rnf r `deepseq` rnf s `deepseq` ()
 
 instance UpdateLayer Dropout where
   type Gradient Dropout = ()

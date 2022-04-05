@@ -48,6 +48,7 @@ import           Data.Kind (Type)
 
 import           Grenade.Core.Shape
 import           Grenade.Core.LearningParameters
+import           Control.DeepSeq (NFData)
 
 -- | Class for updating a layer. All layers implement this, as it
 --   describes how to create and update the layer.
@@ -73,7 +74,7 @@ class UpdateLayer x where
 --   need to implement it for all shapes, only ones which are
 --   appropriate.
 --
-class UpdateLayer x => Layer x (i :: Shape) (o :: Shape) where
+class (UpdateLayer x, NFData x) => Layer x (i :: Shape) (o :: Shape) where
   -- | The Wengert tape for this layer. Includes all that is required
   --   to generate the back propagated gradients efficiently. As a
   --   default, `S i` is fine.

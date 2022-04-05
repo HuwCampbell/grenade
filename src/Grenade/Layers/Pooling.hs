@@ -37,6 +37,7 @@ import           Grenade.Core
 import           Grenade.Layers.Internal.Pooling
 
 import           Numeric.LinearAlgebra.Static as LAS hiding ((|||), build, toRows)
+import           Control.DeepSeq
 
 -- | A pooling layer for a neural network.
 --
@@ -48,6 +49,9 @@ import           Numeric.LinearAlgebra.Static as LAS hiding ((|||), build, toRow
 --
 data Pooling :: Nat -> Nat -> Nat -> Nat -> Type where
   Pooling :: Pooling kernelRows kernelColumns strideRows strideColumns
+
+instance NFData (Pooling k k' s s') where
+  rnf Pooling = ()
 
 instance Show (Pooling k k' s s') where
   show Pooling = "Pooling"

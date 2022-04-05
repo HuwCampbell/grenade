@@ -50,6 +50,7 @@ import           Numeric.LinearAlgebra.Static hiding ((|||), build, toRows)
 import           Grenade.Core
 import           Grenade.Layers.Internal.Convolution
 import           Grenade.Layers.Internal.Update
+import           Control.DeepSeq
 
 -- | A Deconvolution layer for a neural network.
 --   This uses the im2col Convolution trick popularised by Caffe.
@@ -93,6 +94,9 @@ data Deconvolution' :: Nat -- Number of channels, for the first layer this could
                   , kernelFlattened ~ (kernelRows * kernelColumns * filters))
                => !(L kernelFlattened channels) -- The kernel filter gradient
                -> Deconvolution' channels filters kernelRows kernelColumns strideRows strideColumns
+
+instance NFData (Deconvolution c f k k' s s') where
+  rnf (Deconvolution a b) = rnf a `deepseq` rnf b `deepseq` ()
 
 instance Show (Deconvolution c f k k' s s') where
   show (Deconvolution a _) = renderConv a

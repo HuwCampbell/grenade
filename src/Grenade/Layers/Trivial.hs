@@ -17,6 +17,7 @@ module Grenade.Layers.Trivial (
 import           Data.Serialize
 
 import           Grenade.Core
+import           Control.DeepSeq
 
 -- | A Trivial layer.
 --
@@ -24,6 +25,9 @@ import           Grenade.Core
 --   graph, for a Residual network for example.
 data Trivial = Trivial
   deriving Show
+
+instance NFData Trivial where
+  rnf Trivial = ()
 
 instance Serialize Trivial where
   put _ = return ()

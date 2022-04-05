@@ -14,6 +14,7 @@ import           Data.Kind (Type)
 #endif
 
 import           Grenade.Core
+import           Control.DeepSeq (NFData)
 
 -- | Class for a recurrent layer.
 --   It's quite similar to a normal layer but for the input and output
@@ -22,7 +23,7 @@ class UpdateLayer x => RecurrentUpdateLayer x where
   -- | Shape of data that is passed between each subsequent run of the layer
   type RecurrentShape x   :: Type
 
-class (RecurrentUpdateLayer x, Num (RecurrentShape x)) => RecurrentLayer x (i :: Shape) (o :: Shape) where
+class (RecurrentUpdateLayer x, Num (RecurrentShape x), NFData x) => RecurrentLayer x (i :: Shape) (o :: Shape) where
   -- | Wengert Tape
   type RecTape x i o :: Type
   -- | Used in training and scoring. Take the input from the previous
