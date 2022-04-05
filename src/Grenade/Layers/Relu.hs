@@ -19,12 +19,16 @@ import           GHC.TypeLits
 import           Grenade.Core
 
 import qualified Numeric.LinearAlgebra.Static as LAS
+import           Control.DeepSeq
 
 -- | A rectifying linear unit.
 --   A layer which can act between any shape of the same dimension, acting as a
 --   diode on every neuron individually.
 data Relu = Relu
   deriving Show
+
+instance NFData Relu where
+  rnf Relu = ()
 
 instance UpdateLayer Relu where
   type Gradient Relu = ()

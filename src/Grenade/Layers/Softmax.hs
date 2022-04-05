@@ -22,6 +22,7 @@ import           GHC.TypeLits
 import           Grenade.Core
 
 import           Numeric.LinearAlgebra.Static as LAS
+import           Control.DeepSeq
 
 -- | A Softmax layer
 --
@@ -32,6 +33,9 @@ import           Numeric.LinearAlgebra.Static as LAS
 --   if they need normalised probabilities.
 data Softmax = Softmax
   deriving Show
+
+instance NFData Softmax where
+  rnf Softmax = ()
 
 instance UpdateLayer Softmax where
   type Gradient Softmax = ()

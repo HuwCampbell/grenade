@@ -18,11 +18,15 @@ import           Data.Serialize
 import           Data.Singletons
 
 import           Grenade.Core
+import           Control.DeepSeq
 
 -- | A Sinusoid layer.
 --   A layer which can act between any shape of the same dimension, performing a sin function.
 data Sinusoid = Sinusoid
   deriving Show
+
+instance NFData Sinusoid where
+  rnf Sinusoid = ()
 
 instance UpdateLayer Sinusoid where
   type Gradient Sinusoid  = ()

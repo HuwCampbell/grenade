@@ -39,6 +39,7 @@ import           Data.Kind (Type)
 
 import           Grenade.Core
 import           Grenade.Recurrent.Core.Layer
+import           Control.DeepSeq
 
 -- | Witness type to say indicate we're building up with a normal feed
 --   forward layer.
@@ -198,6 +199,12 @@ applyRecurrentUpdate rate (layer :~@> rest) (gradient ://> grest)
 applyRecurrentUpdate _ RNil RGNil
   = RNil
 
+instance NFData (RecurrentNetwork '[] '[i]) where
+  rnf RNil = ()
+
+instance NFData (RecurrentNetwork xs rs) => NFData (RecurrentNetwork (x ': xs) (i ': rs)) where
+  rnf (layer :~~> rest) = rnf layer `deepseq` rnf rest `deepseq` ()
+  rnf (layer :~@> rest) = rnf layer `deepseq` rnf rest `deepseq` ()
 
 instance Show (RecurrentNetwork '[] '[i]) where
   show RNil = "NNil"
@@ -325,6 +332,7 @@ instance CreatableRecurrent sublayers subshapes => RecurrentUpdateLayer (Recurre
 instance ( CreatableRecurrent sublayers subshapes
          , i ~ (Head subshapes), o ~ (Last subshapes)
          , Num (RecurrentShape (RecurrentNetwork sublayers subshapes))
+         , NFData (RecurrentNetwork sublayers subshapes)
          ) => RecurrentLayer (RecurrentNetwork sublayers subshapes) i o where
   type RecTape (RecurrentNetwork sublayers subshapes) i o = RecurrentTape sublayers subshapes
   runRecurrentForwards = runRecurrent

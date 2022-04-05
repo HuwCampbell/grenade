@@ -33,6 +33,7 @@ import           Numeric.LinearAlgebra.Static
 import           Grenade.Core
 import           Grenade.Recurrent.Core
 import           Grenade.Layers.Internal.Update
+import           Control.DeepSeq
 
 
 -- | Long Short Term Memory Recurrent unit
@@ -63,6 +64,16 @@ data LSTMWeights :: Nat -> Nat -> Type where
                  , lstmWc :: !(L output input)  -- Weight Cell       (W_c)
                  , lstmBc :: !(R output)        -- Bias Cell         (b_c)
                  } -> LSTMWeights input output
+
+instance NFData (LSTMWeights input output) where
+  rnf (LSTMWeights wf uf bf wi ui bi wo uo bo wc bc) =
+    rnf wf `deepseq` rnf uf `deepseq` rnf bf `deepseq`
+    rnf wi `deepseq` rnf ui `deepseq` rnf bi `deepseq`
+    rnf wo `deepseq` rnf uo `deepseq` rnf bo `deepseq`
+    rnf wc `deepseq` rnf bc `deepseq` ()
+
+instance NFData (LSTM input output) where
+  rnf (LSTM w m) = rnf w `deepseq` rnf m `deepseq` ()
 
 instance Show (LSTM i o) where
   show LSTM {} = "LSTM"

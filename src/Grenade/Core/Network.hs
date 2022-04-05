@@ -44,6 +44,7 @@ import           Data.Kind (Type)
 import           Grenade.Core.Layer
 import           Grenade.Core.LearningParameters
 import           Grenade.Core.Shape
+import           Control.DeepSeq
 
 -- | Type of a network.
 --
@@ -67,6 +68,12 @@ instance Show (Network '[] '[i]) where
   show NNil = "NNil"
 instance (Show x, Show (Network xs rs)) => Show (Network (x ': xs) (i ': rs)) where
   show (x :~> xs) = show x ++ "\n~>\n" ++ show xs
+
+instance NFData (Network '[] '[i]) where
+  rnf NNil = ()
+
+instance NFData (Network xs rs) => NFData (Network (x ': xs) (i ': rs)) where
+  rnf (x :~> xs) = x `deepseq` xs `deepseq` ()
 
 -- | Gradient of a network.
 --
@@ -191,7 +198,7 @@ instance CreatableNetwork sublayers subshapes => UpdateLayer (Network sublayers 
 -- | Ultimate composition.
 --
 --   This allows a complete network to be treated as a layer in a larger network.
-instance (CreatableNetwork sublayers subshapes, i ~ (Head subshapes), o ~ (Last subshapes)) => Layer (Network sublayers subshapes) i o where
+instance (CreatableNetwork sublayers subshapes, i ~ (Head subshapes), o ~ (Last subshapes), NFData (Network sublayers subshapes)) => Layer (Network sublayers subshapes) i o where
   type Tape (Network sublayers subshapes) i o = Tapes sublayers subshapes
   runForwards  = runNetwork
   runBackwards = runGradient

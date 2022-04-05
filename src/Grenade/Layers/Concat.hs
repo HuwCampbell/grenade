@@ -35,6 +35,7 @@ import           Data.Kind (Type)
 import           Grenade.Core
 
 import           Numeric.LinearAlgebra.Static ( row, (===), splitRows, unrow, (#), split, R )
+import           Control.DeepSeq
 
 -- | A Concatentating Layer.
 --
@@ -51,6 +52,9 @@ import           Numeric.LinearAlgebra.Static ( row, (===), splitRows, unrow, (#
 -- and Crop layers to ensure this is the case.
 data Concat :: Shape -> Type -> Shape -> Type -> Type where
   Concat :: x -> y -> Concat m x n y
+
+instance (NFData x, NFData y) => NFData (Concat m x n y) where
+  rnf (Concat x y) = rnf x `deepseq` rnf y `deepseq` ()
 
 instance (Show x, Show y) => Show (Concat m x n y) where
   show (Concat x y) = "Concat\n" ++ show x ++ "\n" ++ show y

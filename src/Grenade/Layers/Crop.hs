@@ -37,6 +37,7 @@ import           Grenade.Layers.Internal.Pad
 
 import           Numeric.LinearAlgebra (konst, subMatrix, diagBlock)
 import           Numeric.LinearAlgebra.Static (extract, create)
+import           Control.DeepSeq
 
 -- | A cropping layer for a neural network.
 data Crop :: Nat
@@ -44,6 +45,9 @@ data Crop :: Nat
           -> Nat
           -> Nat -> Type where
   Crop :: Crop cropLeft cropTop cropRight cropBottom
+
+instance NFData (Crop cropLeft cropTop cropRight cropBottom) where
+  rnf Crop = ()
 
 instance Show (Crop cropLeft cropTop cropRight cropBottom) where
   show Crop = "Crop"

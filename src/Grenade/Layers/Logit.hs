@@ -19,6 +19,7 @@ import           Data.Serialize
 import           Data.Singletons
 
 import           Grenade.Core
+import           Control.DeepSeq
 
 -- | A Logit layer.
 --
@@ -27,6 +28,9 @@ import           Grenade.Core
 --   problems.
 data Logit = Logit
   deriving Show
+
+instance NFData Logit where
+  rnf Logit = ()
 
 instance UpdateLayer Logit where
   type Gradient Logit = ()

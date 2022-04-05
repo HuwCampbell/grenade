@@ -28,6 +28,7 @@ import           GHC.TypeLits
 
 import           Grenade.Core
 import           Grenade.Recurrent.Core
+import           Control.DeepSeq
 
 data BasicRecurrent :: Nat -- Input layer size
                     -> Nat -- Output layer size
@@ -41,6 +42,9 @@ data BasicRecurrent :: Nat -- Input layer size
                  -> !(L output matrixCols) -- Activation
                  -> !(L output matrixCols) -- Momentum
                  -> BasicRecurrent input output
+
+instance NFData (BasicRecurrent input output) where
+  rnf (BasicRecurrent b bm a aM) = rnf b `deepseq` rnf bm `deepseq` rnf a `deepseq` rnf aM `deepseq` ()
 
 data BasicRecurrent' :: Nat -- Input layer size
                      -> Nat -- Output layer size

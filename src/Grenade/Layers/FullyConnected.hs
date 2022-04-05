@@ -21,6 +21,7 @@ import           Numeric.LinearAlgebra.Static
 import           Grenade.Core
 
 import           Grenade.Layers.Internal.Update
+import           Control.DeepSeq
 
 -- | A basic fully connected (or inner product) neural network layer.
 data FullyConnected i o = FullyConnected
@@ -30,6 +31,12 @@ data FullyConnected i o = FullyConnected
 data FullyConnected' i o = FullyConnected'
                          !(R o)   -- Bias
                          !(L o i) -- Activations
+
+instance NFData (FullyConnected' i o) where
+  rnf (FullyConnected' a b) = a `deepseq` b `deepseq` ()
+
+instance NFData (FullyConnected i o) where
+  rnf (FullyConnected a b) = a `deepseq` b `deepseq` ()
 
 instance Show (FullyConnected i o) where
   show FullyConnected {} = "FullyConnected"

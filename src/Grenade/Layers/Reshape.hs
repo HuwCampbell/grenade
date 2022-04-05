@@ -24,6 +24,7 @@ import           Numeric.LinearAlgebra.Static
 import           Numeric.LinearAlgebra.Data as LA ( flatten )
 
 import           Grenade.Core
+import           Control.DeepSeq
 
 -- | Reshape Layer
 --
@@ -35,6 +36,9 @@ import           Grenade.Core
 -- or vice versa.
 data Reshape = Reshape
   deriving Show
+
+instance NFData Reshape where
+  rnf Reshape = ()
 
 instance UpdateLayer Reshape where
   type Gradient Reshape = ()

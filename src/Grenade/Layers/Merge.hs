@@ -29,6 +29,7 @@ import           Data.Kind (Type)
 #endif
 
 import           Grenade.Core
+import           Control.DeepSeq 
 
 -- | A Merging layer.
 --
@@ -36,6 +37,9 @@ import           Grenade.Core
 -- shape.
 data Merge :: Type -> Type -> Type where
   Merge :: x -> y -> Merge x y
+
+instance (NFData x, NFData y) => NFData (Merge x y) where
+  rnf (Merge x y) = rnf x `deepseq` rnf y `deepseq` ()
 
 instance (Show x, Show y) => Show (Merge x y) where
   show (Merge x y) = "Merge\n" ++ show x ++ "\n" ++ show y
