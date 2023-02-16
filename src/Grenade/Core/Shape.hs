@@ -32,20 +32,17 @@ module Grenade.Core.Shape (
   , isVectorShape
   ) where
 
-#if MIN_VERSION_singletons(2,6,0)
-import           Data.Kind                    (Type)
-import           Data.Singletons.TypeLits     (SNat (..))
-#endif
-
 import           Control.DeepSeq              (NFData (..))
+import           Data.Kind
 import           Data.Maybe                   (fromMaybe)
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons
-import           Data.Singletons.TypeLits
 import           Data.Vector.Storable         (Vector)
 import qualified Data.Vector.Storable         as V
-import           GHC.TypeLits                 hiding (natVal)
+import           GHC.TypeLits
+import           GHC.TypeLits.KnownNat
+import           GHC.TypeLits.Singletons
 import qualified Numeric.LinearAlgebra        as NLA
 import           Numeric.LinearAlgebra.Static hiding (zipWithVector)
 import qualified Numeric.LinearAlgebra.Static as H
@@ -124,8 +121,8 @@ instance Show (S n) where
         => (S ('D2 rows cols))
         -> (Int, Int)
       sz _ =
-        let rows = fromIntegral $ natVal (Proxy :: Proxy rows)
-            cols = fromIntegral $ natVal (Proxy :: Proxy cols)
+        let rows = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy rows)
+            cols = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy cols)
          in (rows, cols)
 
 -- Singleton instances.
@@ -229,8 +226,8 @@ fromStorable xs =
       => Vector RealNum
       -> Maybe (L rows columns)
     mkL v =
-      let rows = fromIntegral $ natVal (Proxy :: Proxy rows)
-          columns = fromIntegral $ natVal (Proxy :: Proxy columns)
+      let rows = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy rows)
+          columns = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy columns)
        in if rows * columns == V.length v
             then H.create $ NLA.reshape columns v
             else Nothing
@@ -245,9 +242,9 @@ fromStorableV v =
 instance SingI x => Serialize (S x) where
   put i =
     case i of
-      S1D x -> put (1 :: Int) >> (putListOf put . NLA.toList . H.extract $ x)
-      S2D x -> put (1 :: Int) >> (putListOf put . NLA.toList . NLA.flatten . H.extract $ x)
-      S3D x -> put (1 :: Int) >> (putListOf put . NLA.toList . NLA.flatten . H.extract $ x)
+      S1D x  -> put (1 :: Int) >> (putListOf put . NLA.toList . H.extract $ x)
+      S2D x  -> put (1 :: Int) >> (putListOf put . NLA.toList . NLA.flatten . H.extract $ x)
+      S3D x  -> put (1 :: Int) >> (putListOf put . NLA.toList . NLA.flatten . H.extract $ x)
       S1DV x -> put (2 :: Int) >> putListOf put (V.toList x)
       S2DV x -> put (2 :: Int) >> putListOf put (V.toList x)
   get = do

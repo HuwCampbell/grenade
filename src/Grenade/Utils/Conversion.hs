@@ -40,9 +40,11 @@ module Grenade.Utils.Conversion
 
 import           Data.Maybe                   (fromJust, fromMaybe)
 import           Data.Proxy
-import           Data.Singletons.TypeLits
 import qualified Data.Vector.Storable         as V
 import           Foreign
+import           GHC.TypeLits
+import           GHC.TypeLits.KnownNat
+import           GHC.TypeLits.Singletons      hiding (natVal)
 import qualified Numeric.LinearAlgebra        as LA
 import qualified Numeric.LinearAlgebra.Static as LAS
 import           System.IO.Unsafe             (unsafePerformIO)

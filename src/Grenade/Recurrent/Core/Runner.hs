@@ -17,7 +17,8 @@ module Grenade.Recurrent.Core.Runner (
   ) where
 
 import           Data.List                      (foldl')
-import           Data.Singletons.Prelude
+import           Data.List.Singletons
+import           Data.Singletons
 import           Grenade.Core
 
 import           Grenade.Recurrent.Core.Network
@@ -92,9 +93,7 @@ trainRecurrent opt network recinputs examples =
   in  (newNetwork, newInputs)
 
 updateRecInputs :: Optimizer opt -> RecurrentInputs sublayers -> RecurrentInputs sublayers -> RecurrentInputs sublayers
-updateRecInputs opt (() :~~+> xs) (() :~~+> ys) = () :~~+> updateRecInputs opt xs ys
+updateRecInputs opt (() :~~+> xs) (() :~~+> ys)                             = () :~~+> updateRecInputs opt xs ys
 updateRecInputs opt@(OptSGD lRate _ lRegulariser) (x :~@+> xs) (y :~@+> ys) = (realToFrac (1 - lRate * lRegulariser) * x - realToFrac lRate * y) :~@+> updateRecInputs opt xs ys
-updateRecInputs _ RINil RINil = RINil
-updateRecInputs _ _ _ = error "Adam not yet implemented for Recurrent Neural Networks!"
-
-
+updateRecInputs _ RINil RINil                                               = RINil
+updateRecInputs _ _ _                                                       = error "Adam not yet implemented for Recurrent Neural Networks!"

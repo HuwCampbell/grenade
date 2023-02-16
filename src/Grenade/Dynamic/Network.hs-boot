@@ -46,7 +46,7 @@ import           Control.DeepSeq
 import           Control.Monad.Primitive           (PrimBase, PrimState)
 import           Data.Serialize
 import           Data.Singletons
-import           Data.Singletons.Prelude
+import           Data.List.Singletons
 import           Data.Typeable as T (Typeable)
 import           System.Random.MWC
 #if MIN_VERSION_base(4,9,0)
@@ -127,5 +127,3 @@ newtype SpecSoftmax = SpecSoftmax Integer
 newtype SpecTanh = SpecTanh Dimensions
 
 newtype SpecTrivial = SpecTrivial Dimensions
-
-

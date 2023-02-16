@@ -9,9 +9,9 @@ import           Control.Monad
 import           Control.Monad.Random
 import           Data.Constraint                 (Dict (..))
 import           Data.List                       (foldl')
+import           Data.List.Singletons
 import           Data.Serialize
 import           Data.Singletons
-import           Data.Singletons.Prelude.List
 import qualified Data.Vector.Storable            as V
 import           GHC.TypeLits
 import qualified Numeric.LinearAlgebra.Static    as SA

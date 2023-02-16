@@ -46,11 +46,12 @@ import           Control.Monad.IO.Class
 import           Control.Monad.Primitive          (PrimBase, PrimState)
 import           Control.Parallel.Strategies
 import           Data.Default
+import           Data.List.Singletons
 import           Data.Serialize
 import           Data.Singletons
-import           Data.Singletons.Prelude
-import qualified Data.Vector.Storable             as V
-import           GHC.TypeLits                     (KnownNat)
+import           GHC.TypeLits
+import           GHC.TypeLits.KnownNat
+import           GHC.TypeLits.Singletons          hiding (natVal)
 import           Numeric.LinearAlgebra.Static
 import           System.Random.MWC
 

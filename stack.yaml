@@ -23,8 +23,8 @@
 
 # resolver: lts-15.8
 # resolver: lts-15.5
-resolver:
-  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/11.yaml
+resolver: lts-19.33
+  # url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/11.yaml
 # resolver: lts-14.27
 
 # User packages to be built.
@@ -53,8 +53,10 @@ packages:
 extra-deps:
  # - git: https://github.com/schnecki/hmatrix-float
  #   commit: 20ad30db8edb97ce735d8218937f9ded878e3217
-- cuda-0.11.0.0@sha256:4e572a36f9ed3d2f8b40d6ce582b98b9ee0f499ed4ef1e88a33bb691e5be28c7,5654
+- bytestring-0.10.12.1@sha256:82dba4c2de4fdd8b419ed28aec2c14cfe4a3f43d1d6e2263ab26962e7398048e,6254
 - optparse-applicative-0.15.1.0@sha256:29ff6146aabf54d46c4c8788e8d1eadaea27c94f6d360c690c5f6c93dac4b07e,4810
+- cuda-0.11.0.0@sha256:4e572a36f9ed3d2f8b40d6ce582b98b9ee0f499ed4ef1e88a33bb691e5be28c7,5654
+# - optparse-applicative-0.15.1.0@sha256:29ff6146aabf54d46c4c8788e8d1eadaea27c94f6d360c690c5f6c93dac4b07e,4810
 
 drop-packages:
  - constraints-extras

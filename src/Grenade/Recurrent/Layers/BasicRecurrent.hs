@@ -18,7 +18,7 @@ module Grenade.Recurrent.Layers.BasicRecurrent (
 
 
 import           Data.Proxy
-import           Data.Singletons.TypeLits     hiding (natVal)
+import           Data.Singletons              hiding (natVal)
 
 #if MIN_VERSION_base(4,9,0)
 import           Data.Kind                    (Type)

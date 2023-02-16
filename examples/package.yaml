@@ -75,6 +75,7 @@ executables:
       - deepseq
       - reflection
       - mwc-random
+      - singletons-base
 
   mnist:
     ghc-options:       -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
@@ -92,3 +93,5 @@ executables:
   shakespeare:
     ghc-options:       -Wall -threaded -O2 -rtsopts -with-rtsopts=-N
     main:             main/shakespeare.hs
+    dependencies:
+      - singletons-base

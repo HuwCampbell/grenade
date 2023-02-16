@@ -41,8 +41,14 @@ import           Data.Proxy
 import           Data.Reflection                     (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
-import           Data.Singletons.Prelude.Num         ((%*))
-import           Data.Singletons.TypeLits            hiding (natVal)
+
+import           Data.Singletons                     hiding ((*))
+import           GHC.TypeLits
+import           GHC.TypeLits.KnownNat
+import           GHC.TypeLits.Singletons
+import           Prelude.Singletons                  ((%*))
+
+
 import           GHC.TypeLits
 import           Numeric.LinearAlgebra               hiding (konst, uniformSample)
 import qualified Numeric.LinearAlgebra               as LA
@@ -98,7 +104,7 @@ instance ( KnownNat channels
     putListOf put . toList . flatten . extract $ w
     put (fmap (toList . flatten . extract) store)
   get = do
-      let f  = fromIntegral $ natVal (Proxy :: Proxy channels)
+      let f  = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy channels)
       wN    <- maybe (fail "Vector of incorrect size") return . create . reshape f . LA.fromList =<< getListOf get
       store <- fmap (fromMaybe (error "Vector of incorrect size") . create . reshape f . LA.fromList)  <$> get
       return $ Deconvolution wN store
@@ -136,7 +142,7 @@ instance ( KnownNat channels
          Serialize (Deconvolution' channels filters kernelRows kernelColumns strideRows strideColumns) where
   put (Deconvolution' w) = putListOf put . toList . flatten . extract $ w
   get = do
-    let f = fromIntegral $ natVal (Proxy :: Proxy channels)
+    let f = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy channels)
     wN <- maybe (fail "Vector of incorrect size") return . create . reshape f . LA.fromList =<< getListOf get
     return $ Deconvolution' wN
 
@@ -155,7 +161,7 @@ instance Show (Deconvolution c f k k' s s') where
     where
       renderConv mm =
         let m = extract mm
-            ky = fromIntegral $ natVal (Proxy :: Proxy k)
+            ky = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy k)
             rs = LA.toColumns m
             ms = map (take ky) $ toLists . reshape ky <$> rs
             render n'
@@ -182,7 +188,7 @@ instance ( KnownNat channels
     wN <- getRandomMatrix i i m gen
     return $ Deconvolution wN mkListStore
     where
-      i = natVal (Proxy :: Proxy ((kernelRows * kernelColumns) * channels))
+      i = GHC.TypeLits.natVal (Proxy :: Proxy ((kernelRows * kernelColumns) * channels))
   createRandomWith (NetworkInitSettings _ cpu _) _ = error $ "CPU backend " ++ show cpu ++ " not supported by Deconvolution layer"
 
 instance ( KnownNat channels
@@ -208,7 +214,7 @@ instance ( KnownNat channels
         newStore = setData opt x store [matrixM result, matrixV result]
     in Deconvolution (matrixActivations result) newStore
     where toTuple [m ,v] = (m, v)
-          toTuple xs = error $ "unexpected input of length " ++ show (length xs) ++ "in toTuple in Convolution.hs"
+          toTuple xs     = error $ "unexpected input of length " ++ show (length xs) ++ "in toTuple in Convolution.hs"
 
 instance ( KnownNat channels
          , KnownNat filters
@@ -330,14 +336,14 @@ instance ( KnownNat kernelRows
   runForwards (Deconvolution kernel _) (S3D input) =
     let ex = extract input
         ek = extract kernel
-        ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
-        iy = fromIntegral $ natVal (Proxy :: Proxy inputCols)
-        kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
-        ky = fromIntegral $ natVal (Proxy :: Proxy kernelCols)
-        sx = fromIntegral $ natVal (Proxy :: Proxy strideRows)
-        sy = fromIntegral $ natVal (Proxy :: Proxy strideCols)
-        ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
-        oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
+        ix = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy inputRows)
+        iy = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy inputCols)
+        kx = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy kernelRows)
+        ky = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy kernelCols)
+        sx = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy strideRows)
+        sy = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy strideCols)
+        ox = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy outputRows)
+        oy = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy outputCols)
 
         c  = vid2col 1 1 1 1 ix iy ex
 
@@ -348,14 +354,14 @@ instance ( KnownNat kernelRows
     in  (S3D input, S3D rs)
   runBackwards (Deconvolution kernel _) (S3D input) (S3D dEdy) =
     let ex = extract input
-        ix = fromIntegral $ natVal (Proxy :: Proxy inputRows)
-        iy = fromIntegral $ natVal (Proxy :: Proxy inputCols)
-        kx = fromIntegral $ natVal (Proxy :: Proxy kernelRows)
-        ky = fromIntegral $ natVal (Proxy :: Proxy kernelCols)
-        sx = fromIntegral $ natVal (Proxy :: Proxy strideRows)
-        sy = fromIntegral $ natVal (Proxy :: Proxy strideCols)
-        ox = fromIntegral $ natVal (Proxy :: Proxy outputRows)
-        oy = fromIntegral $ natVal (Proxy :: Proxy outputCols)
+        ix = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy inputRows)
+        iy = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy inputCols)
+        kx = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy kernelRows)
+        ky = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy kernelCols)
+        sx = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy strideRows)
+        sy = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy strideCols)
+        ox = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy outputRows)
+        oy = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy outputCols)
 
         c  = vid2col 1 1 1 1 ix iy ex
 
@@ -380,12 +386,12 @@ instance (KnownNat channels, KnownNat filters, KnownNat kernelRows, KnownNat ker
     SpecNetLayer $
     SpecDeconvolution
       (tripleFromSomeShape inp)
-      (natVal (Proxy :: Proxy channels))
-      (natVal (Proxy :: Proxy filters))
-      (natVal (Proxy :: Proxy kernelRows))
-      (natVal (Proxy :: Proxy kernelColumns))
-      (natVal (Proxy :: Proxy strideRows))
-      (natVal (Proxy :: Proxy strideColumns))
+      (GHC.TypeLits.natVal (Proxy :: Proxy channels))
+      (GHC.TypeLits.natVal (Proxy :: Proxy filters))
+      (GHC.TypeLits.natVal (Proxy :: Proxy kernelRows))
+      (GHC.TypeLits.natVal (Proxy :: Proxy kernelColumns))
+      (GHC.TypeLits.natVal (Proxy :: Proxy strideRows))
+      (GHC.TypeLits.natVal (Proxy :: Proxy strideColumns))
 
 
 instance ToDynamicLayer SpecDeconvolution where

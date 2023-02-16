@@ -41,43 +41,43 @@ module Grenade.Dynamic.Specification
   , SpecTrivial(..)
   ) where
 
-import           Control.DeepSeq
-import           Data.Constraint               (Dict (..))
-import           Data.Proxy
-import           Data.Reflection               (reifyNat)
-import           Data.Serialize
-import           Data.Singletons
-import           Data.Singletons.Prelude.List
-import           Data.Typeable                 as T
-import           GHC.Generics
-import           GHC.TypeLits
-import           Unsafe.Coerce                 (unsafeCoerce)
+import                          Control.DeepSeq
+import                          Data.Constraint               (Dict (..))
+import                          Data.List.Singletons
+import                          Data.Proxy
+import                          Data.Reflection               (reifyNat)
+import                          Data.Serialize
+import                          Data.Singletons
+import                          Data.Typeable                 as T
+import                          GHC.Generics
+import                          GHC.TypeLits
+import                          Unsafe.Coerce                 (unsafeCoerce)
 #if MIN_VERSION_base(4,9,0)
-import           Data.Kind                     (Type)
+import                          Data.Kind                     (Type)
 #endif
 #ifndef FLYCHECK
-import {-# SOURCE #-} Grenade.Layers.Convolution    ()
-import {-# SOURCE #-} Grenade.Layers.Deconvolution  ()
-import {-# SOURCE #-} Grenade.Layers.Dropout        ()
-import {-# SOURCE #-} Grenade.Layers.Elu            ()
-import {-# SOURCE #-} Grenade.Layers.FullyConnected ()
-import {-# SOURCE #-} Grenade.Layers.Gelu           ()
-import {-# SOURCE #-} Grenade.Layers.LeakyRelu      ()
-import {-# SOURCE #-} Grenade.Layers.LeakyTanh      ()
-import {-# SOURCE #-} Grenade.Layers.Logit          ()
-import {-# SOURCE #-} Grenade.Layers.Relu           ()
-import {-# SOURCE #-} Grenade.Layers.Reshape        ()
-import {-# SOURCE #-} Grenade.Layers.Sinusoid       ()
-import {-# SOURCE #-} Grenade.Layers.Softmax        ()
-import {-# SOURCE #-} Grenade.Layers.Tanh           ()
-import {-# SOURCE #-} Grenade.Layers.Trivial        ()
+import {-# SOURCE #-}           Grenade.Layers.Convolution    ()
+import {-# SOURCE #-}           Grenade.Layers.Deconvolution  ()
+import {-# SOURCE #-}           Grenade.Layers.Dropout        ()
+import {-# SOURCE #-}           Grenade.Layers.Elu            ()
+import {-# SOURCE #-}           Grenade.Layers.FullyConnected ()
+import {-# SOURCE #-}           Grenade.Layers.Gelu           ()
+import {-# SOURCE #-}           Grenade.Layers.LeakyRelu      ()
+import {-# SOURCE #-}           Grenade.Layers.LeakyTanh      ()
+import {-# SOURCE #-}           Grenade.Layers.Logit          ()
+import {-# SOURCE #-}           Grenade.Layers.Relu           ()
+import {-# SOURCE #-}           Grenade.Layers.Reshape        ()
+import {-# SOURCE #-}           Grenade.Layers.Sinusoid       ()
+import {-# SOURCE #-}           Grenade.Layers.Softmax        ()
+import {-# SOURCE #-}           Grenade.Layers.Tanh           ()
+import {-# SOURCE #-}           Grenade.Layers.Trivial        ()
 #endif
 
 
-import           Control.Monad.Primitive       (PrimBase, PrimState)
-import           Grenade.Core
-import           Grenade.Types
-import           System.Random.MWC             (Gen)
+import                          Control.Monad.Primitive       (PrimBase, PrimState)
+import                          Grenade.Core
+import                          Grenade.Types
+import                          System.Random.MWC             (Gen)
 
 
 -- | Create a runtime dynamic specification of a network. Dynamic layers (and networks), for storing and restoring specific network structures (e.g. in saving the network structures to a DB and
@@ -160,12 +160,12 @@ data SpecNet
   | forall spec . (ToDynamicLayer spec, Typeable spec, Ord spec, Eq spec, Show spec, Serialize spec, NFData spec) => SpecNetLayer !spec -- ^ Specification of a layer
 
 instance Eq SpecNet where
-  SpecNNil1D r1 == SpecNNil1D r2 = r1 == r2
-  SpecNNil2D r1 c1 == SpecNNil2D r2 c2 = r1 == r2 && c1 == c2
+  SpecNNil1D r1 == SpecNNil1D r2             = r1 == r2
+  SpecNNil2D r1 c1 == SpecNNil2D r2 c2       = r1 == r2 && c1 == c2
   SpecNNil3D r1 c1 d1 == SpecNNil3D r2 c2 d2 = r1 == r2 && c1 == c2 && d1 == d2
-  SpecNCons l1 r1 == SpecNCons l2 r2 = l1 == l2 && r1 == r2
-  SpecNetLayer spec1 == SpecNetLayer spec2 = T.typeOf spec1 == T.typeOf spec2 && Just spec1 == cast spec2
-  _ == _ = False
+  SpecNCons l1 r1 == SpecNCons l2 r2         = l1 == l2 && r1 == r2
+  SpecNetLayer spec1 == SpecNetLayer spec2   = T.typeOf spec1 == T.typeOf spec2 && Just spec1 == cast spec2
+  _ == _                                     = False
 
 instance Ord SpecNet where
   SpecNNil1D r1 `compare` SpecNNil1D r2 = r1 `compare` r2
@@ -216,22 +216,22 @@ parseSpecDataConstructor :: String -> Get SpecNet
 parseSpecDataConstructor = error "disable -DFLYCHECK while compiling!"
 #else
 parseSpecDataConstructor repStr
-  | repStr == show (typeRep (Proxy :: Proxy SpecFullyConnected)) = SpecNetLayer <$> (get :: Get SpecFullyConnected)
-  | repStr == show (typeRep (Proxy :: Proxy SpecConvolution))    = SpecNetLayer <$> (get :: Get SpecConvolution)
-  | repStr == show (typeRep (Proxy :: Proxy SpecDeconvolution))  = SpecNetLayer <$> (get :: Get SpecDeconvolution)
-  | repStr == show (typeRep (Proxy :: Proxy SpecDropout))        = SpecNetLayer <$> (get :: Get SpecDropout)
-  | repStr == show (typeRep (Proxy :: Proxy SpecElu))            = SpecNetLayer <$> (get :: Get SpecElu)
-  | repStr == show (typeRep (Proxy :: Proxy SpecGelu))           = SpecNetLayer <$> (get :: Get SpecGelu)
-  | repStr == show (typeRep (Proxy :: Proxy SpecLeakyRelu))      = SpecNetLayer <$> (get :: Get SpecLeakyRelu)
-  | repStr == show (typeRep (Proxy :: Proxy SpecLogit))          = SpecNetLayer <$> (get :: Get SpecLogit)
-  | repStr == show (typeRep (Proxy :: Proxy SpecRelu))           = SpecNetLayer <$> (get :: Get SpecRelu)
-  | repStr == show (typeRep (Proxy :: Proxy SpecReshape))        = SpecNetLayer <$> (get :: Get SpecReshape)
-  | repStr == show (typeRep (Proxy :: Proxy SpecSinusoid))       = SpecNetLayer <$> (get :: Get SpecSinusoid)
-  | repStr == show (typeRep (Proxy :: Proxy SpecSoftmax))        = SpecNetLayer <$> (get :: Get SpecSoftmax)
-  | repStr == show (typeRep (Proxy :: Proxy SpecTanh))           = SpecNetLayer <$> (get :: Get SpecTanh)
-  | repStr == show (typeRep (Proxy :: Proxy SpecLeakyTanh))      = SpecNetLayer <$> (get :: Get SpecLeakyTanh)
-  | repStr == show (typeRep (Proxy :: Proxy SpecTrivial))        = SpecNetLayer <$> (get :: Get SpecTrivial)
-  | repStr == show (typeRep (Proxy :: Proxy SpecNet))            = SpecNetLayer <$> (get :: Get SpecNet)
+  | repStr == show (typeRep (Proxy :: Proxy SpecFullyConnected))  = SpecNetLayer <$> (get :: Get SpecFullyConnected)
+  | repStr == show (typeRep (Proxy :: Proxy SpecConvolution))     = SpecNetLayer <$> (get :: Get SpecConvolution)
+  | repStr == show (typeRep (Proxy :: Proxy SpecDeconvolution))   = SpecNetLayer <$> (get :: Get SpecDeconvolution)
+  | repStr == show (typeRep (Proxy :: Proxy SpecDropout))         = SpecNetLayer <$> (get :: Get SpecDropout)
+  | repStr == show (typeRep (Proxy :: Proxy SpecElu))             = SpecNetLayer <$> (get :: Get SpecElu)
+  | repStr == show (typeRep (Proxy :: Proxy SpecGelu))            = SpecNetLayer <$> (get :: Get SpecGelu)
+  | repStr == show (typeRep (Proxy :: Proxy SpecLeakyRelu))       = SpecNetLayer <$> (get :: Get SpecLeakyRelu)
+  | repStr == show (typeRep (Proxy :: Proxy SpecLogit))           = SpecNetLayer <$> (get :: Get SpecLogit)
+  | repStr == show (typeRep (Proxy :: Proxy SpecRelu))            = SpecNetLayer <$> (get :: Get SpecRelu)
+  | repStr == show (typeRep (Proxy :: Proxy SpecReshape))         = SpecNetLayer <$> (get :: Get SpecReshape)
+  | repStr == show (typeRep (Proxy :: Proxy SpecSinusoid))        = SpecNetLayer <$> (get :: Get SpecSinusoid)
+  | repStr == show (typeRep (Proxy :: Proxy SpecSoftmax))         = SpecNetLayer <$> (get :: Get SpecSoftmax)
+  | repStr == show (typeRep (Proxy :: Proxy SpecTanh))            = SpecNetLayer <$> (get :: Get SpecTanh)
+  | repStr == show (typeRep (Proxy :: Proxy SpecLeakyTanh))       = SpecNetLayer <$> (get :: Get SpecLeakyTanh)
+  | repStr == show (typeRep (Proxy :: Proxy SpecTrivial))         = SpecNetLayer <$> (get :: Get SpecTrivial)
+  | repStr == show (typeRep (Proxy :: Proxy SpecNet))             = SpecNetLayer <$> (get :: Get SpecNet)
   | otherwise = error $ "unexpected input parseSpecDataConstructor: " ++ repStr
 #endif
 

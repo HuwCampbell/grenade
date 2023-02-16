@@ -29,9 +29,7 @@ module Grenade.Layers.Reshape
   , reshape
   ) where
 
-#if MIN_VERSION_singletons(2,6,0)
-import           Data.Singletons.TypeLits       (SNat (..))
-#endif
+import           Data.Singletons
 
 
 import           Control.DeepSeq                (NFData (..))
@@ -40,12 +38,14 @@ import           Data.Constraint                (Dict (..))
 import           Data.Reflection                (reifyNat)
 import           Data.Serialize
 import           Data.Singletons
-import           Data.Singletons.Prelude.Num    ((%*))
 import qualified Data.Vector.Storable           as V
 import           GHC.Generics                   (Generic)
 import           GHC.TypeLits
+import           GHC.TypeLits.KnownNat
+import           GHC.TypeLits.Singletons
 import           Numeric.LinearAlgebra.Data     as LA (flatten)
 import           Numeric.LinearAlgebra.Static   hiding (toRows)
+import           Prelude.Singletons             ((%*))
 import           Unsafe.Coerce                  (unsafeCoerce)
 
 

@@ -60,15 +60,17 @@ flags:
 dependencies:
   - base                            >= 4.8         && < 5
   - bytestring                      == 0.10.*
-  - containers                      >= 0.5         && < 0.7
-  - cereal                          >= 0.5         && < 0.6
-  - deepseq                         >= 1.4         && < 1.5
-  - MonadRandom                     >= 0.4         && < 0.6
-  - primitive                       >= 0.6         && < 0.8
+  - containers                      >= 0.5
+  - cereal                          >= 0.5
+  - deepseq                         >= 1.4
+  - MonadRandom                     >= 0.4
+  - primitive                       >= 0.6
   # Versions of singletons are *tightly* coupled with the
   # GHC version  so its fine to drop version bounds.
   - singletons
-  - vector                          >= 0.11        && < 0.13
+  - singletons-base
+  - ghc-typelits-knownnat
+  - vector                          >= 0.11
   - base >= 4.7 && < 5
   - mwc-random                      >= 0.13
   - reflection                      >= 0.11.2
@@ -81,6 +83,7 @@ dependencies:
   - parallel
   - concurrent-extra
   - cuda
+  - statistics
 when:
   condition: flag(use-float)
   then:

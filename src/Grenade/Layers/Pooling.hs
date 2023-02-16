@@ -26,7 +26,7 @@ import           Data.Kind                       (Type)
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits        hiding (natVal)
+import           Data.Singletons                 hiding (natVal)
 import           GHC.Generics                    (Generic)
 import           GHC.TypeLits
 

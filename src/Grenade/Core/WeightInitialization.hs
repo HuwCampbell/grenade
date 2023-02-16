@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns        #-}
 {-# LANGUAGE CPP                 #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE DeriveAnyClass      #-}
@@ -34,10 +33,9 @@ import           Control.Monad
 import           Control.Monad.Primitive         (PrimBase, PrimState)
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits
 import qualified Data.Vector.Storable            as V
 import           GHC.Generics                    (Generic)
-import           GHC.TypeLits                    hiding (natVal)
+import           GHC.TypeLits
 import           Numeric.LinearAlgebra.Static
 import           System.IO.Unsafe                (unsafePerformIO)
 import           System.Random.MWC
@@ -50,9 +48,9 @@ import           Debug.Trace
 
 -- ^ Weight initialization method.
 data WeightInitMethod
-  = UniformInit -- ^ W_l,i ~ U(-1/sqrt(n_l),1/sqrt(n_l))                   where n_l is the number of nodes in layer l
-  | Xavier      -- ^ W_l,i ~ U(-sqrt (6/n_l+n_{l+1}),sqrt (6/n_l+n_{l+1})) where n_l is the number of nodes in layer l
-  | HeEtAl      -- ^ W_l,i ~ N(0,sqrt(2/n_l))                              where n_l is the number of nodes in layer l
+  = UniformInit -- ^ W_l,i ~ U(-1/sqrt(n_l),1/sqrt(n_l))                       where n_l is the number of nodes in layer l
+  | Xavier      -- ^ W_l,i ~ U(-sqrt (6/(n_l+n_{l+1})),sqrt (6/(n_l+n_{l+1}))) where n_l is the number of nodes in layer l
+  | HeEtAl      -- ^ W_l,i ~ N(0,sqrt(2/n_l))                                  where n_l is the number of nodes in layer l
   deriving (Show, Eq, Ord, Enum, Bounded, NFData, Serialize, Generic)
 
 type LayerInput = Integer
@@ -92,8 +90,8 @@ getRandomVectorV i o n method gen = do
       gaussRands = replicateM n (realToFrac <$> standard gen)
   case method of
     UniformInit -> mkVec . map (1 / sqrt (fromIntegral i) *) <$> unifRands
-    Xavier -> mkVec . map ((sqrt 6 / sqrt (fromIntegral i + fromIntegral o)) *) <$> unifRands
-    HeEtAl -> mkVec . map (sqrt (2 / fromIntegral i) *) <$> gaussRands
+    Xavier      -> mkVec . map ((sqrt 6 / sqrt (fromIntegral i + fromIntegral o)) *) <$> unifRands
+    HeEtAl      -> mkVec . map (sqrt (2 / fromIntegral i) *) <$> gaussRands
 
 -- test :: IO [Double]
 -- test = withSystemRandom $ asGenIO $ \gen -> replicateM 10000 (uniformR (-1, 1) gen)

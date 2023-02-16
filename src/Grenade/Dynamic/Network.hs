@@ -42,12 +42,12 @@ module Grenade.Dynamic.Network
 import           Control.DeepSeq
 import           Data.Constraint                  (Dict (..))
 import           Data.Default
+import           Data.List.Singletons
 import           Data.Serialize
 import           Data.Singletons
-import           Data.Singletons.Prelude
-import           Data.Singletons.TypeLits         hiding (natVal)
 import           Data.Typeable                    (Typeable)
 import           GHC.TypeLits
+import           GHC.TypeLits.Singletons          hiding (natVal)
 import           System.Random.MWC
 import           Unsafe.Coerce                    (unsafeCoerce)
 

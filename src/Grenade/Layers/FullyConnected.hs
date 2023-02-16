@@ -5,11 +5,9 @@
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE InstanceSigs          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE Strict                #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 {-# LANGUAGE UndecidableInstances  #-}
@@ -28,22 +26,23 @@ import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.Primitive        (PrimBase, PrimState)
 import           Control.Parallel.Strategies
+import           Data.List                      (foldl')
 import           Data.Maybe                     (fromMaybe)
+import           Data.Proxy
 import           Data.Reflection                (reifyNat)
+import           Data.Serialize
 import qualified Data.Vector.Storable           as V
 import           GHC.Generics                   (Generic)
+
+import           Data.Singletons                hiding ((*))
 import           GHC.TypeLits
-import           System.Random.MWC              hiding (create)
-#if MIN_VERSION_singletons(2,6,0)
-import           Data.Singletons.TypeLits       (SNat (..))
-#endif
-import           Data.List                      (foldl')
-import           Data.Proxy
-import           Data.Serialize
-import           Data.Singletons
-import           Data.Singletons.Prelude.Num    ((%*))
+import           GHC.TypeLits.KnownNat
+import           GHC.TypeLits.Singletons
+import           Prelude.Singletons             ((%*))
+
 import qualified Numeric.LinearAlgebra          as LA
 import           Numeric.LinearAlgebra.Static   hiding (zipWithVector)
+import           System.Random.MWC              hiding (create)
 import           Text.Printf
 
 import           Control.Monad                  (void)
@@ -118,7 +117,7 @@ instance (KnownNat i, KnownNat o, KnownNat (i * o)) => UpdateLayer (FullyConnect
       let oldBias = oldBiasH
           oldActivations = oldActivationsH
           (oldMBias, oldMActivations) = case getData opt x store of -- In the first periods until the store is filled newData is called, which will generate FullyConnectedHMatrix instances!
-            FullyConnectedBLAS _ oldMBias' oldMActivations' -> (oldMBias', oldMActivations')
+            FullyConnectedBLAS _ oldMBias' oldMActivations'  -> (oldMBias', oldMActivations')
             FullyConnectedHMatrix oldMBias' oldMActivations' -> (extract oldMBias', extractM oldMActivations')
           VectorResultSGDV newBias newMBias               = descendVectorV opt (VectorValuesSGDV oldBias biasGradient oldMBias)
           MatrixResultSGDV newActivations newMActivations = descendMatrixV opt (MatrixValuesSGDV oldActivations activationGradient oldMActivations)
@@ -158,7 +157,7 @@ instance (KnownNat i, KnownNat o) => FoldableGradient (FullyConnected' i o) wher
   mapGradient f (FullyConnectedHMatrix bias activations) = FullyConnectedHMatrix (dvmap f bias) (dmmap f activations)
   mapGradient f (FullyConnectedBLAS io bias activations) = FullyConnectedBLAS io (mapVector f bias) (mapVector f activations)
   squaredSums (FullyConnectedHMatrix bias activations) = [sumV . squareV $ bias, sumM . squareM $ activations]
-  squaredSums (FullyConnectedBLAS _ bias activations) = [V.sum . mapVector (^(2::Int)) $ bias, V.sum . mapVector (^(2::Int)) $ activations]
+  squaredSums (FullyConnectedBLAS _ bias activations)  = [V.sum . mapVector (^(2::Int)) $ bias, V.sum . mapVector (^(2::Int)) $ activations]
 
 
 runForward :: forall i o. (KnownNat i, KnownNat o) => FullyConnected i o -> S ('D1 i) -> (Tape (FullyConnected i o) ('D1 i) ('D1 o), S ('D1 o))
@@ -210,7 +209,7 @@ instance (KnownNat i, KnownNat o) => Serialize (FullyConnected' i o) where
     (nr :: Int) <- get
     case nr of
       0 -> do
-        let f = fromIntegral $ natVal (Proxy :: Proxy i)
+        let f = fromIntegral $ GHC.TypeLits.natVal (Proxy :: Proxy i)
         b <- maybe (fail "Vector of incorrect size") return . create . LA.fromList =<< getListOf get
         k <- maybe (fail "Vector of incorrect size") return . create . LA.reshape f . LA.fromList =<< getListOf get
         return $ FullyConnectedHMatrix b k
@@ -222,7 +221,7 @@ instance (KnownNat i, KnownNat o) => Serialize (FullyConnected' i o) where
       _ -> error $ "Unexpected nr in get in Serialize of FullyConnected' " ++ show nr
 
 
-instance (KnownNat i, KnownNat o, KnownNat (i*o)) => RandomLayer (FullyConnected i o) where
+instance (KnownNat i, KnownNat o, KnownNat (i * o)) => RandomLayer (FullyConnected i o) where
   createRandomWith = randomFullyConnected
 
 
@@ -235,23 +234,23 @@ randomFullyConnected (NetworkInitSettings m HMatrix _) gen = do
   wN <- getRandomMatrix i o m gen
   wB <- getRandomVector i o m gen
   return $!! FullyConnected (FullyConnectedHMatrix wB wN) mkListStore
-  where i = natVal (Proxy :: Proxy i)
-        o = natVal (Proxy :: Proxy o)
+  where i = GHC.TypeLits.natVal (Proxy :: Proxy i)
+        o = GHC.TypeLits.natVal (Proxy :: Proxy o)
 randomFullyConnected (NetworkInitSettings m BLAS _) gen = do
 
   wB <- getRandomVectorV i o o' m gen
   wN <- getRandomVectorV i o (i' * o') m gen
   return $!! FullyConnected (FullyConnectedBLAS (i', o') wB wN) mkListStore
   where
-    i = natVal (Proxy :: Proxy i)
+    i = GHC.TypeLits.natVal (Proxy :: Proxy i)
     i' = fromIntegral i
-    o = natVal (Proxy :: Proxy o)
+    o = GHC.TypeLits.natVal (Proxy :: Proxy o)
     o' = fromIntegral o
 
 -------------------- DynamicNetwork instance --------------------
 
 instance (KnownNat i, KnownNat o) => FromDynamicLayer (FullyConnected i o) where
-  fromDynamicLayer _ _ _ = SpecNetLayer $ SpecFullyConnected (natVal (Proxy :: Proxy i)) (natVal (Proxy :: Proxy o))
+  fromDynamicLayer _ _ _ = SpecNetLayer $ SpecFullyConnected (GHC.TypeLits.natVal (Proxy :: Proxy i)) (GHC.TypeLits.natVal (Proxy :: Proxy o))
 
 instance ToDynamicLayer SpecFullyConnected where
   toDynamicLayer wInit gen (SpecFullyConnected nrI nrO) =
@@ -285,8 +284,8 @@ instance (KnownNat i, KnownNat o) => GNum (FullyConnected' i o) where
   s |* FullyConnectedHMatrix b w = FullyConnectedHMatrix (dvmap (fromRational s *) b) (dmmap (fromRational s *) w)
   s |* FullyConnectedBLAS io b w = FullyConnectedBLAS io (mapVector (fromRational s *) b) (mapVector (fromRational s *) w)
   FullyConnectedHMatrix b1 w1 |+ FullyConnectedHMatrix b2 w2 = FullyConnectedHMatrix (b1 + b2) (w1 + w2)
-  FullyConnectedBLAS io b1 w1 |+ FullyConnectedBLAS _ b2 w2 = FullyConnectedBLAS io (zipWithVector (+) b2 b1) (zipWithVector (+) w2 w1)
-  x |+ y = error $ "Cannot add different network types in |+ in FullyConnected: " ++ show (x, y)
+  FullyConnectedBLAS io b1 w1 |+ FullyConnectedBLAS _ b2 w2  = FullyConnectedBLAS io (zipWithVector (+) b2 b1) (zipWithVector (+) w2 w1)
+  x |+ y                                                     = error $ "Cannot add different network types in |+ in FullyConnected: " ++ show (x, y)
   sumG xs@(FullyConnectedBLAS io _ _:_) = FullyConnectedBLAS io bs' ws'
     where
       (bs, ws) = unzip $ map (\(FullyConnectedBLAS _ b w) -> (b, w)) xs

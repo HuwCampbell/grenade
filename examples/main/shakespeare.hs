@@ -12,10 +12,11 @@ import           Control.Monad.Trans.Except
 import qualified Data.ByteString              as B
 import           Data.Char                    (isUpper, toLower, toUpper)
 import           Data.List                    (foldl')
+import           Data.List.Singletons
 import qualified Data.Map                     as M
 import           Data.Maybe                   (fromMaybe)
+import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.Prelude
 import           Data.Vector                  (Vector)
 import qualified Data.Vector                  as V
 import           GHC.TypeLits

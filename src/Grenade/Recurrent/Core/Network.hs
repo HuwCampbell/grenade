@@ -33,9 +33,9 @@ import           Control.Monad.Primitive      (PrimBase, PrimState)
 import           Data.Default
 import           System.Random.MWC
 
+import           Data.List.Singletons
 import           Data.Serialize
 import           Data.Singletons              (SingI)
-import           Data.Singletons.Prelude      (Head, Last)
 
 #if MIN_VERSION_base(4,9,0)
 import           Data.Kind                    (Type)
