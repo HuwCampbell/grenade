@@ -20,7 +20,7 @@
 #
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
-resolver: lts-18.28
+resolver: lts-20.18
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -70,3 +70,9 @@ extra-deps:
 #
 # Allow a newer minor version of GHC than the snapshot specifies
 # compiler-check: newer-minor
+
+nix:
+  enable: true
+  packages:
+    - blas
+    - lapack

@@ -7,13 +7,13 @@ packages:
 - completed:
     hackage: typelits-witnesses-0.3.0.3@sha256:2d9df4ac6ff3077bfd2bf659e4b495e157723ac5b45c519762853f55df5c16db,2738
     pantry-tree:
-      size: 469
       sha256: 6a42a462f98e94933b6e9721acd912c6c6b6a4743635efd15cc5871908c816a0
+      size: 469
   original:
     hackage: typelits-witnesses-0.3.0.3
 snapshots:
 - completed:
-    size: 590100
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/18/28.yaml
-    sha256: 428ec8d5ce932190d3cbe266b9eb3c175cd81e984babf876b64019e2cbe4ea68
-  original: lts-18.28
+    sha256: 9fa4bece7acfac1fc7930c5d6e24606004b09e80aa0e52e9f68b148201008db9
+    size: 649606
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/20/18.yaml
+  original: lts-20.18

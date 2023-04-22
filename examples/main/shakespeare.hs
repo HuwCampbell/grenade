@@ -14,22 +14,15 @@ import           Data.Char ( isUpper, toUpper, toLower )
 import           Data.List ( foldl' )
 import           Data.Maybe ( fromMaybe )
 
-#if ! MIN_VERSION_base(4,13,0)
-import           Data.Semigroup ( (<>) )
-#endif
 
 import qualified Data.Vector as V
 import           Data.Vector ( Vector )
 
 import qualified Data.Map as M
-#if ! MIN_VERSION_base(4,13,0)
-import           Data.Proxy ( Proxy (..) )
-#endif
 
 import qualified Data.ByteString as B
 import           Data.Serialize
 
-import           Data.Singletons.Prelude
 import           GHC.TypeLits
 
 import           Numeric.LinearAlgebra.Static ( konst )
@@ -41,6 +34,8 @@ import           Grenade.Recurrent
 import           Grenade.Utils.OneHot
 
 import           System.IO.Unsafe ( unsafeInterleaveIO )
+import           Data.Proxy
+import           Prelude.Singletons
 
 -- The defininition for our natural language recurrent network.
 -- This network is able to learn and generate simple words in

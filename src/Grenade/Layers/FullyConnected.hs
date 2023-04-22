@@ -13,7 +13,6 @@ import           Control.Monad.Random hiding (fromList)
 
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits
 
 import qualified Numeric.LinearAlgebra as LA
 import           Numeric.LinearAlgebra.Static
@@ -21,6 +20,7 @@ import           Numeric.LinearAlgebra.Static
 import           Grenade.Core
 
 import           Grenade.Layers.Internal.Update
+import           GHC.TypeLits
 
 -- | A basic fully connected (or inner product) neural network layer.
 data FullyConnected i o = FullyConnected

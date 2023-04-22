@@ -13,11 +13,12 @@ module Grenade.Core.Runner (
   , runNet
   ) where
 
-import           Data.Singletons.Prelude
 
 import           Grenade.Core.LearningParameters
 import           Grenade.Core.Network
 import           Grenade.Core.Shape
+import           Data.Singletons
+import           Prelude.Singletons
 
 -- | Perform reverse automatic differentiation on the network
 --   for the current input and expected output.
