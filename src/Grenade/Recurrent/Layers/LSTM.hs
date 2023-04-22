@@ -21,11 +21,7 @@ import           Control.Monad.Random ( MonadRandom, getRandom )
 -- import           Data.List ( foldl1' )
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits
-
-#if MIN_VERSION_base(4,9,0)
 import           Data.Kind (Type)
-#endif
 
 import qualified Numeric.LinearAlgebra as LA
 import           Numeric.LinearAlgebra.Static
@@ -33,6 +29,7 @@ import           Numeric.LinearAlgebra.Static
 import           Grenade.Core
 import           Grenade.Recurrent.Core
 import           Grenade.Layers.Internal.Update
+import           GHC.TypeLits
 
 
 -- | Long Short Term Memory Recurrent unit

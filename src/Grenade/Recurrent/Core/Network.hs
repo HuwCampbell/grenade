@@ -29,16 +29,13 @@ module Grenade.Recurrent.Core.Network (
 
 
 import           Control.Monad.Random ( MonadRandom )
-import           Data.Singletons ( SingI )
-import           Data.Singletons.Prelude ( Head, Last )
 import           Data.Serialize
 
-#if MIN_VERSION_base(4,9,0)
 import           Data.Kind (Type)
-#endif
 
 import           Grenade.Core
 import           Grenade.Recurrent.Core.Layer
+import           Prelude.Singletons
 
 -- | Witness type to say indicate we're building up with a normal feed
 --   forward layer.

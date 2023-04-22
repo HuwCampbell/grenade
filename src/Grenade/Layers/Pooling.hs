@@ -22,16 +22,9 @@ module Grenade.Layers.Pooling (
 import           Data.Maybe
 import           Data.Proxy
 import           Data.Serialize
-import           Data.Singletons.TypeLits
 
-#if MIN_VERSION_base(4,11,0)
-import           GHC.TypeLits hiding (natVal)
-#else
 import           GHC.TypeLits
-#endif
-#if MIN_VERSION_base(4,9,0)
 import           Data.Kind (Type)
-#endif
 
 import           Grenade.Core
 import           Grenade.Layers.Internal.Pooling

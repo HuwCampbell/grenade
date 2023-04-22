@@ -21,35 +21,20 @@ Stability   : experimental
 module Grenade.Core.Shape (
     S (..)
   , Shape (..)
-#if MIN_VERSION_singletons(2,6,0)
   , SShape (..)
-#else
-  , Sing (..)
-#endif
-
   , randomOfShape
   , fromStorable
   ) where
 
 import           Control.DeepSeq (NFData (..))
 import           Control.Monad.Random ( MonadRandom, getRandom )
-
-#if MIN_VERSION_base(4,13,0)
 import           Data.Kind (Type)
-#endif
 import           Data.Proxy
 import           Data.Serialize
 import           Data.Singletons
-import           Data.Singletons.TypeLits
 import           Data.Vector.Storable ( Vector )
 import qualified Data.Vector.Storable as V
-
-#if MIN_VERSION_base(4,11,0)
-import           GHC.TypeLits hiding (natVal)
-#else
 import           GHC.TypeLits
-#endif
-
 import qualified Numeric.LinearAlgebra.Static as H
 import           Numeric.LinearAlgebra.Static
 import qualified Numeric.LinearAlgebra as NLA
@@ -99,9 +84,9 @@ deriving instance Show (S n)
 type instance Sing = SShape
 
 data SShape :: Shape -> Type where
-  D1Sing :: Sing a -> SShape ('D1 a)
-  D2Sing :: Sing a -> Sing b -> SShape ('D2 a b)
-  D3Sing :: KnownNat (a * c) => Sing a -> Sing b -> Sing c -> SShape ('D3 a b c)
+  D1Sing :: KnownNat a => SShape ('D1 a)
+  D2Sing :: (KnownNat a, KnownNat b) => SShape ('D2 a b)
+  D3Sing :: (KnownNat (a * c), KnownNat a, KnownNat b, KnownNat c) => SShape ('D3 a b c)
 #else
 data instance Sing (n :: Shape) where
   D1Sing :: Sing a -> Sing ('D1 a)
@@ -110,11 +95,11 @@ data instance Sing (n :: Shape) where
 #endif
 
 instance KnownNat a => SingI ('D1 a) where
-  sing = D1Sing sing
+  sing = D1Sing
 instance (KnownNat a, KnownNat b) => SingI ('D2 a b) where
-  sing = D2Sing sing sing
+  sing = D2Sing
 instance (KnownNat a, KnownNat b, KnownNat c, KnownNat (a * c)) => SingI ('D3 a b c) where
-  sing = D3Sing sing sing sing
+  sing = D3Sing
 
 instance SingI x => Num (S x) where
   (+) = n2 (+)
@@ -163,13 +148,13 @@ randomOfShape :: forall x m. ( MonadRandom m, SingI x ) => m (S x)
 randomOfShape = do
   seed :: Int <- getRandom
   return $ case (sing :: Sing x) of
-    D1Sing SNat ->
+    D1Sing ->
         S1D (randomVector  seed Uniform * 2 - 1)
 
-    D2Sing SNat SNat ->
+    D2Sing ->
         S2D (uniformSample seed (-1) 1)
 
-    D3Sing SNat SNat SNat ->
+    D3Sing ->
         S3D (uniformSample seed (-1) 1)
 
 -- | Generate a shape from a Storable Vector.
@@ -177,13 +162,13 @@ randomOfShape = do
 --   Returns Nothing if the vector is of the wrong size.
 fromStorable :: forall x. SingI x => Vector Double -> Maybe (S x)
 fromStorable xs = case sing :: Sing x of
-    D1Sing SNat ->
+    D1Sing ->
       S1D <$> H.create xs
 
-    D2Sing SNat SNat ->
+    D2Sing ->
       S2D <$> mkL xs
 
-    D3Sing SNat SNat SNat ->
+    D3Sing ->
       S3D <$> mkL xs
   where
     mkL :: forall rows columns. (KnownNat rows, KnownNat columns)
@@ -220,13 +205,13 @@ n2 f (S2D x) (S2D y) = S2D (f x y)
 n2 f (S3D x) (S3D y) = S3D (f x y)
 
 -- Helper function for creating the number instances
-nk :: forall x. SingI x => Double -> S x
+nk :: forall x. (SingI x) => Double -> S x
 nk x = case (sing :: Sing x) of
-  D1Sing SNat ->
+  D1Sing ->
     S1D (konst x)
 
-  D2Sing SNat SNat ->
+  D2Sing ->
     S2D (konst x)
 
-  D3Sing SNat SNat SNat ->
+  D3Sing ->
     S3D (konst x)

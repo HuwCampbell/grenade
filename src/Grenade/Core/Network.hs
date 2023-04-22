@@ -34,7 +34,6 @@ module Grenade.Core.Network (
 import           Control.Monad.Random ( MonadRandom )
 
 import           Data.Singletons
-import           Data.Singletons.Prelude
 import           Data.Serialize
 
 #if MIN_VERSION_base(4,9,0)
@@ -44,6 +43,7 @@ import           Data.Kind (Type)
 import           Grenade.Core.Layer
 import           Grenade.Core.LearningParameters
 import           Grenade.Core.Shape
+import Prelude.Singletons
 
 -- | Type of a network.
 --
