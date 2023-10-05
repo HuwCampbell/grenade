@@ -21,6 +21,7 @@ Stability   : experimental
 module Grenade.Core.Shape (
     S (..)
   , Shape (..)
+  , Sing (..)
   , SShape (..)
   , randomOfShape
   , fromStorable
