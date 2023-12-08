@@ -53,7 +53,7 @@ instance (KnownNat i, KnownNat o) => Layer (FullyConnected i o) ('D1 i) ('D1 o) 
   runBackwards (FullyConnected (FullyConnected' _ wN) _) x (S1D dEdy) =
           let wB'  = dEdy
               mm'  = dEdy `outer` x
-              -- calcluate derivatives for next step
+              -- calculate derivatives for next step
               dWs  = tr wN #> dEdy
           in  (FullyConnected' wB' mm', S1D dWs)
 
