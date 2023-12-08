@@ -38,18 +38,18 @@ source-repository head
 library
   build-depends:
                        base                            >= 4.8         && < 5
-                     , bytestring                      >= 0.10.0
-                     , containers                      >= 0.5         && < 0.7
+                     , bytestring                      >= 0.10        && < 0.13
+                     , containers                      >= 0.5         && < 0.8
                      , cereal                          >= 0.5         && < 0.6
-                     , deepseq                         >= 1.4         && < 1.5
+                     , deepseq                         >= 1.4         && < 1.6
                      , hmatrix                         >= 0.18        && < 0.21
-                     , MonadRandom                     >= 0.4         && < 0.6
-                     , primitive                       >= 0.6         && < 0.8
+                     , MonadRandom                     >= 0.4         && < 0.7
+                     , primitive                       >= 0.6         && < 0.10
                      -- Versions of singletons are *tightly* coupled with the
                      -- GHC version so its fine to drop version bounds.
                      , singletons
                      , singletons-base
-                     , vector                          >= 0.11        && < 0.13
+                     , vector                          >= 0.11        && < 0.14
 
   ghc-options:
                        -Wall
@@ -161,12 +161,12 @@ test-suite test
   build-depends:
                        base
                      , grenade
-                     , hedgehog                        >= 1.0         && < 1.1
+                     , hedgehog                        >= 1.0         && < 1.5
                      , hmatrix
                      , mtl
                      , singletons
-                     , text                            == 1.2.*
-                     , typelits-witnesses              < 0.4
+                     , text                            >= 1.2
+                     , typelits-witnesses              < 0.5
                      , transformers
                      , constraints
                      , MonadRandom
@@ -191,7 +191,7 @@ benchmark bench
   build-depends:
                        base
                      , bytestring
-                     , criterion                       >= 1.1        && < 1.6
+                     , criterion                       >= 1.1        && < 1.7
                      , grenade
                      , hmatrix
 

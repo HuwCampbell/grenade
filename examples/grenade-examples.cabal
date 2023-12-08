@@ -27,7 +27,7 @@ executable             feedforward
                      , cereal
                      , either
                      , optparse-applicative            >= 0.13       && < 0.18
-                     , text                            == 1.2.*
+                     , text                            >= 1.2
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix
                      , transformers
@@ -43,7 +43,7 @@ executable             mnist
                      , attoparsec
                      , either
                      , optparse-applicative            >= 0.13       && < 0.18
-                     , text                            == 1.2.*
+                     , text                            >= 1.2
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.21
                      , transformers
@@ -62,7 +62,7 @@ executable             gan-mnist
                      , cereal
                      , either
                      , optparse-applicative            >= 0.13       && < 0.18
-                     , text                            == 1.2.*
+                     , text                            >= 1.2
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.21
                      , transformers
@@ -79,7 +79,7 @@ executable             recurrent
                      , attoparsec
                      , either
                      , optparse-applicative            >= 0.13       && < 0.18
-                     , text                            == 1.2.*
+                     , text                            >= 1.2
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.21
                      , transformers
@@ -97,7 +97,7 @@ executable             shakespeare
                      , cereal
                      , either
                      , optparse-applicative            >= 0.13       && < 0.18
-                     , text                            == 1.2.*
+                     , text                            >= 1.2
                      , mtl                             >= 2.2.1      && < 2.3
                      , hmatrix                         >= 0.18       && < 0.21
                      , transformers
